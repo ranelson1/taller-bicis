@@ -2,9 +2,11 @@ import { useParams, Link } from "wouter";
 import {
   useGetWorkCase,
   useGetWorkCaseTimeline,
-  useRecalculateWorkCaseStatus,
+  useGetWorkOrder,
   useUpdateWorkOrderStatus,
-  useCreateQuoteItem,
+  useAddWorkOrderItem,
+  useDecideWorkOrderItem,
+  useShareWorkOrder,
   useAddWorkCaseComment,
   useAssignMechanicToWorkOrder,
   useListUsers,
@@ -12,6 +14,9 @@ import {
   useListParts,
   getGetWorkCaseQueryKey,
   getGetWorkCaseTimelineQueryKey,
+  getGetWorkOrderQueryKey,
+  type WorkOrderItem,
+  type WorkOrderShare,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -20,81 +25,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft, Briefcase, FileText, Inbox, ClipboardList, User, Bike,
-  RefreshCw, ChevronDown, ChevronUp, Clock, CheckCircle2, Circle, XCircle,
-  Play, MessageSquarePlus, PlusCircle,
+  ArrowLeft, Briefcase, User, Bike, ChevronDown, ChevronUp, Clock, CheckCircle2, Circle, XCircle,
+  Play, MessageSquarePlus, PlusCircle, Send, Copy, ExternalLink, MessageCircle, Check, X,
+  ClipboardCheck, Eye, FileText,
 } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
-const STATUS_LABELS: Record<string, string> = {
-  lead: "Lead",
-  quoted: "Presupuestado",
-  quote_sent: "Presupuesto enviado",
-  quote_approved: "Presupuesto aprobado",
-  bike_received: "Bici recibida",
-  in_inspection: "En inspección",
-  ready_for_work_order: "Listo para OT",
-  in_work_order: "En OT",
-  in_progress: "En trabajo",
-  quality_control: "Control calidad",
-  ready_for_pickup: "Listo para retiro",
-  delivered: "Entregado",
-  cancelled: "Cancelado",
-  closed: "Cerrado",
+// Ficha del taller: un trabajo = una OT que se va actualizando.
+// Presupuesto y recepción siguen existiendo por dentro, pero no se muestran como documentos aparte.
+
+const WO_STATUS_LABELS: Record<string, string> = {
+  ready_to_work: "Recibida", in_progress: "En reparación",
+  quality_control: "Control de calidad", ready_for_pickup: "Lista para retiro",
+  delivered: "Entregada", cancelled: "Cancelada",
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  lead: "bg-gray-100 text-gray-700 border-gray-200",
-  quoted: "bg-blue-50 text-blue-700 border-blue-200",
-  quote_sent: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  quote_approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  bike_received: "bg-sky-50 text-sky-700 border-sky-200",
-  in_inspection: "bg-amber-50 text-amber-700 border-amber-200",
-  ready_for_work_order: "bg-teal-50 text-teal-700 border-teal-200",
-  in_work_order: "bg-orange-50 text-orange-700 border-orange-200",
+const WO_STATUS_COLORS: Record<string, string> = {
+  ready_to_work: "bg-sky-50 text-sky-700 border-sky-200",
   in_progress: "bg-yellow-50 text-yellow-700 border-yellow-200",
   quality_control: "bg-purple-50 text-purple-700 border-purple-200",
   ready_for_pickup: "bg-green-50 text-green-700 border-green-200",
   delivered: "bg-gray-50 text-gray-500 border-gray-200",
   cancelled: "bg-red-50 text-red-600 border-red-200",
-  closed: "bg-gray-100 text-gray-500 border-gray-200",
 };
 
-const QUOTE_STATUS_LABELS: Record<string, string> = {
-  draft: "Borrador", sent: "Enviado", partially_approved: "Aprobado parcial",
-  approved: "Aprobado", rejected: "Rechazado", updated_after_sent: "Actualizado",
-  ready_for_work_order: "Listo para OT", converted_to_work_order: "Convertido a OT",
-};
+const WO_STEPS = ["ready_to_work", "in_progress", "quality_control", "ready_for_pickup", "delivered"];
 
-const RECEPTION_STATUS_LABELS: Record<string, string> = {
-  received: "Recibida", in_inspection: "En inspección", inspection_completed: "Inspección completa",
-  waiting_quote_approval: "Esp. aprobación", ready_for_work_order: "Lista para OT", cancelled: "Cancelada",
-};
-
-const WORK_ORDER_STATUS_LABELS: Record<string, string> = {
-  ready_to_work: "Lista para trabajar", in_progress: "En trabajo",
-  quality_control: "Control calidad", ready_for_pickup: "Listo para retiro",
-  delivered: "Entregada", cancelled: "Cancelada",
-};
-
-// Next quick-action per work-order status (advances the OT through its flow).
+// Siguiente paso de la OT con un toque.
 const WO_NEXT_ACTION: Record<string, { label: string; next: string }> = {
   ready_to_work: { label: "Iniciar trabajo", next: "in_progress" },
   in_progress: { label: "Enviar a control de calidad", next: "quality_control" },
-  quality_control: { label: "Marcar listo para retiro", next: "ready_for_pickup" },
-  ready_for_pickup: { label: "Marcar como entregado", next: "delivered" },
+  quality_control: { label: "Marcar lista para retiro", next: "ready_for_pickup" },
+  ready_for_pickup: { label: "Marcar como entregada", next: "delivered" },
 };
 
 const COMMENT_TYPES = [
-  { value: "recepcion", label: "Recepción" },
   { value: "durante_trabajo", label: "Durante el trabajo" },
-  { value: "aprobacion_cliente", label: "Aprobación del cliente" },
   { value: "observacion_tecnica", label: "Observación técnica" },
+  { value: "recepcion", label: "Recepción" },
+  { value: "aprobacion_cliente", label: "Aprobación del cliente" },
   { value: "entrega", label: "Entrega" },
   { value: "interno", label: "Interno" },
 ] as const;
@@ -103,40 +79,67 @@ const ADD_ITEM_TYPES = [
   { value: "service", label: "Servicio" },
   { value: "part", label: "Repuesto" },
   { value: "additional_labor", label: "Mano de obra" },
+  { value: "discount", label: "Descuento" },
   { value: "other", label: "Otro" },
 ];
 
-// Journey steps for visual progress
-const JOURNEY_STEPS = [
-  { key: "lead", label: "Lead" },
-  { key: "quote_sent", label: "Presupuesto" },
-  { key: "bike_received", label: "Recepción" },
-  { key: "in_progress", label: "Trabajo" },
-  { key: "quality_control", label: "QC" },
-  { key: "ready_for_pickup", label: "Retiro" },
-  { key: "delivered", label: "Entrega" },
-];
+const ITEM_TYPE_LABELS: Record<string, string> = {
+  service: "Servicio", part: "Repuesto", additional_labor: "Mano de obra", diagnosis: "Diagnóstico",
+  discount: "Descuento", other: "Otro", recommendation: "Recomendación",
+};
 
-const STATUS_ORDER = [
-  "lead", "quoted", "quote_sent", "quote_approved",
-  "bike_received", "in_inspection", "ready_for_work_order",
-  "in_work_order", "in_progress", "quality_control",
-  "ready_for_pickup", "delivered", "closed",
-];
+const EVENT_LABELS: Record<string, string> = {
+  work_case_created: "Trabajo creado",
+  work_order_created: "OT creada",
+  status_changed: "Cambio de estado",
+  mechanic_assigned: "Mecánico asignado",
+  additional_item_added: "Adicional agregado",
+  item_decision: "Aprobación de ítem",
+  item_completed: "Ítem completado",
+  item_cancelled: "Ítem cancelado",
+  item_started: "Ítem iniciado",
+  work_case_status_changed: "Estado del trabajo",
+  comment_recepcion: "Comentario · Recepción",
+  comment_durante_trabajo: "Comentario · Durante el trabajo",
+  comment_aprobacion_cliente: "Comentario · Aprobación cliente",
+  comment_observacion_tecnica: "Comentario · Observación técnica",
+  comment_entrega: "Comentario · Entrega",
+  comment_interno: "Comentario · Interno",
+};
 
-function getStepState(stepKey: string, currentStatus: string, isCancelled: boolean): "completed" | "current" | "pending" | "cancelled" {
-  if (isCancelled) return "cancelled";
-  const stepIdx = JOURNEY_STEPS.findIndex(s => s.key === stepKey);
-  const currentIdx = STATUS_ORDER.indexOf(currentStatus);
-  const stepStatusIdx = STATUS_ORDER.indexOf(stepKey);
-  if (stepStatusIdx < currentIdx) return "completed";
-  if (stepKey === currentStatus || (stepIdx !== -1 && STATUS_ORDER.indexOf(JOURNEY_STEPS[stepIdx]?.key ?? "") === currentIdx)) return "current";
-  return "pending";
-}
+// Eventos de plomería interna (presupuesto/recepción ocultos) que no aportan al taller.
+const HIDDEN_EVENTS = new Set([
+  "quote_created", "reception_created", "work_case_status_changed",
+  "quote_linked_to_work_case", "reception_linked_to_work_case", "work_order_linked_to_work_case",
+]);
 
 function formatCLP(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
+}
+
+function eventDetail(e: any): string | null {
+  if (e.action === "status_changed" && e.newStatus) {
+    return `${WO_STATUS_LABELS[e.previousStatus] ?? e.previousStatus ?? ""} → ${WO_STATUS_LABELS[e.newStatus] ?? e.newStatus}`;
+  }
+  if (e.action === "item_decision") {
+    const who = e.previousStatus === "client" ? "El cliente" : "El taller";
+    return `${who} ${e.newStatus === "approved" ? "aprobó" : "rechazó"}: ${e.comment ?? ""}`;
+  }
+  return e.comment ?? null;
+}
+
+function ApprovalBadge({ item }: { item: WorkOrderItem }) {
+  if (item.approvalStatus === "pending") {
+    return <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[11px]"><Clock className="h-3 w-3" />Esperando cliente</span>;
+  }
+  if (item.approvalStatus === "rejected") {
+    return <span className="inline-flex items-center gap-1 rounded-full bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 text-[11px]"><X className="h-3 w-3" />Rechazado</span>;
+  }
+  if (item.origin === "additional") {
+    return <span className="inline-flex items-center gap-1 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 text-[11px]"><Check className="h-3 w-3" />Aprobado{item.approvalDecidedBy === "client" ? " por cliente" : ""}</span>;
+  }
+  return null;
 }
 
 export default function TrabajoDetail() {
@@ -146,10 +149,19 @@ export default function TrabajoDetail() {
   const { toast } = useToast();
 
   const { data: workCase, isLoading } = useGetWorkCase(workCaseId);
-  const { data: timeline } = useGetWorkCaseTimeline(workCaseId);
-  const recalcMutation = useRecalculateWorkCaseStatus();
+  const { data: rawTimeline } = useGetWorkCaseTimeline(workCaseId);
+  const timeline = (rawTimeline ?? []).filter((e: any) => !HIDDEN_EVENTS.has(e.action));
+
+  // La OT vigente del trabajo (la última no cancelada; si todas lo están, la última).
+  const linkedWOs = workCase?.linkedWorkOrders ?? [];
+  const activeWoRef = [...linkedWOs].reverse().find(wo => wo.status !== "cancelled") ?? linkedWOs[linkedWOs.length - 1];
+  const woId = activeWoRef?.id ?? 0;
+  const { data: wo } = useGetWorkOrder(woId, { query: { enabled: !!woId, queryKey: getGetWorkOrderQueryKey(woId) } });
+
   const updateStatus = useUpdateWorkOrderStatus();
-  const createItem = useCreateQuoteItem();
+  const addItem = useAddWorkOrderItem();
+  const decideItem = useDecideWorkOrderItem();
+  const share = useShareWorkOrder();
   const addComment = useAddWorkCaseComment();
   const assignMechanic = useAssignMechanicToWorkOrder();
   const { data: users } = useListUsers();
@@ -161,124 +173,119 @@ export default function TrabajoDetail() {
   const [itemDialog, setItemDialog] = useState(false);
   const [commentDialog, setCommentDialog] = useState(false);
   const [mechanicDialog, setMechanicDialog] = useState(false);
-  const [mechanicDialogWoId, setMechanicDialogWoId] = useState<number | null>(null);
   const [mechanicDialogAutoAdvance, setMechanicDialogAutoAdvance] = useState(false);
   const [selectedMechanicId, setSelectedMechanicId] = useState("");
-  const [itemDraft, setItemDraft] = useState({ itemType: "part", description: "", quantity: "1", unitPrice: "0" });
+  const [shareData, setShareData] = useState<WorkOrderShare | null>(null);
+  const emptyItem = { itemType: "part", description: "", quantity: "1", unitPrice: "", alreadyApproved: false };
+  const [itemDraft, setItemDraft] = useState(emptyItem);
   const [itemCatalogId, setItemCatalogId] = useState("");
   const [itemErr, setItemErr] = useState<string | null>(null);
-  const [commentDraft, setCommentDraft] = useState({ commentType: "durante_trabajo", comment: "" });
+  const [commentDraft, setCommentDraft] = useState({ commentType: "durante_trabajo", comment: "", visibleToClient: false });
   const [commentErr, setCommentErr] = useState<string | null>(null);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getGetWorkCaseQueryKey(workCaseId) });
     qc.invalidateQueries({ queryKey: getGetWorkCaseTimelineQueryKey(workCaseId) });
+    if (woId) qc.invalidateQueries({ queryKey: getGetWorkOrderQueryKey(woId) });
   };
+  const apiError = (e: any, fallback: string) => e?.data?.error ?? fallback;
 
-  const handleRecalc = () => {
-    recalcMutation.mutate({ id: workCaseId }, {
-      onSuccess: () => {
-        toast({ title: "Estado recalculado" });
-        invalidate();
-      },
-      onError: () => toast({ variant: "destructive", title: "Error al recalcular" }),
+  const advanceTo = (next: string) => {
+    if (!woId) return;
+    updateStatus.mutate({ id: woId, data: { status: next as any } }, {
+      onSuccess: () => { invalidate(); toast({ title: "Estado actualizado", description: WO_STATUS_LABELS[next] }); },
+      onError: (e) => toast({ variant: "destructive", title: apiError(e, "Error al actualizar el estado") }),
     });
   };
 
-  const primaryQuote = (workCase?.linkedQuotes ?? [])[0];
-
-  const openMechanicDialog = (woId: number, autoAdvance: boolean) => {
-    setSelectedMechanicId("");
-    setMechanicDialogWoId(woId);
-    setMechanicDialogAutoAdvance(autoAdvance);
-    setMechanicDialog(true);
-  };
-
-  const closeMechanicDialog = () => {
-    setMechanicDialog(false);
-    setMechanicDialogWoId(null);
-    setMechanicDialogAutoAdvance(false);
-    setSelectedMechanicId("");
+  const handleAdvance = () => {
+    const action = wo ? WO_NEXT_ACTION[wo.status] : undefined;
+    if (!action) return;
+    if (action.next === "in_progress" && !wo?.mechanicId) {
+      setSelectedMechanicId("");
+      setMechanicDialogAutoAdvance(true);
+      setMechanicDialog(true);
+      return;
+    }
+    advanceTo(action.next);
   };
 
   const handleMechanicConfirm = () => {
-    if (!selectedMechanicId || mechanicDialogWoId === null) return;
-    const woId = mechanicDialogWoId;
+    if (!selectedMechanicId || !woId) return;
     const shouldAdvance = mechanicDialogAutoAdvance;
-    assignMechanic.mutate(
-      { id: woId, data: { mechanicId: parseInt(selectedMechanicId) } },
-      {
-        onSuccess: () => {
-          closeMechanicDialog();
-          invalidate();
-          toast({ title: "Mecánico asignado" });
-          if (shouldAdvance) {
-            updateStatus.mutate(
-              { id: woId, data: { status: "in_progress" as any } },
-              {
-                onSuccess: () => {
-                  recalcMutation.mutate({ id: workCaseId }, {
-                    onSuccess: () => invalidate(),
-                    onError: () => invalidate(),
-                  });
-                  toast({ title: "Estado actualizado", description: WORK_ORDER_STATUS_LABELS["in_progress"] });
-                },
-                onError: () => toast({ variant: "destructive", title: "Error al actualizar el estado" }),
-              }
-            );
-          }
-        },
-        onError: () => toast({ variant: "destructive", title: "Error al asignar el mecánico" }),
-      }
-    );
-  };
-
-  const handleAdvanceWorkOrder = (woId: number, currentStatus: string) => {
-    const action = WO_NEXT_ACTION[currentStatus];
-    if (!action) return;
-    if (action.next === "in_progress" && !workCase?.assignedMechanicId) {
-      openMechanicDialog(woId, true);
-      return;
-    }
-    updateStatus.mutate({ id: woId, data: { status: action.next as any } }, {
+    assignMechanic.mutate({ id: woId, data: { mechanicId: parseInt(selectedMechanicId) } }, {
       onSuccess: () => {
-        recalcMutation.mutate({ id: workCaseId }, {
-          onSuccess: () => invalidate(),
-          onError: () => invalidate(),
-        });
-        toast({ title: "Estado actualizado", description: WORK_ORDER_STATUS_LABELS[action.next] });
+        setMechanicDialog(false);
+        toast({ title: "Mecánico asignado" });
+        if (shouldAdvance) advanceTo("in_progress"); else invalidate();
       },
-      onError: () => toast({ variant: "destructive", title: "Error al actualizar el estado" }),
+      onError: () => toast({ variant: "destructive", title: "Error al asignar el mecánico" }),
     });
   };
 
   const handleAddItem = () => {
     setItemErr(null);
-    if (!primaryQuote) { setItemErr("No hay un presupuesto vinculado."); return; }
+    if (!woId) return;
     if (!itemDraft.description.trim()) { setItemErr("Ingresa una descripción"); return; }
     const qty = parseFloat(itemDraft.quantity);
     const price = parseFloat(itemDraft.unitPrice);
     if (isNaN(qty) || qty <= 0) { setItemErr("Cantidad inválida"); return; }
     if (isNaN(price) || price < 0) { setItemErr("Precio inválido"); return; }
-    createItem.mutate({
-      id: primaryQuote.id!,
+    const catalogId = itemCatalogId ? parseInt(itemCatalogId) : null;
+    addItem.mutate({
+      id: woId,
       data: {
         itemType: itemDraft.itemType as any,
-        origin: "during_work",
         description: itemDraft.description.trim(),
         quantity: qty,
         unitPrice: price,
+        serviceId: itemDraft.itemType === "service" ? catalogId : null,
+        partId: itemDraft.itemType === "part" ? catalogId : null,
+        alreadyApproved: itemDraft.alreadyApproved,
       },
     }, {
       onSuccess: () => {
-        toast({ title: "Adicional agregado", description: "Agregado al presupuesto y a la OT activa." });
+        toast({
+          title: "Adicional agregado",
+          description: itemDraft.alreadyApproved ? "Quedó aprobado y suma al total." : "Quedó esperando la aprobación del cliente.",
+        });
         setItemDialog(false);
-        setItemDraft({ itemType: "part", description: "", quantity: "1", unitPrice: "0" });
+        setItemDraft(emptyItem);
         setItemCatalogId("");
         invalidate();
       },
-      onError: () => toast({ variant: "destructive", title: "Error al agregar el adicional" }),
+      onError: (e) => setItemErr(apiError(e, "Error al agregar el adicional")),
     });
+  };
+
+  const handleDecide = (item: WorkOrderItem, decision: "approved" | "rejected") => {
+    if (!woId) return;
+    decideItem.mutate({ id: woId, itemId: item.id, data: { decision } }, {
+      onSuccess: () => { invalidate(); toast({ title: decision === "approved" ? "Marcado como aprobado" : "Marcado como rechazado" }); },
+      onError: (e) => toast({ variant: "destructive", title: apiError(e, "No se pudo guardar") }),
+    });
+  };
+
+  const handleShare = () => {
+    if (!woId) return;
+    share.mutate({ id: woId }, {
+      onSuccess: (data) => setShareData(data),
+      onError: () => toast({ variant: "destructive", title: "No se pudo generar el link" }),
+    });
+  };
+
+  const publicUrl = shareData ? `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}${shareData.path}` : "";
+  const whatsappUrl = shareData
+    ? `https://wa.me/${(shareData.clientPhone ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(`${shareData.message}\n${publicUrl}`)}`
+    : "";
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      toast({ title: "Link copiado" });
+    } catch {
+      toast({ variant: "destructive", title: "No se pudo copiar", description: publicUrl });
+    }
   };
 
   const handleAddComment = () => {
@@ -286,12 +293,16 @@ export default function TrabajoDetail() {
     if (!commentDraft.comment.trim()) { setCommentErr("Escribe un comentario"); return; }
     addComment.mutate({
       id: workCaseId,
-      data: { commentType: commentDraft.commentType as any, comment: commentDraft.comment.trim() },
+      data: {
+        commentType: commentDraft.commentType as any,
+        comment: commentDraft.comment.trim(),
+        visibleToClient: commentDraft.visibleToClient,
+      },
     }, {
       onSuccess: () => {
-        toast({ title: "Comentario agregado" });
+        toast({ title: "Comentario agregado", description: commentDraft.visibleToClient ? "El cliente lo verá en su seguimiento." : undefined });
         setCommentDialog(false);
-        setCommentDraft({ commentType: "durante_trabajo", comment: "" });
+        setCommentDraft({ commentType: "durante_trabajo", comment: "", visibleToClient: false });
         invalidate();
       },
       onError: () => toast({ variant: "destructive", title: "Error al agregar el comentario" }),
@@ -300,7 +311,7 @@ export default function TrabajoDetail() {
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-4">
+      <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-4">
         {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full" />)}
       </div>
     );
@@ -316,340 +327,216 @@ export default function TrabajoDetail() {
     );
   }
 
-  const wcStatus = workCase.status ?? "lead";
-  const isCancelled = wcStatus === "cancelled" || wcStatus === "closed";
-  const currentStatusIdx = STATUS_ORDER.indexOf(wcStatus);
+  const items = (wo?.items ?? []).filter(i => i.status !== "cancelled");
+  const pendingItems = items.filter(i => i.approvalStatus === "pending");
+  const pendingAmount = pendingItems.reduce((s, i) => s + (i.itemType === "discount" ? -i.total : i.total), 0);
+  const woStatus = wo?.status ?? "";
+  const isClosed = woStatus === "delivered" || woStatus === "cancelled";
+  const stepIdx = WO_STEPS.indexOf(woStatus);
+  const nextAction = WO_NEXT_ACTION[woStatus];
+  const checklist = wo?.checklist ?? [];
+  const checklistDone = checklist.filter(c => ["completed", "with_observation", "not_applicable"].includes(c.status)).length;
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-      {/* Back nav */}
-      <div className="flex items-center gap-3">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-4">
+      {/* Encabezado */}
+      <div className="flex items-start gap-2">
         <Link href="/trabajos">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <Button variant="ghost" size="icon" className="-ml-2"><ArrowLeft className="h-5 w-5" /></Button>
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold font-mono text-primary">{workCase.workCaseNumber}</h1>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium border ${STATUS_COLORS[wcStatus] ?? ""}`}>
-              {STATUS_LABELS[wcStatus] ?? wcStatus}
-            </span>
+            <h1 className="text-2xl font-bold font-mono text-primary">{wo?.workOrderNumber ?? workCase.workCaseNumber}</h1>
+            {wo && (
+              <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium border", WO_STATUS_COLORS[woStatus])}>
+                {WO_STATUS_LABELS[woStatus] ?? woStatus}
+              </span>
+            )}
           </div>
-          <p className="text-muted-foreground text-sm mt-0.5">{workCase.clientName ?? "—"}</p>
+          <p className="text-muted-foreground text-sm">{workCase.clientName ?? "—"} · {workCase.bicycleName ?? "Sin bicicleta"}</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRecalc}
-          disabled={recalcMutation.isPending}
-          className="flex items-center gap-1.5 shrink-0"
-        >
-          <RefreshCw className={`h-4 w-4 ${recalcMutation.isPending ? "animate-spin" : ""}`} />
-          Recalcular
-        </Button>
       </div>
 
-      {/* Journey timeline */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Recorrido del trabajo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-0 overflow-x-auto pb-2">
-            {JOURNEY_STEPS.map((step, i) => {
-              const stateIdx = STATUS_ORDER.indexOf(step.key);
-              let state: "completed" | "current" | "pending" | "cancelled";
-              if (isCancelled) state = i <= 0 ? "completed" : "cancelled";
-              else if (stateIdx < currentStatusIdx) state = "completed";
-              else if (stateIdx === currentStatusIdx || (i < JOURNEY_STEPS.length - 1 && STATUS_ORDER.indexOf(JOURNEY_STEPS[i + 1]?.key ?? "") > currentStatusIdx && stateIdx <= currentStatusIdx)) state = "current";
-              else state = "pending";
-
-              // simplified: completed if statusOrder index of step <= current
-              const simpleCompleted = STATUS_ORDER.indexOf(step.key) < currentStatusIdx;
-              const simpleCurrent = STATUS_ORDER.indexOf(step.key) === currentStatusIdx ||
-                (i > 0 && STATUS_ORDER.indexOf(JOURNEY_STEPS[i - 1]?.key ?? "") < currentStatusIdx && stateIdx > currentStatusIdx);
-
-              const isCompleted = simpleCompleted && !isCancelled;
-              const isCurrent = !isCancelled && !simpleCompleted && stateIdx <= currentStatusIdx + 1 &&
-                (i === JOURNEY_STEPS.findIndex(s => STATUS_ORDER.indexOf(s.key) >= currentStatusIdx));
-
-              return (
-                <div key={step.key} className="flex items-center flex-1 min-w-0">
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                      isCancelled && i > 0 ? "border-red-200 bg-red-50 text-red-400" :
-                      isCompleted ? "border-green-500 bg-green-500 text-white" :
-                      isCurrent ? "border-primary bg-primary text-primary-foreground" :
-                      "border-gray-200 bg-white text-gray-400"
-                    }`}>
-                      {isCancelled && i > 0 ? <XCircle className="h-4 w-4" /> :
-                       isCompleted ? <CheckCircle2 className="h-4 w-4" /> :
-                       isCurrent ? i + 1 :
-                       <Circle className="h-3 w-3" />}
-                    </div>
-                    <span className={`text-[10px] mt-1 text-center whitespace-nowrap font-medium ${
-                      isCurrent ? "text-primary" : isCompleted ? "text-green-600" : "text-muted-foreground"
-                    }`}>{step.label}</span>
-                  </div>
-                  {i < JOURNEY_STEPS.length - 1 && (
-                    <div className={`h-0.5 flex-1 mx-1 ${isCompleted ? "bg-green-400" : "bg-gray-200"}`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Info grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Client & bike */}
+      {!wo ? (
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Cliente y bicicleta</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground shrink-0" />
-              <Link href={`/clientes/${workCase.clientId}`}>
-                <span className="font-medium hover:underline text-primary cursor-pointer">{workCase.clientName ?? "—"}</span>
+          <CardContent className="py-6 text-sm text-muted-foreground space-y-3">
+            <p>Este trabajo todavía no tiene una orden de trabajo.</p>
+            {(workCase.linkedQuotes ?? []).map(q => (
+              <Link key={q.id} href={`/presupuestos/${q.id}`}>
+                <Button variant="outline" size="sm" className="mr-2"><FileText className="h-4 w-4 mr-1" />Ver presupuesto {q.quoteNumber}</Button>
               </Link>
-            </div>
-            {workCase.bicycleName && (
-              <div className="flex items-center gap-2">
-                <Bike className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span>{workCase.bicycleName}</span>
+            ))}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Acciones principales */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Button onClick={handleShare} disabled={share.isPending} className="h-11" data-testid="button-share">
+              <Send className="h-4 w-4 mr-2" /> Enviar al cliente
+            </Button>
+            {nextAction ? (
+              <Button variant="outline" onClick={handleAdvance} disabled={updateStatus.isPending} className="h-11" data-testid="button-advance">
+                <Play className="h-4 w-4 mr-2" /> {nextAction.label}
+              </Button>
+            ) : (
+              <div className="h-11 flex items-center justify-center text-sm text-muted-foreground border rounded-md">
+                {woStatus === "delivered" ? "Orden entregada" : "Orden cancelada"}
               </div>
             )}
-            {workCase.mechanicName ? (
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground text-sm">Mecánico: {workCase.mechanicName}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-1.5 text-xs text-muted-foreground ml-auto"
-                  onClick={() => {
-                    const activeWo = (workCase.linkedWorkOrders ?? []).find(
-                      (wo) => !["delivered", "cancelled"].includes(wo.status ?? "")
-                    ) ?? (workCase.linkedWorkOrders ?? [])[0];
-                    if (!activeWo?.id) return;
-                    setSelectedMechanicId(workCase.assignedMechanicId ? String(workCase.assignedMechanicId) : "");
-                    openMechanicDialog(activeWo.id, false);
-                  }}
-                >
-                  Cambiar
+          </div>
+
+          {/* Recorrido */}
+          {woStatus !== "cancelled" && (
+            <Card>
+              <CardContent className="pt-5 pb-4">
+                <ol className="flex items-start">
+                  {WO_STEPS.map((st, i) => {
+                    const done = i < stepIdx || woStatus === "delivered";
+                    const current = i === stepIdx && woStatus !== "delivered";
+                    return (
+                      <li key={st} className="flex-1 flex flex-col items-center relative min-w-0">
+                        {i > 0 && <span className={cn("absolute top-3.5 right-1/2 w-full h-0.5", i <= stepIdx ? "bg-green-400" : "bg-gray-200")} />}
+                        <span className={cn("relative z-10 w-7 h-7 rounded-full flex items-center justify-center border-2",
+                          done ? "border-green-500 bg-green-500 text-white" :
+                          current ? "border-primary bg-primary text-primary-foreground" : "border-gray-200 bg-white text-gray-300")}>
+                          {done ? <CheckCircle2 className="h-4 w-4" /> : current ? <span className="text-xs font-bold">{i + 1}</span> : <Circle className="h-3 w-3" />}
+                        </span>
+                        <span className={cn("text-[10px] mt-1 text-center leading-tight px-0.5",
+                          current ? "text-primary font-semibold" : done ? "text-green-700" : "text-muted-foreground")}>
+                          {WO_STATUS_LABELS[st]}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Pendientes del cliente */}
+          {pendingItems.length > 0 && !isClosed && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex items-start gap-2">
+              <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold">{pendingItems.length} adicional(es) esperando al cliente · {formatCLP(pendingAmount)}</p>
+                <p className="text-xs">Envíale el link para que apruebe desde su celular, o regístralo tú si te respondió por otro medio.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Trabajos */}
+          <Card>
+            <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Trabajos</CardTitle>
+              {!isClosed && (
+                <Button variant="ghost" size="sm" className="text-primary -mr-2" onClick={() => { setItemErr(null); setItemDialog(true); }} data-testid="button-open-add-item">
+                  <PlusCircle className="h-4 w-4 mr-1" /> Adicional
                 </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-sm text-primary font-medium"
-                  onClick={() => {
-                    const activeWo = (workCase.linkedWorkOrders ?? []).find(
-                      (wo) => !["delivered", "cancelled"].includes(wo.status ?? "")
-                    ) ?? (workCase.linkedWorkOrders ?? [])[0];
-                    if (!activeWo?.id) return;
-                    openMechanicDialog(activeWo.id, false);
-                  }}
-                  data-testid="button-assign-mechanic"
-                >
-                  Asignar mecánico
-                </Button>
-              </div>
-            )}
-            {workCase.originChannel && (
-              <div className="text-sm text-muted-foreground">Canal: {workCase.originChannel}</div>
-            )}
-            {workCase.initialRequirement && (
-              <div className="text-sm mt-2 p-2 bg-muted rounded-md">{workCase.initialRequirement}</div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Amounts */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Montos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground text-sm">Monto estimado</span>
-              <span className="font-bold text-lg">{formatCLP(workCase.totalEstimatedAmount)}</span>
-            </div>
-            {workCase.totalEstimatedLaborHours !== null && workCase.totalEstimatedLaborHours !== undefined && (
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground text-sm">Horas M.O.</span>
-                <span className="font-medium">{Number(workCase.totalEstimatedLaborHours).toFixed(1)}h</span>
-              </div>
-            )}
-            <Separator />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Creado</span>
-              <span>{new Date(workCase.createdAt ?? "").toLocaleDateString("es-CL")}</span>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Actualizado</span>
-              <span>{new Date(workCase.updatedAt ?? "").toLocaleDateString("es-CL")}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Linked documents */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Quotes */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-600" />
-              Presupuestos ({workCase.linkedQuotes?.length ?? 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {(workCase.linkedQuotes ?? []).length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sin presupuestos vinculados</p>
-            ) : (
-              (workCase.linkedQuotes ?? []).map((q) => (
-                <Link key={q.id} href={`/presupuestos/${q.id}`}>
-                  <div className="p-2 rounded-md hover:bg-muted cursor-pointer space-y-0.5">
-                    <div className="flex justify-between items-center">
-                      <p className="font-mono text-sm font-bold text-primary">{q.quoteNumber}</p>
-                      <span className="text-sm font-medium">
-                        {q.total ? new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(Number(q.total)) : "—"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{QUOTE_STATUS_LABELS[q.status ?? ""] ?? q.status}</p>
-                    {(q as any).customerNotes && <p className="text-xs text-muted-foreground line-clamp-2">Cliente: {(q as any).customerNotes}</p>}
-                    {(q as any).internalNotes && <p className="text-xs text-muted-foreground line-clamp-2">Interno: {(q as any).internalNotes}</p>}
-                  </div>
-                </Link>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Receptions */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Inbox className="h-4 w-4 text-sky-600" />
-              Recepciones ({workCase.linkedReceptions?.length ?? 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {(workCase.linkedReceptions ?? []).length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sin recepciones vinculadas</p>
-            ) : (
-              (workCase.linkedReceptions ?? []).map((r) => (
-                <Link key={r.id} href={`/recepciones/${r.id}`}>
-                  <div className="p-2 rounded-md hover:bg-muted cursor-pointer space-y-0.5">
-                    <div className="flex justify-between items-center">
-                      <p className="font-mono text-sm font-bold text-primary">{r.receptionNumber}</p>
-                      <span className="text-xs text-muted-foreground">{new Date(r.createdAt ?? "").toLocaleDateString("es-CL")}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{RECEPTION_STATUS_LABELS[r.status ?? ""] ?? r.status}</p>
-                    {(r as any).customerNotes && <p className="text-xs text-muted-foreground line-clamp-2">Cliente: {(r as any).customerNotes}</p>}
-                    {(r as any).internalNotes && <p className="text-xs text-muted-foreground line-clamp-2">Interno: {(r as any).internalNotes}</p>}
-                  </div>
-                </Link>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Work orders */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-orange-600" />
-              Órdenes de trabajo ({workCase.linkedWorkOrders?.length ?? 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {(workCase.linkedWorkOrders ?? []).length === 0 ? (
-              <p className="text-xs text-muted-foreground">Sin OTs vinculadas</p>
-            ) : (
-              (workCase.linkedWorkOrders ?? []).map((wo) => {
-                const nextAction = WO_NEXT_ACTION[wo.status ?? ""];
-                return (
-                  <div key={wo.id} className="p-2 rounded-md border space-y-2">
-                    <Link href={`/ordenes/${wo.id}`}>
-                      <div className="cursor-pointer space-y-0.5 hover:bg-muted rounded-md p-1 -m-1">
-                        <div className="flex justify-between items-center">
-                          <p className="font-mono text-sm font-bold text-primary">{wo.workOrderNumber}</p>
-                          <span className="text-sm font-medium">
-                            {wo.total ? new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(Number(wo.total)) : "—"}
-                          </span>
+              )}
+            </CardHeader>
+            <CardContent className="pt-0">
+              {items.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">Sin ítems.</p>
+              ) : (
+                <ul className="divide-y">
+                  {items.map(item => (
+                    <li key={item.id} className={cn("py-3", item.approvalStatus === "rejected" && "opacity-60")}>
+                      <div className="flex justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className={cn("font-medium text-sm", item.approvalStatus === "rejected" && "line-through")}>{item.description}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="text-[11px] text-muted-foreground">{ITEM_TYPE_LABELS[item.itemType] ?? item.itemType}{item.quantity !== 1 ? ` · ${item.quantity} × ${formatCLP(item.unitPrice)}` : ""}</span>
+                            <ApprovalBadge item={item} />
+                            {item.status === "completed" && <span className="text-[11px] text-green-700 inline-flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" />Hecho</span>}
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">{WORK_ORDER_STATUS_LABELS[wo.status ?? ""] ?? wo.status}</p>
-                        {(wo as any).customerNotes && <p className="text-xs text-muted-foreground line-clamp-2">Cliente: {(wo as any).customerNotes}</p>}
-                        {(wo as any).internalNotes && <p className="text-xs text-muted-foreground line-clamp-2">Interno: {(wo as any).internalNotes}</p>}
+                        <span className={cn("font-semibold text-sm whitespace-nowrap", item.itemType === "discount" && "text-green-700")}>
+                          {item.itemType === "discount" ? "-" : ""}{formatCLP(item.total)}
+                        </span>
                       </div>
-                    </Link>
-                    {nextAction && wo.id !== undefined && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full flex items-center gap-1.5"
-                        disabled={updateStatus.isPending}
-                        onClick={() => handleAdvanceWorkOrder(wo.id!, wo.status ?? "")}
-                        data-testid={`button-advance-wo-${wo.id}`}
-                      >
-                        <Play className="h-3.5 w-3.5" />
-                        {nextAction.label}
-                      </Button>
-                    )}
+                      {item.approvalStatus === "pending" && !isClosed && (
+                        <div className="flex gap-2 mt-2">
+                          <Button size="sm" variant="outline" className="h-7 text-xs" disabled={decideItem.isPending} onClick={() => handleDecide(item, "approved")}>
+                            <Check className="h-3 w-3 mr-1" />Cliente aprobó
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-7 text-xs" disabled={decideItem.isPending} onClick={() => handleDecide(item, "rejected")}>
+                            <X className="h-3 w-3 mr-1" />Rechazó
+                          </Button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="border-t pt-3 mt-1 flex justify-between items-baseline">
+                <span className="text-sm text-muted-foreground">Total aprobado</span>
+                <span className="text-xl font-bold">{formatCLP(wo.total)}</span>
+              </div>
+              {pendingItems.length > 0 && (
+                <p className="text-xs text-muted-foreground text-right">+ {formatCLP(pendingAmount)} si aprueba lo pendiente</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Checklist */}
+          {checklist.length > 0 && (
+            <Link href={`/ordenes/${wo.id}`}>
+              <Card className="cursor-pointer hover:bg-muted/40 transition-colors">
+                <CardContent className="py-4 flex items-center gap-3">
+                  <ClipboardCheck className="h-5 w-5 text-primary" />
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">Checklist del mecánico</p>
+                    <div className="h-1.5 rounded-full bg-muted mt-1.5 overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${Math.round((checklistDone / checklist.length) * 100)}%` }} />
+                    </div>
                   </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  <span className="text-sm text-muted-foreground">{checklistDone}/{checklist.length}</span>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
 
-      {/* Quick actions */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Acciones rápidas</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="outline"
-            className="flex-1 flex items-center gap-2"
-            onClick={() => { setItemErr(null); setItemDialog(true); }}
-            disabled={!primaryQuote}
-            data-testid="button-open-add-item"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Agregar adicional
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 flex items-center gap-2"
-            onClick={() => { setCommentErr(null); setCommentDialog(true); }}
-            data-testid="button-open-add-comment"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-            Agregar comentario
-          </Button>
-        </CardContent>
-      </Card>
+          {/* Cliente y bicicleta */}
+          <Card>
+            <CardContent className="pt-5 space-y-2.5 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Link href={`/clientes/${workCase.clientId}`}><span className="font-medium hover:underline text-primary cursor-pointer">{workCase.clientName ?? "—"}</span></Link>
+              </div>
+              {workCase.bicycleName && (
+                <div className="flex items-center gap-2"><Bike className="h-4 w-4 text-muted-foreground shrink-0" /><span>{workCase.bicycleName}</span></div>
+              )}
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">Mecánico: {wo.mechanicName ?? "sin asignar"}</span>
+                {!isClosed && (
+                  <Button variant="ghost" size="sm" className="h-6 px-1.5 text-xs ml-auto" data-testid="button-assign-mechanic"
+                    onClick={() => { setSelectedMechanicId(wo.mechanicId ? String(wo.mechanicId) : ""); setMechanicDialogAutoAdvance(false); setMechanicDialog(true); }}>
+                    {wo.mechanicId ? "Cambiar" : "Asignar"}
+                  </Button>
+                )}
+              </div>
+              {workCase.initialRequirement && (
+                <div className="p-2 bg-muted rounded-md"><span className="text-xs text-muted-foreground block">Problema reportado</span>{workCase.initialRequirement}</div>
+              )}
+              {wo.internalNotes && (
+                <div className="p-2 bg-muted rounded-md"><span className="text-xs text-muted-foreground block">Nota interna</span>{wo.internalNotes}</div>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Timeline */}
+          <Button variant="outline" className="w-full" onClick={() => { setCommentErr(null); setCommentDialog(true); }} data-testid="button-open-add-comment">
+            <MessageSquarePlus className="h-4 w-4 mr-2" /> Agregar comentario
+          </Button>
+        </>
+      )}
+
+      {/* Historial */}
       <Card>
         <CardHeader className="pb-2 cursor-pointer" onClick={() => setShowTimeline(v => !v)}>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Historial de eventos ({(timeline ?? []).length})
-            </CardTitle>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2"><Clock className="h-4 w-4" />Historial ({(timeline ?? []).length})</CardTitle>
             {showTimeline ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </div>
         </CardHeader>
@@ -659,17 +546,17 @@ export default function TrabajoDetail() {
               <p className="text-sm text-muted-foreground">Sin eventos registrados.</p>
             ) : (
               <div className="space-y-3">
-                {(timeline ?? []).map((e: any, i: number) => (
-                  <div key={i} className="flex gap-3 text-sm">
-                    <div className="flex flex-col items-center">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
-                      {i < (timeline ?? []).length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
-                    </div>
-                    <div className="pb-3">
-                      <p className="font-medium">{e.action}</p>
-                      {e.comment && <p className="text-muted-foreground text-xs mt-0.5">{e.comment}</p>}
+                {(timeline ?? []).map((e: any) => (
+                  <div key={e.id} className="flex gap-3 text-sm">
+                    <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
+                    <div>
+                      <p className="font-medium flex items-center gap-1.5">
+                        {EVENT_LABELS[e.action] ?? e.action}
+                        {e.visibleToClient && <Eye className="h-3 w-3 text-muted-foreground" aria-label="Visible para el cliente" />}
+                      </p>
+                      {eventDetail(e) && <p className="text-muted-foreground text-xs mt-0.5">{eventDetail(e)}</p>}
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {e.userName ?? "Sistema"} · {new Date(e.createdAt).toLocaleString("es-CL")}
+                        {e.userName ?? (e.action === "item_decision" && e.previousStatus === "client" ? "Cliente" : "Sistema")} · {new Date(e.createdAt).toLocaleString("es-CL")}
                       </p>
                     </div>
                   </div>
@@ -680,16 +567,37 @@ export default function TrabajoDetail() {
         )}
       </Card>
 
-      {/* Add item dialog */}
+      {/* Enviar al cliente */}
+      <Dialog open={!!shareData} onOpenChange={(o) => !o && setShareData(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar al cliente</DialogTitle>
+            <DialogDescription>El cliente ve el estado, los trabajos y aprueba los adicionales desde este link, sin crear cuenta.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md bg-muted p-3 text-sm whitespace-pre-line break-words">{shareData?.message}{"\n"}<span className="text-primary">{publicUrl}</span></div>
+            {!shareData?.clientPhone && <p className="text-xs text-muted-foreground">El cliente no tiene teléfono registrado: WhatsApp te pedirá elegir el contacto.</p>}
+          </div>
+          <div className="grid gap-2">
+            <Button asChild className="bg-green-600 hover:bg-green-700 text-white">
+              <a href={whatsappUrl} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4 mr-2" />Enviar por WhatsApp</a>
+            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={copyLink}><Copy className="h-4 w-4 mr-2" />Copiar link</Button>
+              <Button variant="outline" asChild><a href={publicUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4 mr-2" />Ver como cliente</a></Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Agregar adicional */}
       <Dialog open={itemDialog} onOpenChange={setItemDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Agregar adicional</DialogTitle>
+            <DialogDescription>Queda esperando la aprobación del cliente y no suma al total hasta que la apruebe.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">
-              Se agrega al presupuesto {primaryQuote?.quoteNumber ?? ""} y a la OT activa como ítem pendiente.
-            </p>
             <div className="space-y-1">
               <Label className="text-xs">Tipo</Label>
               <Select value={itemDraft.itemType} onValueChange={(val) => { setItemDraft((d) => ({ ...d, itemType: val })); setItemCatalogId(""); }}>
@@ -710,9 +618,7 @@ export default function TrabajoDetail() {
                   <SelectTrigger><SelectValue placeholder="Elegir servicio del catálogo..." /></SelectTrigger>
                   <SelectContent>
                     {(services ?? []).map((s: any) => (
-                      <SelectItem key={s.id} value={String(s.id)}>
-                        {s.name}{s.basePrice ? ` — ${formatCLP(s.basePrice)}` : ""}
-                      </SelectItem>
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name}{s.basePrice ? ` — ${formatCLP(s.basePrice)}` : ""}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -729,9 +635,7 @@ export default function TrabajoDetail() {
                   <SelectTrigger><SelectValue placeholder="Elegir repuesto del catálogo..." /></SelectTrigger>
                   <SelectContent>
                     {(parts ?? []).map((p: any) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        {p.name}{p.suggestedPrice ? ` — ${formatCLP(p.suggestedPrice)}` : ""}
-                      </SelectItem>
+                      <SelectItem key={p.id} value={String(p.id)}>{p.name}{p.suggestedPrice ? ` — ${formatCLP(p.suggestedPrice)}` : ""}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -748,64 +652,54 @@ export default function TrabajoDetail() {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Precio unit.</Label>
-                <Input type="number" inputMode="numeric" min="0" value={itemDraft.unitPrice} onChange={(e) => setItemDraft((d) => ({ ...d, unitPrice: e.target.value }))} data-testid="input-additem-price" />
+                <Input type="number" inputMode="numeric" min="0" placeholder="0" value={itemDraft.unitPrice} onChange={(e) => setItemDraft((d) => ({ ...d, unitPrice: e.target.value }))} data-testid="input-additem-price" />
               </div>
             </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={itemDraft.alreadyApproved} onCheckedChange={(v) => setItemDraft((d) => ({ ...d, alreadyApproved: v === true }))} data-testid="checkbox-already-approved" />
+              El cliente ya lo aprobó (en persona, por teléfono o WhatsApp)
+            </label>
             {itemErr && <p className="text-sm text-destructive">{itemErr}</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setItemDialog(false)}>Cancelar</Button>
-            <Button onClick={handleAddItem} disabled={createItem.isPending} data-testid="button-submit-additem">
-              {createItem.isPending ? "Agregando..." : "Agregar"}
+            <Button onClick={handleAddItem} disabled={addItem.isPending} data-testid="button-submit-additem">
+              {addItem.isPending ? "Agregando..." : "Agregar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Assign mechanic dialog */}
-      <Dialog open={mechanicDialog} onOpenChange={(open) => { if (!open) closeMechanicDialog(); }}>
+      {/* Asignar mecánico */}
+      <Dialog open={mechanicDialog} onOpenChange={setMechanicDialog}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Asignar mecánico</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Mecánico</Label>
-              {mechanics.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No hay mecánicos activos registrados.</p>
-              ) : (
-                <Select value={selectedMechanicId} onValueChange={setSelectedMechanicId}>
-                  <SelectTrigger data-testid="select-mechanic-dialog">
-                    <SelectValue placeholder="Seleccionar mecánico..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mechanics.map((m: any) => (
-                      <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+          <DialogHeader><DialogTitle>Asignar mecánico</DialogTitle></DialogHeader>
+          <div className="space-y-1">
+            <Label className="text-xs">Mecánico</Label>
+            {mechanics.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay mecánicos activos registrados.</p>
+            ) : (
+              <Select value={selectedMechanicId} onValueChange={setSelectedMechanicId}>
+                <SelectTrigger data-testid="select-mechanic-dialog"><SelectValue placeholder="Seleccionar mecánico..." /></SelectTrigger>
+                <SelectContent>
+                  {mechanics.map((m: any) => <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={closeMechanicDialog}>Cancelar</Button>
-            <Button
-              onClick={handleMechanicConfirm}
-              disabled={!selectedMechanicId || assignMechanic.isPending}
-              data-testid="button-confirm-mechanic"
-            >
+            <Button variant="outline" onClick={() => setMechanicDialog(false)}>Cancelar</Button>
+            <Button onClick={handleMechanicConfirm} disabled={!selectedMechanicId || assignMechanic.isPending} data-testid="button-confirm-mechanic">
               {assignMechanic.isPending ? "Asignando..." : mechanicDialogAutoAdvance ? "Asignar e iniciar" : "Confirmar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Add comment dialog */}
+      {/* Agregar comentario */}
       <Dialog open={commentDialog} onOpenChange={setCommentDialog}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Agregar comentario</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Agregar comentario</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
               <Label className="text-xs">Tipo de comentario</Label>
@@ -820,6 +714,13 @@ export default function TrabajoDetail() {
               <Label className="text-xs">Comentario</Label>
               <Textarea rows={3} value={commentDraft.comment} onChange={(e) => setCommentDraft((d) => ({ ...d, comment: e.target.value }))} data-testid="textarea-comment" />
             </div>
+            <label className="flex items-center justify-between gap-3 text-sm cursor-pointer rounded-md border p-3">
+              <span>
+                <span className="font-medium block">Visible para el cliente</span>
+                <span className="text-xs text-muted-foreground">Aparece en su seguimiento</span>
+              </span>
+              <Switch checked={commentDraft.visibleToClient} onCheckedChange={(v) => setCommentDraft((d) => ({ ...d, visibleToClient: v }))} data-testid="switch-comment-visible" />
+            </label>
             {commentErr && <p className="text-sm text-destructive">{commentErr}</p>}
           </div>
           <DialogFooter>

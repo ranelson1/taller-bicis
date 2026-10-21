@@ -14,6 +14,30 @@ import { eq, and, asc, count } from "drizzle-orm";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+// Postgres 23505: choque con un índice único (p.ej. doble clic al crear una OT).
+export function isUniqueViolation(e: unknown): boolean {
+  const err = e as { code?: string; cause?: { code?: string } } | null;
+  return err?.code === "23505" || err?.cause?.code === "23505";
+}
+
+// Total cobrable de una OT: solo ítems aprobados por el cliente y no cancelados.
+// Los descuentos siempre restan, se hayan ingresado con signo positivo o negativo.
+export function computeWorkOrderTotal(items: Array<{
+  itemType: string;
+  total: string | number;
+  status?: string;
+  approvalStatus?: string;
+  active?: boolean;
+}>): number {
+  const total = items
+    .filter(i => i.active !== false && i.status !== "cancelled" && (i.approvalStatus ?? "approved") === "approved")
+    .reduce((sum, i) => {
+      const t = Number(i.total);
+      return i.itemType === "discount" ? sum - Math.abs(t) : sum + t;
+    }, 0);
+  return Math.max(0, total);
+}
+
 export async function nextWorkCaseNumber(): Promise<string> {
   const [row] = await db.select({ n: count() }).from(workCasesTable);
   const seq = Number(row?.n ?? 0) + 1;
@@ -195,7 +219,7 @@ export async function createWorkOrderFromQuoteInternal(
   const [{ n }] = await tx.select({ n: count() }).from(workOrdersTable);
   const workOrderNumber = `OT-${String(Number(n ?? 0) + 1).padStart(4, "0")}`;
 
-  const totalValue = approvedItems.reduce((sum, i) => sum + Number(i.total), 0);
+  const totalValue = computeWorkOrderTotal(approvedItems);
   const laborHours = approvedItems.reduce((sum, i) => sum + (i.estimatedLaborHours ? Number(i.estimatedLaborHours) : 0), 0);
 
   const [wo] = await tx.insert(workOrdersTable).values({
@@ -289,13 +313,16 @@ export async function recalcOTTotal(workOrderId: number, userId: number | null =
     .from(workOrdersTable)
     .where(eq(workOrdersTable.id, workOrderId));
 
-  const items = await db.select({ total: workOrderItemsTable.total, status: workOrderItemsTable.status })
+  const items = await db.select({
+    itemType: workOrderItemsTable.itemType,
+    total: workOrderItemsTable.total,
+    status: workOrderItemsTable.status,
+    approvalStatus: workOrderItemsTable.approvalStatus,
+  })
     .from(workOrderItemsTable)
     .where(and(eq(workOrderItemsTable.workOrderId, workOrderId), eq(workOrderItemsTable.active, true)));
 
-  const newTotal = items
-    .filter(i => i.status !== "cancelled")
-    .reduce((sum, i) => sum + Number(i.total), 0);
+  const newTotal = computeWorkOrderTotal(items);
 
   await db.update(workOrdersTable)
     .set({ total: String(newTotal), updatedAt: new Date() })

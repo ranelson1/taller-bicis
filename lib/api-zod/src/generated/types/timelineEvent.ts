@@ -21,5 +21,6 @@ export interface TimelineEvent {
   newStatus?: string | null;
   /** @nullable */
   comment?: string | null;
+  visibleToClient?: boolean;
   createdAt: Date;
 }

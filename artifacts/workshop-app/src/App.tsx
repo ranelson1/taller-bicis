@@ -30,6 +30,7 @@ import OrdenDetail from "@/pages/orden-detail";
 import Trabajos from "@/pages/trabajos";
 import TrabajoNuevo from "@/pages/trabajo-nuevo";
 import TrabajoDetail from "@/pages/trabajo-detail";
+import OtPublica from "@/pages/ot-publica";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      {/* Vista pública del cliente: sin login, por token secreto */}
+      <Route path="/ot/:token" component={OtPublica} />
 
       <Route path="/">
         <AuthGate><Dashboard /></AuthGate>

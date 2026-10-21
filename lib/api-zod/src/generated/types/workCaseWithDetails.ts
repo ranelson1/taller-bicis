@@ -42,6 +42,11 @@ export interface WorkCaseWithDetails {
   receptionCount?: number | null;
   /** @nullable */
   workOrderCount?: number | null;
+  /**
+     * Número de la OT vigente del trabajo
+     * @nullable
+     */
+  workOrderNumber?: string | null;
   linkedQuotes?: WorkCaseLinkedQuote[];
   linkedReceptions?: WorkCaseLinkedReception[];
   linkedWorkOrders?: WorkCaseLinkedWorkOrder[];

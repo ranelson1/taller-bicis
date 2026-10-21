@@ -40,6 +40,7 @@ import type {
   InspectionFinding,
   InspectionFindingInput,
   InspectionFindingUpdate,
+  ItemDecisionInput,
   LinkQuoteToWorkCaseBody,
   LinkReceptionToWorkCaseBody,
   LinkWorkOrderToWorkCaseBody,
@@ -55,6 +56,7 @@ import type {
   PaymentMethod,
   PaymentMethodInput,
   PaymentMethodUpdate,
+  PublicWorkOrder,
   QuickCreateInput,
   QuickCreateResult,
   QuoteDetail,
@@ -96,6 +98,8 @@ import type {
   WorkOrderChecklistItem,
   WorkOrderCreateInput,
   WorkOrderItem,
+  WorkOrderItemInput,
+  WorkOrderShare,
   WorkOrderStatusInput,
   WorkOrderUpdateInput,
   WorkOrderWithDetails
@@ -6858,6 +6862,220 @@ export function useListWorkOrderItems<TData = Awaited<ReturnType<typeof listWork
 
 
 
+export const getAddWorkOrderItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/items`
+}
+
+/**
+ * @summary Add an item to a work order (additional items start pending client approval)
+ */
+export const addWorkOrderItem = async (id: number,
+    workOrderItemInput: WorkOrderItemInput, options?: RequestInit): Promise<WorkOrderItem> => {
+
+  return customFetch<WorkOrderItem>(getAddWorkOrderItemUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(workOrderItemInput)
+  }
+);}
+
+
+
+
+export const getAddWorkOrderItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addWorkOrderItem>>, TError,{id: number;data: BodyType<WorkOrderItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addWorkOrderItem>>, TError,{id: number;data: BodyType<WorkOrderItemInput>}, TContext> => {
+
+const mutationKey = ['addWorkOrderItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addWorkOrderItem>>, {id: number;data: BodyType<WorkOrderItemInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addWorkOrderItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddWorkOrderItemMutationResult = NonNullable<Awaited<ReturnType<typeof addWorkOrderItem>>>
+    export type AddWorkOrderItemMutationBody = BodyType<WorkOrderItemInput>
+    export type AddWorkOrderItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Add an item to a work order (additional items start pending client approval)
+ */
+export const useAddWorkOrderItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addWorkOrderItem>>, TError,{id: number;data: BodyType<WorkOrderItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addWorkOrderItem>>,
+        TError,
+        {id: number;data: BodyType<WorkOrderItemInput>},
+        TContext
+      > => {
+      return useMutation(getAddWorkOrderItemMutationOptions(options));
+    }
+
+export const getDecideWorkOrderItemUrl = (id: number,
+    itemId: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/items/${itemId}/approval`
+}
+
+/**
+ * @summary Record the client's approval decision for an item (taken by the workshop)
+ */
+export const decideWorkOrderItem = async (id: number,
+    itemId: number,
+    itemDecisionInput: ItemDecisionInput, options?: RequestInit): Promise<WorkOrderItem> => {
+
+  return customFetch<WorkOrderItem>(getDecideWorkOrderItemUrl(id,itemId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(itemDecisionInput)
+  }
+);}
+
+
+
+
+export const getDecideWorkOrderItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideWorkOrderItem>>, TError,{id: number;itemId: number;data: BodyType<ItemDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof decideWorkOrderItem>>, TError,{id: number;itemId: number;data: BodyType<ItemDecisionInput>}, TContext> => {
+
+const mutationKey = ['decideWorkOrderItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decideWorkOrderItem>>, {id: number;itemId: number;data: BodyType<ItemDecisionInput>}> = (props) => {
+          const {id,itemId,data} = props ?? {};
+
+          return  decideWorkOrderItem(id,itemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecideWorkOrderItemMutationResult = NonNullable<Awaited<ReturnType<typeof decideWorkOrderItem>>>
+    export type DecideWorkOrderItemMutationBody = BodyType<ItemDecisionInput>
+    export type DecideWorkOrderItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Record the client's approval decision for an item (taken by the workshop)
+ */
+export const useDecideWorkOrderItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideWorkOrderItem>>, TError,{id: number;itemId: number;data: BodyType<ItemDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof decideWorkOrderItem>>,
+        TError,
+        {id: number;itemId: number;data: BodyType<ItemDecisionInput>},
+        TContext
+      > => {
+      return useMutation(getDecideWorkOrderItemMutationOptions(options));
+    }
+
+export const getShareWorkOrderUrl = (id: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/share`
+}
+
+/**
+ * @summary Get (or create) the public client link for a work order
+ */
+export const shareWorkOrder = async (id: number, options?: RequestInit): Promise<WorkOrderShare> => {
+
+  return customFetch<WorkOrderShare>(getShareWorkOrderUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getShareWorkOrderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof shareWorkOrder>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof shareWorkOrder>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['shareWorkOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof shareWorkOrder>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  shareWorkOrder(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ShareWorkOrderMutationResult = NonNullable<Awaited<ReturnType<typeof shareWorkOrder>>>
+
+    export type ShareWorkOrderMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Get (or create) the public client link for a work order
+ */
+export const useShareWorkOrder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof shareWorkOrder>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof shareWorkOrder>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getShareWorkOrderMutationOptions(options));
+    }
+
 export const getUpdateWorkOrderItemUrl = (id: number,
     itemId: number,) => {
 
@@ -7300,6 +7518,156 @@ export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDash
 
 
 
+
+export const getGetPublicWorkOrderUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/ot/${token}`
+}
+
+/**
+ * @summary Client-facing view of a work order (no login, by secret token)
+ */
+export const getPublicWorkOrder = async (token: string, options?: RequestInit): Promise<PublicWorkOrder> => {
+
+  return customFetch<PublicWorkOrder>(getGetPublicWorkOrderUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicWorkOrderQueryKey = (token: string,) => {
+    return [
+    `/api/public/ot/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicWorkOrderQueryOptions = <TData = Awaited<ReturnType<typeof getPublicWorkOrder>>, TError = ErrorType<void>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicWorkOrder>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicWorkOrderQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicWorkOrder>>> = ({ signal }) => getPublicWorkOrder(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicWorkOrder>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicWorkOrderQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicWorkOrder>>>
+export type GetPublicWorkOrderQueryError = ErrorType<void>
+
+
+/**
+ * @summary Client-facing view of a work order (no login, by secret token)
+ */
+
+export function useGetPublicWorkOrder<TData = Awaited<ReturnType<typeof getPublicWorkOrder>>, TError = ErrorType<void>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicWorkOrder>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicWorkOrderQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDecidePublicWorkOrderItemUrl = (token: string,
+    itemId: number,) => {
+
+
+
+
+  return `/api/public/ot/${token}/items/${itemId}/decision`
+}
+
+/**
+ * @summary Client approves or rejects a pending item
+ */
+export const decidePublicWorkOrderItem = async (token: string,
+    itemId: number,
+    itemDecisionInput: ItemDecisionInput, options?: RequestInit): Promise<PublicWorkOrder> => {
+
+  return customFetch<PublicWorkOrder>(getDecidePublicWorkOrderItemUrl(token,itemId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(itemDecisionInput)
+  }
+);}
+
+
+
+
+export const getDecidePublicWorkOrderItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decidePublicWorkOrderItem>>, TError,{token: string;itemId: number;data: BodyType<ItemDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof decidePublicWorkOrderItem>>, TError,{token: string;itemId: number;data: BodyType<ItemDecisionInput>}, TContext> => {
+
+const mutationKey = ['decidePublicWorkOrderItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decidePublicWorkOrderItem>>, {token: string;itemId: number;data: BodyType<ItemDecisionInput>}> = (props) => {
+          const {token,itemId,data} = props ?? {};
+
+          return  decidePublicWorkOrderItem(token,itemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecidePublicWorkOrderItemMutationResult = NonNullable<Awaited<ReturnType<typeof decidePublicWorkOrderItem>>>
+    export type DecidePublicWorkOrderItemMutationBody = BodyType<ItemDecisionInput>
+    export type DecidePublicWorkOrderItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Client approves or rejects a pending item
+ */
+export const useDecidePublicWorkOrderItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decidePublicWorkOrderItem>>, TError,{token: string;itemId: number;data: BodyType<ItemDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof decidePublicWorkOrderItem>>,
+        TError,
+        {token: string;itemId: number;data: BodyType<ItemDecisionInput>},
+        TContext
+      > => {
+      return useMutation(getDecidePublicWorkOrderItemMutationOptions(options));
+    }
 
 export const getGetWorkCasesSummaryUrl = () => {
 

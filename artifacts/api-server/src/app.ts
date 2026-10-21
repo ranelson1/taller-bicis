@@ -27,12 +27,12 @@ app.use(
   }),
 );
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
+// El frontend se sirve en el mismo dominio que /api, así que no hace falta CORS.
+// Para permitir otros orígenes, definir CORS_ORIGINS="https://a.cl,https://b.cl".
+const corsOrigins = process.env.CORS_ORIGINS?.split(",").map(o => o.trim()).filter(Boolean) ?? [];
+if (corsOrigins.length > 0) {
+  app.use(cors({ origin: corsOrigins, credentials: true }));
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -45,6 +45,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
+      sameSite: "lax",
       secure: false,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     },

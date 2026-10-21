@@ -10,4 +10,6 @@ import type { WorkCaseCommentInputCommentType } from './workCaseCommentInputComm
 export interface WorkCaseCommentInput {
   commentType: WorkCaseCommentInputCommentType;
   comment: string;
+  /** Mostrar este comentario en el seguimiento del cliente */
+  visibleToClient?: boolean;
 }

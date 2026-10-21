@@ -69,6 +69,31 @@ artifacts/
 
 Todas las tablas tienen `created_at` y `updated_at`.
 
+## OT única + link del cliente (Etapa 6)
+
+El flujo recomendado es **una sola OT que se va actualizando**. Presupuesto (P) y recepción (R)
+se siguen creando por dentro desde Nuevo Trabajo, pero ya no aparecen en el menú.
+
+- Ficha del taller `/trabajos/:id`: muestra la OT vigente (número OT, estado, ítems con su aprobación,
+  total aprobado), botón **Enviar al cliente** (WhatsApp / copiar link) y avance de estado.
+- Adicionales: `POST /api/work-orders/:id/items` crea el ítem con `origin=additional` y
+  `approvalStatus=pending` (o `approved` si `alreadyApproved`). Solo los ítems aprobados y no
+  cancelados suman al total; los descuentos siempre restan (`computeWorkOrderTotal`).
+- El taller puede registrar la decisión del cliente con `POST /api/work-orders/:id/items/:itemId/approval`.
+- Link público: `POST /api/work-orders/:id/share` crea (una vez) `work_orders.public_token` y
+  devuelve `/ot/:token` + mensaje de WhatsApp.
+- Vista del cliente `/ot/:token` (sin login): `GET /api/public/ot/:token` y
+  `POST /api/public/ot/:token/items/:itemId/decision`. Solo expone esa OT: sin notas internas,
+  teléfono ni email del cliente. El cliente solo puede decidir ítems pendientes de una OT abierta.
+- Comentarios con `visibleToClient: true` aparecen en el seguimiento del cliente.
+- Estados de OT validados en el backend (`WO_TRANSITIONS`); iniciar requiere mecánico; una OT
+  entregada o cancelada ya no cambia. El progreso usa el checklist o, si no tiene, los ítems completados.
+- Una sola OT activa por presupuesto (índice único `work_orders_active_quote_unique`).
+- Variables opcionales: `WORKSHOP_NAME`, `WORKSHOP_PHONE` (se muestran al cliente), `CORS_ORIGINS`.
+
+Migración: `lib/db/migrations/001-ot-publica.sql` (idempotente). En una base existente correrla con
+`psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f lib/db/migrations/001-ot-publica.sql`.
+
 ## Nuevo Trabajo Rápido (Etapa 5A)
 
 - `POST /api/work-cases/quick-create` — crea en una sola transacción atómica: cliente (nuevo o existente), bicicleta (nueva o existente), TR, presupuesto, recepción y OT. Requiere al menos 1 ítem (`items` con `minItems: 1`, cada ítem con `itemType`). La inserción rápida de bicicleta NO persiste `rimSize`.

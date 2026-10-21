@@ -92,7 +92,7 @@ export default function Trabajos() {
         <div className="flex justify-between items-start gap-2">
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-sm font-bold text-primary">{wc.workCaseNumber}</span>
+              <span className="font-mono text-sm font-bold text-primary">{wc.workOrderNumber ?? wc.workCaseNumber}</span>
               <StatusBadge status={wc.status ?? ""} />
             </div>
             <span className="font-medium truncate">{wc.clientName ?? "—"}</span>
@@ -111,17 +111,6 @@ export default function Trabajos() {
         {wc.mechanicName && (
           <p className="text-muted-foreground text-xs">🔧 {wc.mechanicName}</p>
         )}
-        <div className="flex gap-3 text-muted-foreground text-xs">
-          {(wc.quoteCount ?? 0) > 0 && (
-            <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {wc.quoteCount} pres.</span>
-          )}
-          {(wc.receptionCount ?? 0) > 0 && (
-            <span className="flex items-center gap-1"><Inbox className="h-3 w-3" /> {wc.receptionCount} rec.</span>
-          )}
-          {(wc.workOrderCount ?? 0) > 0 && (
-            <span className="flex items-center gap-1"><ClipboardList className="h-3 w-3" /> {wc.workOrderCount} OT</span>
-          )}
-        </div>
         {wc.progressPercentage !== null && wc.progressPercentage !== undefined && (
           <div className="space-y-1">
             <Progress value={wc.progressPercentage} className="h-1.5" />
@@ -240,7 +229,7 @@ export default function Trabajos() {
               <TableBody>
                 {(workCases ?? []).map((wc) => (
                   <TableRow key={wc.id}>
-                    <TableCell className="font-mono font-bold text-primary">{wc.workCaseNumber}</TableCell>
+                    <TableCell className="font-mono font-bold text-primary">{wc.workOrderNumber ?? wc.workCaseNumber}</TableCell>
                     <TableCell>{wc.clientName ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{wc.bicycleName ?? "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{wc.mechanicName ?? "—"}</TableCell>

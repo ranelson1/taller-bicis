@@ -104,6 +104,16 @@ async function markQuoteUpdatedIfSent(quoteId: number, userId: number | null): P
   }
 }
 
+// Refleja en la OT la aprobación decidida desde el presupuesto interno.
+async function syncWorkOrderItemApproval(quoteItemId: number, decision: "approved" | "rejected", userId: number | null) {
+  const now = new Date();
+  const updated = await db.update(workOrderItemsTable)
+    .set({ approvalStatus: decision, approvalDecidedAt: now, approvalDecidedBy: "staff", updatedAt: now })
+    .where(and(eq(workOrderItemsTable.quoteItemId, quoteItemId), eq(workOrderItemsTable.active, true)))
+    .returning({ workOrderId: workOrderItemsTable.workOrderId });
+  for (const { workOrderId } of updated) await recalcOTTotal(workOrderId, userId);
+}
+
 // ── GET /quotes/summary ────────────────────────────────────────────────────
 router.get("/summary", async (_req, res) => {
   try {
@@ -488,6 +498,8 @@ router.post("/:id/items", async (req, res) => {
         total: String(total),
         estimatedLaborHours: data.estimatedLaborHours != null ? String(data.estimatedLaborHours) : null,
         sortOrder: nextOtOrder,
+        origin: "additional",
+        approvalStatus: "pending",
       });
       await recalcOTTotal(activeOTForAdd.id, userId);
     }
@@ -612,6 +624,7 @@ router.post("/:id/items/:itemId/approve", async (req, res) => {
     await db.update(quoteItemsTable)
       .set({ approvalStatus: "approved", updatedAt: new Date() })
       .where(and(eq(quoteItemsTable.id, itemId), eq(quoteItemsTable.quoteId, quoteId)));
+    await syncWorkOrderItemApproval(itemId, "approved", userId);
 
     await logEvent(quoteId, "item_approved", userId);
 
@@ -654,6 +667,7 @@ router.post("/:id/items/:itemId/reject", async (req, res) => {
     await db.update(quoteItemsTable)
       .set({ approvalStatus: "rejected", updatedAt: new Date() })
       .where(and(eq(quoteItemsTable.id, itemId), eq(quoteItemsTable.quoteId, quoteId)));
+    await syncWorkOrderItemApproval(itemId, "rejected", userId);
 
     await logEvent(quoteId, "item_rejected", userId);
 

@@ -17,6 +17,8 @@ pnpm install --frozen-lockfile
 
 export DATABASE_URL="postgresql://usuario@localhost/taller"
 export SESSION_SECRET="$(openssl rand -hex 32)"
+export WORKSHOP_NAME="Mi Taller"            # opcional, se muestra al cliente
+export WORKSHOP_PHONE="+56 9 1234 5678"     # opcional, botones Llamar/WhatsApp del cliente
 
 # Base nueva: crear tablas y datos demo (no hacerlo sobre una base restaurada)
 pnpm --filter @workspace/db run push
@@ -31,6 +33,15 @@ PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://localhost:8080 \
 ```
 
 Abrir http://localhost:5173. Usuarios demo en `replit.md` (solo desarrollo).
+
+## Migraciones
+
+`drizzle push` pide confirmaciones interactivas en bases con datos. Los cambios de esquema se
+entregan también como SQL idempotente en `lib/db/migrations/`; aplicarlos en orden:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f lib/db/migrations/001-ot-publica.sql
+```
 
 ## Comandos útiles
 

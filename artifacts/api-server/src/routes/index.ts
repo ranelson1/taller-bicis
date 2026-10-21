@@ -14,11 +14,13 @@ import quotesRouter from "./quotes";
 import receptionsRouter from "./receptions";
 import workOrdersRouter from "./work-orders";
 import workCasesRouter from "./work-cases";
+import publicRouter from "./public";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use("/auth", authRouter);
+router.use("/public", publicRouter);
 router.use("/users", usersRouter);
 router.use("/categories", categoriesRouter);
 router.use("/payment-methods", paymentMethodsRouter);

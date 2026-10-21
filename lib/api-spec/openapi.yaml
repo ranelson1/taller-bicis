@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: public
+    description: Client-facing endpoints (no login, secret token)
   - name: auth
     description: Authentication
   - name: users
@@ -1977,6 +1979,82 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/WorkOrderItem"
+    post:
+      operationId: addWorkOrderItem
+      tags: [workOrders]
+      summary: Add an item to a work order (additional items start pending client approval)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderItemInput"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderItem"
+        "400":
+          description: Validation error
+
+  /work-orders/{id}/items/{itemId}/approval:
+    post:
+      operationId: decideWorkOrderItem
+      tags: [workOrders]
+      summary: Record the client's approval decision for an item (taken by the workshop)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemDecisionInput"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderItem"
+        "400":
+          description: Invalid decision
+
+  /work-orders/{id}/share:
+    post:
+      operationId: shareWorkOrder
+      tags: [workOrders]
+      summary: Get (or create) the public client link for a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Public link data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderShare"
 
   /work-orders/{id}/items/{itemId}:
     patch:
@@ -2126,6 +2204,63 @@ paths:
                 $ref: "#/components/schemas/DashboardSummary"
 
   # ── WORK CASES ────────────────────────────────────────────────────────────
+  /public/ot/{token}:
+    get:
+      operationId: getPublicWorkOrder
+      tags: [public]
+      summary: Client-facing view of a work order (no login, by secret token)
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicWorkOrder"
+        "404":
+          description: Not found
+
+  /public/ot/{token}/items/{itemId}/decision:
+    post:
+      operationId: decidePublicWorkOrderItem
+      tags: [public]
+      summary: Client approves or rejects a pending item
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemDecisionInput"
+      responses:
+        "200":
+          description: Updated public work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicWorkOrder"
+        "400":
+          description: Item is not pending
+        "404":
+          description: Not found
+
   /work-cases/summary:
     get:
       operationId: getWorkCasesSummary
@@ -3272,6 +3407,8 @@ components:
           type: ["string", "null"]
         comment:
           type: ["string", "null"]
+        visibleToClient:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -3662,6 +3799,17 @@ components:
         status:
           type: string
           enum: [pending, in_progress, completed, cancelled]
+        approvalStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        origin:
+          type: string
+          description: "initial | additional"
+        approvalDecidedAt:
+          type: ["string", "null"]
+        approvalDecidedBy:
+          type: ["string", "null"]
+          description: "client | staff"
         sortOrder:
           type: integer
         active:
@@ -3670,6 +3818,151 @@ components:
           type: string
         updatedAt:
           type: string
+
+    WorkOrderItemInput:
+      type: object
+      required: [itemType, description, quantity, unitPrice]
+      properties:
+        itemType:
+          type: string
+          enum: [service, part, additional_labor, diagnosis, discount, other]
+        description:
+          type: string
+          minLength: 1
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+        serviceId:
+          type: ["integer", "null"]
+        partId:
+          type: ["integer", "null"]
+        alreadyApproved:
+          type: boolean
+          description: El cliente ya lo aprobó por otro medio (WhatsApp, teléfono, en persona)
+
+    ItemDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+
+    WorkOrderShare:
+      type: object
+      required: [token, path, message]
+      properties:
+        token:
+          type: string
+        path:
+          type: string
+          description: Ruta relativa de la vista del cliente (/ot/:token)
+        message:
+          type: string
+          description: Mensaje sugerido para WhatsApp (sin el link)
+        clientPhone:
+          type: ["string", "null"]
+
+    PublicWorkOrderItem:
+      type: object
+      required: [id, itemType, description, quantity, unitPrice, total, origin, approvalStatus, status]
+      properties:
+        id:
+          type: integer
+        itemType:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+        total:
+          type: number
+        origin:
+          type: string
+        approvalStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        status:
+          type: string
+
+    PublicTimelineEntry:
+      type: object
+      required: [id, createdAt, title]
+      properties:
+        id:
+          type: integer
+        createdAt:
+          type: string
+        title:
+          type: string
+        detail:
+          type: ["string", "null"]
+
+    PublicWorkOrder:
+      type: object
+      required: [workshopName, workOrderNumber, status, progressPercentage, receivedAt, clientName, items, subtotal, discountTotal, total, net, tax, pendingApprovalCount, timeline]
+      properties:
+        workshopName:
+          type: string
+        workshopPhone:
+          type: ["string", "null"]
+        workOrderNumber:
+          type: string
+        status:
+          type: string
+          enum: [ready_to_work, in_progress, quality_control, ready_for_pickup, delivered, cancelled]
+        progressPercentage:
+          type: number
+        receivedAt:
+          type: string
+        estimatedDeliveryDate:
+          type: ["string", "null"]
+        deliveredAt:
+          type: ["string", "null"]
+        clientName:
+          type: string
+        bicycle:
+          type: ["object", "null"]
+          properties:
+            brand:
+              type: string
+            model:
+              type: string
+            year:
+              type: ["integer", "null"]
+            type:
+              type: string
+            color:
+              type: ["string", "null"]
+            rimSize:
+              type: ["string", "null"]
+        reportedProblem:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicWorkOrderItem"
+        subtotal:
+          type: number
+        discountTotal:
+          type: number
+        total:
+          type: number
+        net:
+          type: number
+        tax:
+          type: number
+        pendingApprovalCount:
+          type: integer
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicTimelineEntry"
 
     WorkOrderChecklistItem:
       type: object
@@ -3866,6 +4159,9 @@ components:
           type: ["integer", "null"]
         workOrderCount:
           type: ["integer", "null"]
+        workOrderNumber:
+          type: ["string", "null"]
+          description: Número de la OT vigente del trabajo
         linkedQuotes:
           type: array
           items:
@@ -4018,3 +4314,6 @@ components:
           enum: [recepcion, durante_trabajo, aprobacion_cliente, observacion_tecnica, entrega, interno]
         comment:
           type: string
+        visibleToClient:
+          type: boolean
+          description: Mostrar este comentario en el seguimiento del cliente

@@ -11,23 +11,30 @@ import {
   bicyclesTable,
   usersTable,
   timelineEventsTable,
-  serviceStepsTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, gte, lte, desc, asc, count, inArray, isNull, not } from "drizzle-orm";
 import { z } from "zod/v4";
 import { requireAuth } from "../middlewares/auth";
-import { triggerWorkCaseRecalc, logWorkCaseEvent, createWorkOrderFromQuoteInternal, recalcOTTotal } from "../helpers/workCase";
+import { triggerWorkCaseRecalc, createWorkOrderFromQuoteInternal, recalcOTTotal, isUniqueViolation } from "../helpers/workCase";
+import {
+  buildPublicWorkOrder, decideWorkOrderItem, ensurePublicToken, formatCLP, ItemDecisionError, logWorkOrderEvent, shareMessage,
+} from "../helpers/workOrderPublic";
 
 const router = Router();
 router.use(requireAuth);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function nextWorkOrderNumber(): Promise<string> {
-  const [row] = await db.select({ n: count() }).from(workOrdersTable);
-  const seq = Number(row?.n ?? 0) + 1;
-  return `OT-${String(seq).padStart(4, "0")}`;
-}
+// Transiciones permitidas de la OT. Retroceder un paso está permitido para
+// corregir errores; una OT entregada o cancelada ya no cambia.
+const WO_TRANSITIONS: Record<string, string[]> = {
+  ready_to_work: ["in_progress", "cancelled"],
+  in_progress: ["quality_control", "ready_for_pickup", "ready_to_work", "cancelled"],
+  quality_control: ["ready_for_pickup", "in_progress", "cancelled"],
+  ready_for_pickup: ["delivered", "in_progress"],
+  delivered: [],
+  cancelled: [],
+};
 
 async function enrichWorkOrder(wo: typeof workOrdersTable.$inferSelect) {
   const [client] = await db.select({ name: clientsTable.name }).from(clientsTable).where(eq(clientsTable.id, wo.clientId));
@@ -80,14 +87,29 @@ async function logEvent(entityId: number, action: string, userId: number | null,
   });
 }
 
-async function recalcProgress(workOrderId: number) {
-  const items = await db.select().from(workOrderChecklistItemsTable)
+// Progreso de la OT: por checklist si tiene pasos; si no, por ítems aprobados
+// completados. Una OT terminada siempre es 100%.
+export async function recalcProgress(workOrderId: number) {
+  const [wo] = await db.select({ status: workOrdersTable.status }).from(workOrdersTable)
+    .where(eq(workOrdersTable.id, workOrderId));
+
+  const checklist = await db.select().from(workOrderChecklistItemsTable)
     .where(and(eq(workOrderChecklistItemsTable.workOrderId, workOrderId), eq(workOrderChecklistItemsTable.active, true)));
+  const applicable = checklist.filter(i => i.status !== "not_applicable");
 
-  const applicable = items.filter(i => i.status !== "not_applicable");
-  const completed = applicable.filter(i => i.status === "completed" || i.status === "with_observation");
-
-  const pct = applicable.length === 0 ? 0 : Math.round((completed.length / applicable.length) * 100);
+  let pct: number;
+  if (wo && ["ready_for_pickup", "delivered"].includes(wo.status)) {
+    pct = 100;
+  } else if (applicable.length > 0) {
+    const completed = applicable.filter(i => i.status === "completed" || i.status === "with_observation");
+    pct = Math.round((completed.length / applicable.length) * 100);
+  } else {
+    const items = (await db.select().from(workOrderItemsTable)
+      .where(and(eq(workOrderItemsTable.workOrderId, workOrderId), eq(workOrderItemsTable.active, true))))
+      .filter(i => i.status !== "cancelled" && i.approvalStatus === "approved" && i.itemType !== "discount");
+    const done = items.filter(i => i.status === "completed").length;
+    pct = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
+  }
 
   await db.update(workOrdersTable)
     .set({ progressPercentage: String(pct), updatedAt: new Date() })
@@ -170,6 +192,7 @@ router.post("/from-quote/:quoteId", async (req, res) => {
     if (!freshWo2) { res.status(500).json({ error: "Internal server error" }); return; }
     res.status(201).json(await enrichWorkOrder(freshWo2));
   } catch (e) {
+    if (isUniqueViolation(e)) { res.status(409).json({ error: "Ya existe una orden de trabajo activa para este presupuesto" }); return; }
     console.error(e);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -238,84 +261,33 @@ router.post("/from-reception/:receptionId", async (req, res) => {
       return;
     }
 
-    const workOrderNumber = await nextWorkOrderNumber();
-    const totalValue = approvedItems.reduce((sum, i) => sum + Number(i.total), 0);
-    const laborHours = approvedItems.reduce((sum, i) => sum + (i.estimatedLaborHours ? Number(i.estimatedLaborHours) : 0), 0);
-
-    const [wo] = await db.insert(workOrdersTable).values({
-      workOrderNumber,
-      quoteId,
-      receptionId,
-      clientId: quote.clientId,
-      bicycleId: quote.bicycleId!,
-      mechanicId: body.mechanicId ?? null,
-      priority: body.priority ?? "normal",
-      internalNotes: body.internalNotes ?? null,
-      customerNotes: body.customerNotes ?? null,
-      estimatedDeliveryDate: body.estimatedDeliveryDate ? new Date(body.estimatedDeliveryDate) : null,
-      total: String(totalValue),
-      estimatedLaborHours: String(laborHours),
-    }).returning();
-
-    for (let i = 0; i < approvedItems.length; i++) {
-      const qi = approvedItems[i];
-      await db.insert(workOrderItemsTable).values({
-        workOrderId: wo.id,
-        quoteItemId: qi.id,
-        itemType: qi.itemType,
-        description: qi.description,
-        quantity: qi.quantity,
-        unitPrice: qi.unitPrice,
-        total: qi.total,
-        estimatedLaborHours: qi.estimatedLaborHours ?? null,
-        sortOrder: i,
-      });
-
-      if (qi.serviceId) {
-        const steps = await db.select().from(serviceStepsTable)
-          .where(and(eq(serviceStepsTable.serviceId, qi.serviceId), eq(serviceStepsTable.active, true)))
-          .orderBy(asc(serviceStepsTable.order));
-
-        const [woItem] = await db.select({ id: workOrderItemsTable.id }).from(workOrderItemsTable)
-          .where(and(eq(workOrderItemsTable.workOrderId, wo.id), eq(workOrderItemsTable.quoteItemId, qi.id)));
-
-        for (let j = 0; j < steps.length; j++) {
-          const step = steps[j];
-          await db.insert(workOrderChecklistItemsTable).values({
-            workOrderId: wo.id,
-            workOrderItemId: woItem?.id ?? null,
-            serviceStepId: step.id,
-            description: step.description,
-            sortOrder: j,
-          });
-        }
-      }
-    }
-
-    // Update quote status and work_order_id
-    await db.update(quotesTable)
-      .set({ status: "converted_to_work_order", workOrderId: wo.id, updatedAt: new Date() })
-      .where(eq(quotesTable.id, quoteId));
-
-    // Inherit TR from quote (preferred) or reception, link WO to it
-    const woWorkCaseId = quote.workCaseId ?? reception.workCaseId;
-    if (woWorkCaseId) {
-      await db.update(workOrdersTable).set({ workCaseId: woWorkCaseId, updatedAt: new Date() }).where(eq(workOrdersTable.id, wo.id));
-      await logWorkCaseEvent(woWorkCaseId, "work_order_linked_to_work_case", userId, undefined, undefined, `Orden ${wo.workOrderNumber} vinculada`, "work_order", wo.id);
-      await triggerWorkCaseRecalc(woWorkCaseId, userId);
-    }
-
-    // Update reception work_order_id
-    await db.update(receptionsTable)
-      .set({ workOrderId: wo.id, updatedAt: new Date() })
-      .where(eq(receptionsTable.id, receptionId));
-
-    await logEvent(wo.id, "work_order_created", userId, undefined, "ready_to_work");
+    const created = await db.transaction(async (tx) => {
+      const wo = await createWorkOrderFromQuoteInternal(tx, quoteId, {
+        mechanicId: body.mechanicId ?? null,
+        priority: body.priority,
+        estimatedDeliveryDate: body.estimatedDeliveryDate ?? null,
+        internalNotes: body.internalNotes ?? null,
+        customerNotes: body.customerNotes ?? null,
+      }, userId);
+      // La recepción de origen manda sobre la que el helper encuentra por quoteId,
+      // y el TR se hereda del presupuesto o, si no tiene, de la recepción.
+      const woWorkCaseId = quote.workCaseId ?? reception.workCaseId ?? null;
+      await tx.update(workOrdersTable)
+        .set({ receptionId, workCaseId: woWorkCaseId, updatedAt: new Date() })
+        .where(eq(workOrdersTable.id, wo.id));
+      await tx.update(receptionsTable)
+        .set({ workOrderId: wo.id, updatedAt: new Date() })
+        .where(eq(receptionsTable.id, receptionId));
+      return { ...wo, workCaseId: woWorkCaseId };
+    });
+    if (created.workCaseId) await triggerWorkCaseRecalc(created.workCaseId, userId);
+    const wo = { id: created.id };
 
     // Re-fetch to get fresh workCaseId in response
     const [freshWo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, wo.id));
-    res.status(201).json(await enrichWorkOrder(freshWo ?? wo));
+    res.status(201).json(await enrichWorkOrder(freshWo));
   } catch (e) {
+    if (isUniqueViolation(e)) { res.status(409).json({ error: "Ya existe una orden de trabajo activa para este presupuesto" }); return; }
     console.error(e);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -499,6 +471,16 @@ router.post("/:id/status", async (req, res) => {
       return;
     }
 
+    const target = parsed.data.status;
+    if (target !== wo.status && !(WO_TRANSITIONS[wo.status] ?? []).includes(target)) {
+      res.status(400).json({ error: `No se puede pasar de "${wo.status}" a "${target}"` });
+      return;
+    }
+    if (target === "in_progress" && !wo.mechanicId) {
+      res.status(400).json({ error: "Debes asignar un mecánico antes de iniciar el trabajo." });
+      return;
+    }
+
     const now = new Date();
 
     // Cascade: when advancing to ready_for_pickup, complete all pending items and their checklists
@@ -525,10 +507,12 @@ router.post("/:id/status", async (req, res) => {
     if (parsed.data.status === "ready_for_pickup") updates.completedAt = now;
     if (parsed.data.status === "delivered") updates.deliveredAt = now;
 
-    const [updated] = await db.update(workOrdersTable).set(updates).where(eq(workOrdersTable.id, id)).returning();
+    await db.update(workOrdersTable).set(updates).where(eq(workOrdersTable.id, id));
+    await recalcProgress(id);
     await logEvent(id, `status_changed`, userId, wo.status, parsed.data.status, parsed.data.comment);
     await triggerWorkCaseRecalc(wo.workCaseId, userId);
 
+    const [updated] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, id));
     res.json(await enrichWorkOrder(updated));
   } catch (e) {
     console.error(e);
@@ -548,8 +532,8 @@ router.post("/:id/cancel", async (req, res) => {
       res.status(404).json({ error: "Orden de trabajo no encontrada" });
       return;
     }
-    if (wo.status === "cancelled") {
-      res.status(400).json({ error: "La orden ya está cancelada" });
+    if (wo.status === "cancelled" || wo.status === "delivered") {
+      res.status(400).json({ error: wo.status === "cancelled" ? "La orden ya está cancelada" : "No se puede cancelar una orden entregada" });
       return;
     }
 
@@ -689,6 +673,10 @@ router.patch("/:id/checklist/:checklistItemId", async (req, res) => {
       }
     }
 
+    await recalcProgress(workOrderId);
+    const [woForTr] = await db.select({ workCaseId: workOrdersTable.workCaseId }).from(workOrdersTable).where(eq(workOrdersTable.id, workOrderId));
+    await triggerWorkCaseRecalc(woForTr?.workCaseId, userId);
+
     res.json(updated);
   } catch (e) {
     console.error(e);
@@ -734,6 +722,109 @@ router.get("/:id/items", async (req, res) => {
   }
 });
 
+// ── POST /work-orders/:id/items ───────────────────────────────────────────────
+// Adicional sobre la OT. Queda pendiente de aprobación del cliente salvo que el
+// taller indique que ya lo aprobó por otro medio.
+router.post("/:id/items", async (req, res) => {
+  const workOrderId = Number(req.params.id);
+  const userId = (req.session as any)?.userId ?? null;
+  const parsed = z.object({
+    itemType: z.enum(["service", "part", "additional_labor", "diagnosis", "discount", "other"]),
+    description: z.string().trim().min(1),
+    quantity: z.number().positive(),
+    unitPrice: z.number().min(0),
+    serviceId: z.number().int().positive().nullable().optional(),
+    partId: z.number().int().positive().nullable().optional(),
+    alreadyApproved: z.boolean().optional(),
+  }).safeParse(req.body);
+  if (!parsed.success || !Number.isInteger(workOrderId)) {
+    res.status(400).json({ error: "Datos inválidos", details: parsed.error?.issues }); return;
+  }
+  const data = parsed.data;
+
+  try {
+    const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, workOrderId));
+    if (!wo || !wo.active) { res.status(404).json({ error: "Orden de trabajo no encontrada" }); return; }
+    if (wo.status === "delivered" || wo.status === "cancelled") {
+      res.status(400).json({ error: "La orden ya está cerrada" }); return;
+    }
+
+    const [last] = await db.select({ s: workOrderItemsTable.sortOrder }).from(workOrderItemsTable)
+      .where(eq(workOrderItemsTable.workOrderId, workOrderId))
+      .orderBy(desc(workOrderItemsTable.sortOrder)).limit(1);
+    const total = data.quantity * data.unitPrice;
+    const now = new Date();
+    const [item] = await db.insert(workOrderItemsTable).values({
+      workOrderId,
+      itemType: data.itemType,
+      description: data.description,
+      quantity: String(data.quantity),
+      unitPrice: String(data.unitPrice),
+      total: String(total),
+      origin: "additional",
+      approvalStatus: data.alreadyApproved ? "approved" : "pending",
+      approvalDecidedAt: data.alreadyApproved ? now : null,
+      approvalDecidedBy: data.alreadyApproved ? "staff" : null,
+      sortOrder: (last?.s ?? 0) + 1,
+    }).returning();
+
+    await logWorkOrderEvent(workOrderId, "additional_item_added", userId, {
+      newStatus: item.approvalStatus,
+      comment: `${data.description} (${data.itemType === "discount" ? "-" : ""}${formatCLP(total)})`,
+      visibleToClient: true,
+    });
+    await recalcProgress(workOrderId);
+    await recalcOTTotal(workOrderId, userId);
+
+    res.status(201).json({ ...item, quantity: Number(item.quantity), unitPrice: Number(item.unitPrice), total: Number(item.total) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── POST /work-orders/:id/items/:itemId/approval ──────────────────────────────
+// El taller registra la decisión del cliente (p.ej. aprobó por teléfono).
+router.post("/:id/items/:itemId/approval", async (req, res) => {
+  const workOrderId = Number(req.params.id);
+  const itemId = Number(req.params.itemId);
+  const userId = (req.session as any)?.userId ?? null;
+  const parsed = z.object({ decision: z.enum(["approved", "rejected"]) }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Decisión inválida" }); return; }
+  try {
+    const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, workOrderId));
+    if (!wo) { res.status(404).json({ error: "Orden de trabajo no encontrada" }); return; }
+    const item = await decideWorkOrderItem(wo, itemId, parsed.data.decision, "staff", userId);
+    await recalcProgress(workOrderId);
+    res.json({ ...item, quantity: Number(item.quantity), unitPrice: Number(item.unitPrice), total: Number(item.total) });
+  } catch (e) {
+    if (e instanceof ItemDecisionError) { res.status(400).json({ error: e.message }); return; }
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── POST /work-orders/:id/share ───────────────────────────────────────────────
+router.post("/:id/share", async (req, res) => {
+  const workOrderId = Number(req.params.id);
+  try {
+    const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, workOrderId));
+    if (!wo || !wo.active) { res.status(404).json({ error: "Orden de trabajo no encontrada" }); return; }
+    const token = await ensurePublicToken(wo);
+    const view = await buildPublicWorkOrder({ ...wo, publicToken: token });
+    const [client] = await db.select({ phone: clientsTable.phone }).from(clientsTable).where(eq(clientsTable.id, wo.clientId));
+    res.json({
+      token,
+      path: `/ot/${token}`,
+      message: shareMessage(wo, view.clientName, view.pendingApprovalCount),
+      clientPhone: client?.phone ?? null,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── POST /work-orders/:id/items/:itemId/start ──────────────────────────────────
 router.post("/:id/items/:itemId/start", async (req, res) => {
   const workOrderId = parseInt(req.params.id);
@@ -768,6 +859,7 @@ router.post("/:id/items/:itemId/complete", async (req, res) => {
       .set({ status: "completed", updatedAt: new Date() })
       .where(eq(workOrderItemsTable.id, itemId))
       .returning();
+    await recalcProgress(workOrderId);
     await recalcOTTotal(workOrderId, userId);
     await logEvent(workOrderId, "item_completed", userId, item.status, "completed");
     res.json({ ...updated, quantity: Number(updated.quantity), unitPrice: Number(updated.unitPrice), total: Number(updated.total) });
@@ -791,6 +883,7 @@ router.post("/:id/items/:itemId/cancel", async (req, res) => {
       .where(eq(workOrderItemsTable.id, itemId))
       .returning();
     await logEvent(workOrderId, "item_cancelled", userId, item.status, "cancelled");
+    await recalcProgress(workOrderId);
     await recalcOTTotal(workOrderId, userId);
     res.json({ ...updated, quantity: Number(updated.quantity), unitPrice: Number(updated.unitPrice), total: Number(updated.total) });
   } catch (e) {
@@ -841,6 +934,7 @@ router.patch("/:id/items/:itemId", async (req, res) => {
     }
 
     if (parsed.data.status !== undefined) {
+      await recalcProgress(workOrderId);
       await recalcOTTotal(workOrderId, (req.session as any)?.userId ?? null);
     }
 

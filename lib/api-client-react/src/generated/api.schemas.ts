@@ -710,6 +710,7 @@ export interface TimelineEvent {
   newStatus?: string | null;
   /** @nullable */
   comment?: string | null;
+  visibleToClient?: boolean;
   createdAt: string;
 }
 
@@ -1037,6 +1038,15 @@ export const WorkOrderItemStatus = {
   cancelled: 'cancelled',
 } as const;
 
+export type WorkOrderItemApprovalStatus = typeof WorkOrderItemApprovalStatus[keyof typeof WorkOrderItemApprovalStatus];
+
+
+export const WorkOrderItemApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
 export interface WorkOrderItem {
   id: number;
   workOrderId: number;
@@ -1050,10 +1060,153 @@ export interface WorkOrderItem {
   /** @nullable */
   estimatedLaborHours?: number | null;
   status: WorkOrderItemStatus;
+  approvalStatus?: WorkOrderItemApprovalStatus;
+  /** initial | additional */
+  origin?: string;
+  /** @nullable */
+  approvalDecidedAt?: string | null;
+  /**
+     * client | staff
+     * @nullable
+     */
+  approvalDecidedBy?: string | null;
   sortOrder: number;
   active: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export type WorkOrderItemInputItemType = typeof WorkOrderItemInputItemType[keyof typeof WorkOrderItemInputItemType];
+
+
+export const WorkOrderItemInputItemType = {
+  service: 'service',
+  part: 'part',
+  additional_labor: 'additional_labor',
+  diagnosis: 'diagnosis',
+  discount: 'discount',
+  other: 'other',
+} as const;
+
+export interface WorkOrderItemInput {
+  itemType: WorkOrderItemInputItemType;
+  /** @minLength 1 */
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  /** @nullable */
+  serviceId?: number | null;
+  /** @nullable */
+  partId?: number | null;
+  /** El cliente ya lo aprobó por otro medio (WhatsApp, teléfono, en persona) */
+  alreadyApproved?: boolean;
+}
+
+export type ItemDecisionInputDecision = typeof ItemDecisionInputDecision[keyof typeof ItemDecisionInputDecision];
+
+
+export const ItemDecisionInputDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface ItemDecisionInput {
+  decision: ItemDecisionInputDecision;
+}
+
+export interface WorkOrderShare {
+  token: string;
+  /** Ruta relativa de la vista del cliente (/ot/:token) */
+  path: string;
+  /** Mensaje sugerido para WhatsApp (sin el link) */
+  message: string;
+  /** @nullable */
+  clientPhone?: string | null;
+}
+
+export type PublicWorkOrderItemApprovalStatus = typeof PublicWorkOrderItemApprovalStatus[keyof typeof PublicWorkOrderItemApprovalStatus];
+
+
+export const PublicWorkOrderItemApprovalStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface PublicWorkOrderItem {
+  id: number;
+  itemType: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  origin: string;
+  approvalStatus: PublicWorkOrderItemApprovalStatus;
+  status: string;
+}
+
+export interface PublicTimelineEntry {
+  id: number;
+  createdAt: string;
+  title: string;
+  /** @nullable */
+  detail?: string | null;
+}
+
+export type PublicWorkOrderStatus = typeof PublicWorkOrderStatus[keyof typeof PublicWorkOrderStatus];
+
+
+export const PublicWorkOrderStatus = {
+  ready_to_work: 'ready_to_work',
+  in_progress: 'in_progress',
+  quality_control: 'quality_control',
+  ready_for_pickup: 'ready_for_pickup',
+  delivered: 'delivered',
+  cancelled: 'cancelled',
+} as const;
+
+/**
+ * @nullable
+ */
+export type PublicWorkOrderBicycle = {
+  brand?: string;
+  model?: string;
+  /** @nullable */
+  year?: number | null;
+  type?: string;
+  /** @nullable */
+  color?: string | null;
+  /** @nullable */
+  rimSize?: string | null;
+} | null;
+
+export interface PublicWorkOrder {
+  workshopName: string;
+  /** @nullable */
+  workshopPhone?: string | null;
+  workOrderNumber: string;
+  status: PublicWorkOrderStatus;
+  progressPercentage: number;
+  receivedAt: string;
+  /** @nullable */
+  estimatedDeliveryDate?: string | null;
+  /** @nullable */
+  deliveredAt?: string | null;
+  clientName: string;
+  /** @nullable */
+  bicycle?: PublicWorkOrderBicycle;
+  /** @nullable */
+  reportedProblem?: string | null;
+  /** @nullable */
+  customerNotes?: string | null;
+  items: PublicWorkOrderItem[];
+  subtotal: number;
+  discountTotal: number;
+  total: number;
+  net: number;
+  tax: number;
+  pendingApprovalCount: number;
+  timeline: PublicTimelineEntry[];
 }
 
 export type WorkOrderChecklistItemStatus = typeof WorkOrderChecklistItemStatus[keyof typeof WorkOrderChecklistItemStatus];
@@ -1262,6 +1415,11 @@ export interface WorkCaseWithDetails {
   receptionCount?: number | null;
   /** @nullable */
   workOrderCount?: number | null;
+  /**
+     * Número de la OT vigente del trabajo
+     * @nullable
+     */
+  workOrderNumber?: string | null;
   linkedQuotes?: WorkCaseLinkedQuote[];
   linkedReceptions?: WorkCaseLinkedReception[];
   linkedWorkOrders?: WorkCaseLinkedWorkOrder[];
@@ -1385,6 +1543,8 @@ export const WorkCaseCommentInputCommentType = {
 export interface WorkCaseCommentInput {
   commentType: WorkCaseCommentInputCommentType;
   comment: string;
+  /** Mostrar este comentario en el seguimiento del cliente */
+  visibleToClient?: boolean;
 }
 
 export type ListBicyclesParams = {

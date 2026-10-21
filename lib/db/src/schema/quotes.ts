@@ -113,6 +113,8 @@ export const timelineEventsTable = pgTable("timeline_events", {
   previousStatus: text("previous_status"),
   newStatus: text("new_status"),
   comment: text("comment"),
+  // Se muestra en el seguimiento público de la OT.
+  visibleToClient: boolean("visible_to_client").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

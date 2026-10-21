@@ -1,6 +1,7 @@
 import {
-  pgTable, serial, text, integer, boolean, timestamp, numeric, pgEnum
+  pgTable, serial, text, integer, boolean, timestamp, numeric, pgEnum, uniqueIndex
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { clientsTable } from "./clients";
 import { bicyclesTable } from "./bicycles";
 import { usersTable } from "./users";
@@ -33,6 +34,14 @@ export const checklistItemStatusEnum = pgEnum("checklist_item_status", [
   "with_observation",
 ]);
 
+// Aprobación del cliente por ítem. Los ítems iniciales nacen aprobados;
+// los adicionales nacen pendientes hasta que el cliente (o el taller) decide.
+export const workOrderItemApprovalEnum = pgEnum("work_order_item_approval", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
 export const workOrderPriorityEnum = pgEnum("work_order_priority", [
   "low",
   "normal",
@@ -60,10 +69,16 @@ export const workOrdersTable = pgTable("work_orders", {
   estimatedLaborHours: numeric("estimated_labor_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   progressPercentage: numeric("progress_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
   workCaseId: integer("work_case_id"),
+  // Token secreto del link público que se comparte con el cliente (/ot/:token).
+  publicToken: text("public_token").unique(),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => [
+  // Una sola OT activa por presupuesto (evita duplicados por doble clic).
+  uniqueIndex("work_orders_active_quote_unique").on(t.quoteId)
+    .where(sql`${t.active} AND ${t.quoteId} IS NOT NULL`),
+]);
 
 export const workOrderItemsTable = pgTable("work_order_items", {
   id: serial("id").primaryKey(),
@@ -76,6 +91,10 @@ export const workOrderItemsTable = pgTable("work_order_items", {
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
   estimatedLaborHours: numeric("estimated_labor_hours", { precision: 8, scale: 2 }),
   status: workOrderItemStatusEnum("status").notNull().default("pending"),
+  approvalStatus: workOrderItemApprovalEnum("approval_status").notNull().default("approved"),
+  origin: text("origin").notNull().default("initial"), // initial | additional
+  approvalDecidedAt: timestamp("approval_decided_at"),
+  approvalDecidedBy: text("approval_decided_by"), // client | staff
   sortOrder: integer("sort_order").notNull().default(0),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),

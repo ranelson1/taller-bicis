@@ -5,6 +5,7 @@
  * API specification for Taller de Bicicletas
  * OpenAPI spec version: 0.1.0
  */
+import type { WorkOrderItemApprovalStatus } from './workOrderItemApprovalStatus';
 import type { WorkOrderItemStatus } from './workOrderItemStatus';
 
 export interface WorkOrderItem {
@@ -20,6 +21,16 @@ export interface WorkOrderItem {
   /** @nullable */
   estimatedLaborHours?: number | null;
   status: WorkOrderItemStatus;
+  approvalStatus?: WorkOrderItemApprovalStatus;
+  /** initial | additional */
+  origin?: string;
+  /** @nullable */
+  approvalDecidedAt?: string | null;
+  /**
+     * client | staff
+     * @nullable
+     */
+  approvalDecidedBy?: string | null;
   sortOrder: number;
   active: boolean;
   createdAt: string;

@@ -1497,6 +1497,7 @@ export const GetQuoteTimelineResponseItem = zod.object({
   "previousStatus": zod.string().nullish(),
   "newStatus": zod.string().nullish(),
   "comment": zod.string().nullish(),
+  "visibleToClient": zod.boolean().optional(),
   "createdAt": zod.coerce.date()
 })
 export const GetQuoteTimelineResponse = zod.array(GetQuoteTimelineResponseItem)
@@ -2095,6 +2096,7 @@ export const GetReceptionTimelineResponseItem = zod.object({
   "previousStatus": zod.string().nullish(),
   "newStatus": zod.string().nullish(),
   "comment": zod.string().nullish(),
+  "visibleToClient": zod.boolean().optional(),
   "createdAt": zod.coerce.date()
 })
 export const GetReceptionTimelineResponse = zod.array(GetReceptionTimelineResponseItem)
@@ -2287,6 +2289,10 @@ export const GetWorkOrderResponse = zod.object({
   "total": zod.number(),
   "estimatedLaborHours": zod.number().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
   "sortOrder": zod.number(),
   "active": zod.boolean(),
   "createdAt": zod.string(),
@@ -2602,12 +2608,107 @@ export const ListWorkOrderItemsResponseItem = zod.object({
   "total": zod.number(),
   "estimatedLaborHours": zod.number().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
   "sortOrder": zod.number(),
   "active": zod.boolean(),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
 export const ListWorkOrderItemsResponse = zod.array(ListWorkOrderItemsResponseItem)
+
+
+/**
+ * @summary Add an item to a work order (additional items start pending client approval)
+ */
+export const AddWorkOrderItemParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const AddWorkOrderItemBody = zod.object({
+  "itemType": zod.enum(['service', 'part', 'additional_labor', 'diagnosis', 'discount', 'other']),
+  "description": zod.string().min(1),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "serviceId": zod.number().nullish(),
+  "partId": zod.number().nullish(),
+  "alreadyApproved": zod.boolean().optional().describe('El cliente ya lo aprobó por otro medio (WhatsApp, teléfono, en persona)')
+})
+
+export const AddWorkOrderItemResponse = zod.object({
+  "id": zod.number(),
+  "workOrderId": zod.number(),
+  "quoteItemId": zod.number().nullish(),
+  "itemType": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "total": zod.number(),
+  "estimatedLaborHours": zod.number().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
+  "sortOrder": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Record the client's approval decision for an item (taken by the workshop)
+ */
+export const DecideWorkOrderItemParams = zod.object({
+  "id": zod.coerce.number(),
+  "itemId": zod.coerce.number()
+})
+
+export const DecideWorkOrderItemBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected'])
+})
+
+export const DecideWorkOrderItemResponse = zod.object({
+  "id": zod.number(),
+  "workOrderId": zod.number(),
+  "quoteItemId": zod.number().nullish(),
+  "itemType": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "total": zod.number(),
+  "estimatedLaborHours": zod.number().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
+  "sortOrder": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Get (or create) the public client link for a work order
+ */
+export const ShareWorkOrderParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ShareWorkOrderResponse = zod.object({
+  "token": zod.string(),
+  "path": zod.string().describe('Ruta relativa de la vista del cliente (\/ot\/:token)'),
+  "message": zod.string().describe('Mensaje sugerido para WhatsApp (sin el link)'),
+  "clientPhone": zod.string().nullish()
+})
 
 
 /**
@@ -2633,6 +2734,10 @@ export const UpdateWorkOrderItemResponse = zod.object({
   "total": zod.number(),
   "estimatedLaborHours": zod.number().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
   "sortOrder": zod.number(),
   "active": zod.boolean(),
   "createdAt": zod.string(),
@@ -2659,6 +2764,10 @@ export const StartWorkOrderItemResponse = zod.object({
   "total": zod.number(),
   "estimatedLaborHours": zod.number().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
   "sortOrder": zod.number(),
   "active": zod.boolean(),
   "createdAt": zod.string(),
@@ -2685,6 +2794,10 @@ export const CompleteWorkOrderItemResponse = zod.object({
   "total": zod.number(),
   "estimatedLaborHours": zod.number().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
   "sortOrder": zod.number(),
   "active": zod.boolean(),
   "createdAt": zod.string(),
@@ -2711,6 +2824,10 @@ export const CancelWorkOrderItemResponse = zod.object({
   "total": zod.number(),
   "estimatedLaborHours": zod.number().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
   "sortOrder": zod.number(),
   "active": zod.boolean(),
   "createdAt": zod.string(),
@@ -2735,6 +2852,7 @@ export const GetWorkOrderTimelineResponseItem = zod.object({
   "previousStatus": zod.string().nullish(),
   "newStatus": zod.string().nullish(),
   "comment": zod.string().nullish(),
+  "visibleToClient": zod.boolean().optional(),
   "createdAt": zod.coerce.date()
 })
 export const GetWorkOrderTimelineResponse = zod.array(GetWorkOrderTimelineResponseItem)
@@ -2764,6 +2882,117 @@ export const GetDashboardSummaryResponse = zod.object({
   "workOrdersQualityControl": zod.number(),
   "workOrdersReadyForPickup": zod.number(),
   "workOrdersNoMechanic": zod.number()
+})
+
+
+/**
+ * @summary Client-facing view of a work order (no login, by secret token)
+ */
+export const GetPublicWorkOrderParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicWorkOrderResponse = zod.object({
+  "workshopName": zod.string(),
+  "workshopPhone": zod.string().nullish(),
+  "workOrderNumber": zod.string(),
+  "status": zod.enum(['ready_to_work', 'in_progress', 'quality_control', 'ready_for_pickup', 'delivered', 'cancelled']),
+  "progressPercentage": zod.number(),
+  "receivedAt": zod.string(),
+  "estimatedDeliveryDate": zod.string().nullish(),
+  "deliveredAt": zod.string().nullish(),
+  "clientName": zod.string(),
+  "bicycle": zod.object({
+  "brand": zod.string().optional(),
+  "model": zod.string().optional(),
+  "year": zod.number().nullish(),
+  "type": zod.string().optional(),
+  "color": zod.string().nullish(),
+  "rimSize": zod.string().nullish()
+}).nullish(),
+  "reportedProblem": zod.string().nullish(),
+  "customerNotes": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "itemType": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "total": zod.number(),
+  "origin": zod.string(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "status": zod.string()
+})),
+  "subtotal": zod.number(),
+  "discountTotal": zod.number(),
+  "total": zod.number(),
+  "net": zod.number(),
+  "tax": zod.number(),
+  "pendingApprovalCount": zod.number(),
+  "timeline": zod.array(zod.object({
+  "id": zod.number(),
+  "createdAt": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string().nullish()
+}))
+})
+
+
+/**
+ * @summary Client approves or rejects a pending item
+ */
+export const DecidePublicWorkOrderItemParams = zod.object({
+  "token": zod.coerce.string(),
+  "itemId": zod.coerce.number()
+})
+
+export const DecidePublicWorkOrderItemBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected'])
+})
+
+export const DecidePublicWorkOrderItemResponse = zod.object({
+  "workshopName": zod.string(),
+  "workshopPhone": zod.string().nullish(),
+  "workOrderNumber": zod.string(),
+  "status": zod.enum(['ready_to_work', 'in_progress', 'quality_control', 'ready_for_pickup', 'delivered', 'cancelled']),
+  "progressPercentage": zod.number(),
+  "receivedAt": zod.string(),
+  "estimatedDeliveryDate": zod.string().nullish(),
+  "deliveredAt": zod.string().nullish(),
+  "clientName": zod.string(),
+  "bicycle": zod.object({
+  "brand": zod.string().optional(),
+  "model": zod.string().optional(),
+  "year": zod.number().nullish(),
+  "type": zod.string().optional(),
+  "color": zod.string().nullish(),
+  "rimSize": zod.string().nullish()
+}).nullish(),
+  "reportedProblem": zod.string().nullish(),
+  "customerNotes": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "itemType": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "total": zod.number(),
+  "origin": zod.string(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "status": zod.string()
+})),
+  "subtotal": zod.number(),
+  "discountTotal": zod.number(),
+  "total": zod.number(),
+  "net": zod.number(),
+  "tax": zod.number(),
+  "pendingApprovalCount": zod.number(),
+  "timeline": zod.array(zod.object({
+  "id": zod.number(),
+  "createdAt": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string().nullish()
+}))
 })
 
 
@@ -2811,6 +3040,7 @@ export const ListWorkCasesResponseItem = zod.object({
   "quoteCount": zod.number().nullish(),
   "receptionCount": zod.number().nullish(),
   "workOrderCount": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish().describe('Número de la OT vigente del trabajo'),
   "linkedQuotes": zod.array(zod.object({
   "id": zod.number().optional(),
   "quoteNumber": zod.string().optional(),
@@ -2868,6 +3098,7 @@ export const CreateWorkCaseResponse = zod.object({
   "quoteCount": zod.number().nullish(),
   "receptionCount": zod.number().nullish(),
   "workOrderCount": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish().describe('Número de la OT vigente del trabajo'),
   "linkedQuotes": zod.array(zod.object({
   "id": zod.number().optional(),
   "quoteNumber": zod.string().optional(),
@@ -2968,6 +3199,7 @@ export const GetWorkCaseResponse = zod.object({
   "quoteCount": zod.number().nullish(),
   "receptionCount": zod.number().nullish(),
   "workOrderCount": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish().describe('Número de la OT vigente del trabajo'),
   "linkedQuotes": zod.array(zod.object({
   "id": zod.number().optional(),
   "quoteNumber": zod.string().optional(),
@@ -3029,6 +3261,7 @@ export const UpdateWorkCaseResponse = zod.object({
   "quoteCount": zod.number().nullish(),
   "receptionCount": zod.number().nullish(),
   "workOrderCount": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish().describe('Número de la OT vigente del trabajo'),
   "linkedQuotes": zod.array(zod.object({
   "id": zod.number().optional(),
   "quoteNumber": zod.string().optional(),
@@ -3084,6 +3317,7 @@ export const GetWorkCaseTimelineResponseItem = zod.object({
   "previousStatus": zod.string().nullish(),
   "newStatus": zod.string().nullish(),
   "comment": zod.string().nullish(),
+  "visibleToClient": zod.boolean().optional(),
   "createdAt": zod.coerce.date()
 })
 export const GetWorkCaseTimelineResponse = zod.array(GetWorkCaseTimelineResponseItem)
@@ -3098,7 +3332,8 @@ export const AddWorkCaseCommentParams = zod.object({
 
 export const AddWorkCaseCommentBody = zod.object({
   "commentType": zod.enum(['recepcion', 'durante_trabajo', 'aprobacion_cliente', 'observacion_tecnica', 'entrega', 'interno']),
-  "comment": zod.string()
+  "comment": zod.string(),
+  "visibleToClient": zod.boolean().optional().describe('Mostrar este comentario en el seguimiento del cliente')
 })
 
 export const AddWorkCaseCommentResponse = zod.object({
@@ -3111,6 +3346,7 @@ export const AddWorkCaseCommentResponse = zod.object({
   "previousStatus": zod.string().nullish(),
   "newStatus": zod.string().nullish(),
   "comment": zod.string().nullish(),
+  "visibleToClient": zod.boolean().optional(),
   "createdAt": zod.coerce.date()
 })
 
@@ -3141,6 +3377,7 @@ export const RecalculateWorkCaseStatusResponse = zod.object({
   "quoteCount": zod.number().nullish(),
   "receptionCount": zod.number().nullish(),
   "workOrderCount": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish().describe('Número de la OT vigente del trabajo'),
   "linkedQuotes": zod.array(zod.object({
   "id": zod.number().optional(),
   "quoteNumber": zod.string().optional(),
@@ -3197,6 +3434,7 @@ export const LinkQuoteToWorkCaseResponse = zod.object({
   "quoteCount": zod.number().nullish(),
   "receptionCount": zod.number().nullish(),
   "workOrderCount": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish().describe('Número de la OT vigente del trabajo'),
   "linkedQuotes": zod.array(zod.object({
   "id": zod.number().optional(),
   "quoteNumber": zod.string().optional(),
@@ -3253,6 +3491,7 @@ export const LinkReceptionToWorkCaseResponse = zod.object({
   "quoteCount": zod.number().nullish(),
   "receptionCount": zod.number().nullish(),
   "workOrderCount": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish().describe('Número de la OT vigente del trabajo'),
   "linkedQuotes": zod.array(zod.object({
   "id": zod.number().optional(),
   "quoteNumber": zod.string().optional(),
@@ -3309,6 +3548,7 @@ export const LinkWorkOrderToWorkCaseResponse = zod.object({
   "quoteCount": zod.number().nullish(),
   "receptionCount": zod.number().nullish(),
   "workOrderCount": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish().describe('Número de la OT vigente del trabajo'),
   "linkedQuotes": zod.array(zod.object({
   "id": zod.number().optional(),
   "quoteNumber": zod.string().optional(),

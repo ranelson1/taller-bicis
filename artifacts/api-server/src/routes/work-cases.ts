@@ -291,6 +291,9 @@ router.get("/", async (req, res) => {
       const [qCount] = await db.select({ n: count() }).from(quotesTable).where(and(eq(quotesTable.workCaseId, wc.id), eq(quotesTable.active, true)));
       const [rCount] = await db.select({ n: count() }).from(receptionsTable).where(and(eq(receptionsTable.workCaseId, wc.id), eq(receptionsTable.active, true)));
       const [woCount] = await db.select({ n: count() }).from(workOrdersTable).where(and(eq(workOrdersTable.workCaseId, wc.id), eq(workOrdersTable.active, true)));
+      const [currentWo] = await db.select({ workOrderNumber: workOrdersTable.workOrderNumber }).from(workOrdersTable)
+        .where(and(eq(workOrdersTable.workCaseId, wc.id), eq(workOrdersTable.active, true)))
+        .orderBy(desc(workOrdersTable.id)).limit(1);
       return {
         ...wc,
         clientName: clientName ?? null,
@@ -302,6 +305,7 @@ router.get("/", async (req, res) => {
         quoteCount: Number(qCount?.n ?? 0),
         receptionCount: Number(rCount?.n ?? 0),
         workOrderCount: Number(woCount?.n ?? 0),
+        workOrderNumber: currentWo?.workOrderNumber ?? null,
       };
     }));
 
@@ -461,7 +465,9 @@ router.post("/quick-create", async (req, res) => {
       // 4. Quote with approved items
       const [{ n: qCount }] = await tx.select({ n: count() }).from(quotesTable);
       const quoteNumber = `P-${String(Number(qCount ?? 0) + 1).padStart(4, "0")}`;
-      const subtotal = body.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+      const lineTotal = (i: { quantity: number; unitPrice: number }) => i.quantity * i.unitPrice;
+      const subtotal = body.items.filter(i => i.itemType !== "discount").reduce((s, i) => s + lineTotal(i), 0);
+      const discountTotal = body.items.filter(i => i.itemType === "discount").reduce((s, i) => s + Math.abs(lineTotal(i)), 0);
       const laborHours = body.items.reduce((s, i) => s + (i.estimatedLaborHours ?? 0), 0);
       const [quote] = await tx.insert(quotesTable).values({
         quoteNumber,
@@ -471,7 +477,8 @@ router.post("/quick-create", async (req, res) => {
         initialRequirement: body.customerComment ?? null,
         status: "approved",
         subtotal: String(subtotal),
-        total: String(subtotal),
+        discountTotal: String(discountTotal),
+        total: String(Math.max(0, subtotal - discountTotal)),
         estimatedLaborHours: String(laborHours),
         approvedAt: new Date(),
         workCaseId: wc.id,
@@ -557,6 +564,7 @@ const commentTypeEnum = z.enum([
 const addCommentSchema = z.object({
   commentType: commentTypeEnum,
   comment: z.string().min(1),
+  visibleToClient: z.boolean().optional(),
 });
 router.post("/:id/comment", async (req, res) => {
   const userId = (req.session as any).userId ?? null;
@@ -577,6 +585,7 @@ router.post("/:id/comment", async (req, res) => {
       previousStatus: null,
       newStatus: null,
       comment: parsed.data.comment,
+      visibleToClient: parsed.data.visibleToClient ?? false,
     }).returning();
     res.status(201).json(event);
   } catch (e) {

@@ -23,9 +23,6 @@ import { useQueryClient } from "@tanstack/react-query";
 const mainNavItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/trabajos", label: "Trabajos", icon: Briefcase },
-  { href: "/presupuestos", label: "Presupuestos", icon: FileText },
-  { href: "/recepciones", label: "Recepciones", icon: Inbox },
-  { href: "/ordenes", label: "Órdenes", icon: ClipboardList },
   { href: "/agenda", label: "Agenda", icon: Calendar },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/bicicletas", label: "Bicicletas", icon: Bike },
