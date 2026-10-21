@@ -1,0 +1,995 @@
+#17 - TallerBicis — Etapa 4.5: Trabajos / Ficha Unificada del Viaje del Cliente
+
+## Contexto
+
+Ya están implementadas:
+
+- Etapa 0: base técnica, login, layout, navegación, seed.
+- Etapa 1: CRUDs maestros.
+- Etapa 2: Presupuestos.
+- Etapa 3: Recepciones e inspección visual.
+- Etapa 4: Órdenes de trabajo con checklist operativo.
+
+El problema actual no es técnico, es de UX/producto:
+
+Hoy el mismo servicio queda repartido en distintos documentos:
+
+- Presupuesto: P-0001
+- Recepción: R-0001
+- Orden de trabajo: OT-0001
+
+Eso sirve para trazabilidad, pero hace difícil seguir el viaje completo de un cliente desde un solo lugar.
+
+Necesitamos crear una entidad superior llamada:
+
+- Trabajo
+- Ficha de Trabajo
+
+Código:
+
+- TR-0001
+- TR-0002
+- TR-0003
+
+Un Trabajo agrupa el flujo completo:
+
+Contacto inicial → Presupuesto → Recepción → Inspección → Orden de trabajo → Agenda futura → Pago futuro → Cierre futuro
+
+No eliminar P, R ni OT. Esos códigos siguen existiendo como documentos internos. El TR debe ser el hilo conductor.
+
+## Objetivo
+
+Implementar una capa superior de seguimiento llamada `work_cases`, visible en la UI como “Trabajos”, para agrupar presupuestos, recepciones y órdenes de trabajo relacionadas.
+
+El usuario debe poder entrar a `/trabajos/:id` y entender en una sola pantalla el viaje completo del servicio.
+
+Ejemplo:
+
+TR-0001 — Pedro González / Trek Slash
+
+Debe mostrar:
+
+- Presupuesto P-0001
+- Recepción R-0001
+- Orden OT-0001
+- Estado general
+- Cliente
+- Bicicleta
+- Mecánico
+- Total estimado
+- Horas estimadas
+- Progreso
+- Timeline consolidado
+
+## Importante según estructura actual del código
+
+El schema está modularizado en archivos:
+
+- `lib/db/src/schema/quotes.ts`
+- `lib/db/src/schema/receptions.ts`
+- `lib/db/src/schema/workOrders.ts`
+- `lib/db/src/schema/index.ts`
+
+Por eso, NO crear foreign keys circulares desde `work_cases` hacia `quotes`, `receptions` y `work_orders`.
+
+Implementación recomendada:
+
+1. Crear tabla `work_cases`.
+2. Agregar `work_case_id` en:
+   - `quotes`
+   - `receptions`
+   - `work_orders`
+3. El detalle del trabajo debe buscar documentos relacionados usando `work_case_id`.
+4. No agregar `current_quote_id`, `current_reception_id` ni `current_work_order_id` como FK en `work_cases`.
+
+Si necesitas campos derivados en `work_cases`, usa datos simples como:
+
+- status
+- total_estimated_amount
+- total_estimated_labor_hours
+- progress_percentage
+- assigned_mechanic_id
+
+Pero la relación real debe venir desde `quotes.work_case_id`, `receptions.work_case_id` y `work_orders.work_case_id`.
+
+## Alcance incluido
+
+### 1. Schema DB
+
+Crear archivo nuevo:
+
+- `lib/db/src/schema/workCases.ts`
+
+Exportarlo en:
+
+- `lib/db/src/schema/index.ts`
+
+Crear enum:
+
+`work_case_status`
+
+Valores:
+
+- `lead`
+- `quoted`
+- `quote_sent`
+- `quote_approved`
+- `bike_received`
+- `in_inspection`
+- `ready_for_work_order`
+- `in_work_order`
+- `in_progress`
+- `quality_control`
+- `ready_for_pickup`
+- `delivered`
+- `cancelled`
+
+Labels en UI:
+
+- Contacto inicial
+- Presupuestado
+- Presupuesto enviado
+- Presupuesto aprobado
+- Bicicleta recibida
+- En inspección
+- Lista para OT
+- En orden de trabajo
+- En trabajo
+- Control de calidad
+- Lista para retiro
+- Entregada
+- Cancelada
+
+Tabla `work_cases`:
+
+- id
+- workCaseNumber / work_case_number, formato TR-0001
+- clientId / client_id
+- bicycleId / bicycle_id nullable
+- status
+- originChannel / origin_channel nullable
+- initialRequirement / initial_requirement nullable
+- assignedMechanicId / assigned_mechanic_id nullable
+- totalEstimatedAmount / total_estimated_amount numeric nullable
+- totalEstimatedLaborHours / total_estimated_labor_hours numeric nullable
+- progressPercentage / progress_percentage numeric nullable
+- active boolean default true
+- createdAt / created_at
+- updatedAt / updated_at
+
+Agregar columna nullable:
+
+En `quotes.ts`:
+
+- workCaseId / work_case_id references workCasesTable.id
+
+En `receptions.ts`:
+
+- workCaseId / work_case_id references workCasesTable.id
+
+En `workOrders.ts`:
+
+- workCaseId / work_case_id references workCasesTable.id
+
+No agregar columnas de fotos, pagos, agenda ni inventario.
+
+### 2. Backfill idempotente
+
+Crear script o función idempotente para asociar datos existentes a Trabajos.
+
+Puede ser:
+
+- `artifacts/api-server/src/seed-work-cases.ts`
+o incorporado cuidadosamente en seed si ese es el patrón actual.
+
+Reglas de backfill:
+
+1. Para cada presupuesto sin `workCaseId`, crear un TR.
+2. Si ese presupuesto tiene recepción asociada por `quoteId`, asignar la recepción al mismo TR.
+3. Si ese presupuesto tiene OT asociada por `workOrderId` o por `work_orders.quote_id`, asignar la OT al mismo TR.
+4. Para recepciones sin presupuesto y sin TR, crear TR propio.
+5. Para OTs sin presupuesto/recepción/TR, crear TR propio usando cliente y bicicleta de la OT.
+6. No duplicar TR si el script se ejecuta más de una vez.
+7. No duplicar TR-0001, TR-0002, TR-0003.
+8. Mantener consistencia entre quote, reception y work_order cuando pertenecen al mismo flujo.
+
+Ejemplo esperado:
+
+- P-0001 + R-0001 + OT-0001 → TR-0001
+- P-0002 + R-0002 → TR-0002
+- P-0003 + OT-0002 → TR-0003
+
+### 3. Numeración automática
+
+Crear helper:
+
+- `nextWorkCaseNumber()`
+
+Formato:
+
+- TR-0001
+- TR-0002
+- TR-0003
+
+Debe seguir el mismo estilo actual de `nextQuoteNumber`, `nextReceptionNumber` y `nextWorkOrderNumber`.
+
+### 4. Helpers backend
+
+Crear helpers simples para no duplicar demasiada lógica.
+
+Puede ser en:
+
+- `artifacts/api-server/src/routes/work-cases.ts`
+
+o si es más limpio:
+
+- `artifacts/api-server/src/lib/workCases.ts`
+
+Helpers sugeridos:
+
+#### `createWorkCaseForQuote(quote)`
+
+Crea TR desde un presupuesto.
+
+Debe usar:
+
+- clientId
+- bicycleId nullable
+- originChannel
+- initialRequirement
+- status según estado del presupuesto
+- totalEstimatedAmount desde quote.total
+- totalEstimatedLaborHours desde quote.estimatedLaborHours
+
+#### `ensureWorkCaseForQuote(quoteId)`
+
+Si el presupuesto ya tiene `workCaseId`, devuelve ese TR.  
+Si no tiene, crea TR y actualiza quote.
+
+#### `ensureWorkCaseForReception(receptionId)`
+
+Si la recepción tiene TR, devuelve ese TR.  
+Si tiene quote con TR, hereda ese TR.  
+Si no tiene, crea TR desde recepción.
+
+#### `ensureWorkCaseForWorkOrder(workOrderId)`
+
+Si la OT tiene TR, devuelve ese TR.  
+Si tiene quote o reception con TR, hereda ese TR.  
+Si no tiene, crea TR desde la OT.
+
+#### `recalculateWorkCaseStatus(workCaseId)`
+
+Recalcula estado general usando prioridad:
+
+1. Si existe OT activa, manda el estado de OT.
+2. Si no hay OT, pero existe recepción activa, manda recepción.
+3. Si no hay recepción, pero existe presupuesto activo, manda presupuesto.
+4. Si solo existe TR, queda `lead`.
+
+Mapeo desde presupuesto:
+
+- draft → quoted
+- sent → quote_sent
+- updated_after_sent → quote_sent
+- approved → quote_approved
+- partially_approved → quote_approved
+- ready_for_work_order → ready_for_work_order
+- converted_to_work_order → in_work_order
+- rejected → cancelled
+
+Mapeo desde recepción:
+
+- received → bike_received
+- in_inspection → in_inspection
+- inspection_completed → ready_for_work_order
+- waiting_quote_approval → quote_sent
+- ready_for_work_order → ready_for_work_order
+- cancelled → cancelled solo si no hay OT activa
+
+Mapeo desde OT según enum actual:
+
+- ready_to_work → in_work_order
+- in_progress → in_progress
+- quality_control → quality_control
+- ready_for_pickup → ready_for_pickup
+- delivered → delivered
+- cancelled → cancelled
+
+También recalcular:
+
+- assignedMechanicId desde `work_orders.mechanicId`, si existe.
+- totalEstimatedAmount desde OT total si existe, si no desde presupuesto.
+- totalEstimatedLaborHours desde OT si existe, si no desde presupuesto.
+- progressPercentage desde OT si existe, si no 0.
+
+### 5. Actualizar flujos existentes
+
+#### Al crear presupuesto nuevo
+
+En `artifacts/api-server/src/routes/quotes.ts`, endpoint `POST /quotes`:
+
+- Crear presupuesto como hoy.
+- Crear automáticamente un TR.
+- Guardar `workCaseId` en el presupuesto.
+- Registrar timeline en quote.
+- Registrar timeline en work_case.
+
+No romper lógica existente de presupuestos.
+
+#### Al crear recepción
+
+En `artifacts/api-server/src/routes/receptions.ts`, endpoint `POST /receptions`:
+
+- Si viene con `quoteId`, heredar `workCaseId` del presupuesto.
+- Si el presupuesto no tiene TR, crear TR para ese presupuesto primero.
+- Si no viene con `quoteId`, crear TR desde la recepción.
+- Guardar `workCaseId` en recepción.
+- Recalcular estado del TR.
+
+#### Al crear presupuesto desde recepción
+
+En `POST /receptions/:id/create-quote`:
+
+- Heredar `workCaseId` de la recepción.
+- Si la recepción no tiene TR, crearlo.
+- Guardar ese mismo `workCaseId` en el presupuesto nuevo.
+- Recalcular estado del TR.
+
+#### Al crear OT desde presupuesto
+
+En `artifacts/api-server/src/routes/work-orders.ts`, endpoint `POST /work-orders/from-quote/:quoteId`:
+
+- Heredar `workCaseId` del presupuesto.
+- Si el presupuesto no tiene TR, crearlo.
+- Guardar `workCaseId` en la OT.
+- Si hay recepción asociada, asegurar que la recepción tenga el mismo `workCaseId`.
+- Recalcular estado del TR.
+
+#### Al crear OT desde recepción
+
+En `POST /work-orders/from-reception/:receptionId`:
+
+- Heredar `workCaseId` de recepción o presupuesto.
+- Guardar `workCaseId` en OT.
+- Recalcular estado del TR.
+
+#### Al cambiar estado de OT
+
+En `POST /work-orders/:id/status` y acciones equivalentes:
+
+- Después de cambiar estado de OT, recalcular estado del TR.
+
+#### Al cambiar estado de recepción
+
+En endpoints de recepción:
+
+- start-inspection
+- complete-inspection
+- mark-ready-for-work-order
+- cancel
+- mark-waiting-quote-approval
+
+Después de cambiar estado, recalcular estado del TR.
+
+#### Al cambiar estado de presupuesto
+
+En endpoints de presupuesto:
+
+- send
+- approve
+- reject
+- mark-ready-for-work-order
+
+Después de cambiar estado, recalcular estado del TR.
+
+### 6. API nueva de Trabajos
+
+Crear archivo:
+
+- `artifacts/api-server/src/routes/work-cases.ts`
+
+Registrar en:
+
+- `artifacts/api-server/src/routes/index.ts`
+
+Endpoints:
+
+#### GET `/work-cases`
+
+Lista de trabajos.
+
+Filtros:
+
+- status
+- clientId
+- mechanicId
+- search
+- dateFrom
+- dateTo
+- active
+
+Search debe buscar por:
+
+- TR-XXXX
+- P-XXXX
+- R-XXXX
+- OT-XXXX
+- nombre de cliente
+- marca/modelo bicicleta
+
+La respuesta debe venir enriquecida con:
+
+- workCaseNumber
+- clientName
+- bicycleName
+- status
+- quoteNumber nullable
+- receptionNumber nullable
+- workOrderNumber nullable
+- mechanicName nullable
+- totalEstimatedAmount
+- totalEstimatedLaborHours
+- progressPercentage
+- updatedAt
+
+#### GET `/work-cases/:id`
+
+Detalle consolidado.
+
+Debe devolver:
+
+- workCase
+- client
+- bicycle nullable
+- quote nullable
+- reception nullable
+- workOrder nullable
+- findings summary si hay recepción
+- timeline consolidado
+- journeySteps
+
+`journeySteps` puede ser una lista simple:
+
+- Presupuesto
+- Recepción
+- Inspección
+- Orden de trabajo
+- Control de calidad
+- Lista para retiro
+- Entrega
+
+Con estado:
+
+- completed
+- current
+- pending
+- cancelled
+
+#### POST `/work-cases`
+
+Crear TR manual.
+
+Uso secundario. Puede crear un contacto inicial sin presupuesto.
+
+Campos:
+
+- clientId
+- bicycleId nullable
+- originChannel nullable
+- initialRequirement nullable
+
+Estado inicial:
+
+- lead
+
+#### PATCH `/work-cases/:id`
+
+Editar datos básicos:
+
+- clientId
+- bicycleId
+- originChannel
+- initialRequirement
+- status si aplica
+- active
+
+No sobrecomplicar.
+
+#### DELETE `/work-cases/:id`
+
+Soft-delete.
+
+Solo debe marcar `active = false`.
+
+No borrar presupuestos, recepciones ni OTs.
+
+#### POST `/work-cases/:id/recalculate-status`
+
+Recalcula estado.
+
+#### GET `/work-cases/:id/timeline`
+
+Timeline consolidado.
+
+Debe juntar eventos de:
+
+- entity_type = work_case, entity_id = workCase.id
+- entity_type = quote, entity_id = quote.id
+- entity_type = reception, entity_id = reception.id
+- entity_type = work_order, entity_id = workOrder.id
+
+Ordenar por fecha descendente o ascendente, elegir lo más usable.
+
+#### GET `/work-cases/summary`
+
+Resumen para dashboard.
+
+Contadores:
+
+- trabajos activos
+- esperando aprobación
+- en inspección
+- en trabajo
+- listos para retiro
+- entregados
+
+### 7. OpenAPI / codegen
+
+Actualizar:
+
+- `lib/api-spec/openapi.yaml`
+
+Agregar schemas:
+
+- WorkCase
+- WorkCaseListItem
+- WorkCaseDetail
+- WorkCaseInput
+- WorkCaseUpdate
+- WorkCaseTimelineEvent
+- WorkCaseSummary
+- WorkCaseJourneyStep
+
+Actualizar schemas existentes si agregas `workCaseId` y `workCaseNumber` en:
+
+- Quote
+- Reception
+- WorkOrder
+
+Regenerar cliente según patrón actual:
+
+- ejecutar orval/codegen como se ha hecho en etapas anteriores.
+
+No editar manualmente archivos generados salvo que el proyecto ya lo haga así.
+
+### 8. Dashboard
+
+Actualizar:
+
+- `artifacts/api-server/src/routes/dashboard.ts`
+- `artifacts/workshop-app/src/pages/dashboard.tsx`
+
+Agregar sección “Trabajos”.
+
+Cards:
+
+- Trabajos activos
+- Esperando aprobación
+- En inspección
+- En trabajo
+- Listos para retiro
+- Entregados
+
+No eliminar ni romper cards existentes:
+
+- Taller
+- Presupuestos
+- Recepciones
+- Órdenes
+
+### 9. Frontend
+
+Crear rutas:
+
+- `/trabajos`
+- `/trabajos/:id`
+
+Agregar al menú Operación:
+
+- Dashboard
+- Trabajos
+- Presupuestos
+- Recepciones
+- Órdenes
+- Agenda
+- Clientes
+- Bicicletas
+- Pagos
+
+“Trabajos” debe ir arriba de Presupuestos.
+
+### 10. Pantalla `/trabajos`
+
+Crear lista de trabajos.
+
+Desktop:
+
+Tabla con columnas:
+
+- Trabajo
+- Cliente
+- Bicicleta
+- Estado general
+- Presupuesto
+- Recepción
+- OT
+- Mecánico
+- Total estimado
+- Progreso
+- Última actualización
+- Acciones
+
+Mobile:
+
+Tarjetas con:
+
+- TR-XXXX
+- Cliente
+- Bicicleta
+- Estado general
+- Etapa actual
+- Presupuesto / Recepción / OT asociado
+- Progreso
+- Acción “Ver”
+
+Filtros:
+
+- Estado
+- Cliente
+- Mecánico
+- Fecha desde/hasta
+- Búsqueda libre
+
+### 11. Pantalla `/trabajos/:id`
+
+Crear detalle consolidado del trabajo.
+
+Debe mostrar:
+
+#### Encabezado
+
+- TR-XXXX
+- Estado general
+- Cliente
+- Bicicleta
+- Mecánico, si existe
+- Total estimado
+- Horas estimadas
+- Progreso
+- Última actualización
+
+#### Viaje del trabajo
+
+Mostrar una línea o lista simple de avance:
+
+- Contacto / Presupuesto
+- Recepción
+- Inspección
+- Orden de trabajo
+- Control de calidad
+- Lista para retiro
+- Entrega
+
+No hacer un componente complejo. Priorizar claridad.
+
+#### Presupuesto
+
+Si existe:
+
+- Código P-XXXX
+- Estado
+- Total
+- Horas
+- Link “Ver presupuesto”
+
+Si no existe:
+
+- Botón “Crear presupuesto” solo si es fácil reutilizar el flujo actual.
+- Si no, dejar CTA deshabilitado “Crear presupuesto desde trabajo — pendiente”.
+
+#### Recepción
+
+Si existe:
+
+- Código R-XXXX
+- Estado
+- Fecha de ingreso
+- Link “Ver recepción”
+
+Si no existe:
+
+- Botón “Registrar recepción” solo si es fácil reutilizar el flujo actual.
+
+#### Orden de trabajo
+
+Si existe:
+
+- Código OT-XXXX
+- Estado
+- Mecánico
+- Progreso
+- Link “Ver OT”
+
+Si no existe y hay presupuesto aprobado/listo:
+
+- Botón “Crear OT” reutilizando endpoint existente.
+
+#### Inspección
+
+Si hay recepción con hallazgos:
+
+- cantidad de hallazgos
+- severidad más alta
+- adicionales creados
+- link a recepción
+
+#### Timeline consolidado
+
+Mostrar eventos de presupuesto, recepción, OT y trabajo.
+
+### 12. Actualizar listas existentes
+
+Actualizar:
+
+- `/presupuestos`
+- `/recepciones`
+- `/ordenes`
+
+Agregar columna/badge:
+
+- Trabajo: TR-XXXX
+
+El TR debe ser clickeable y llevar a `/trabajos/:id`.
+
+En mobile debe verse como badge en la tarjeta.
+
+### 13. Actualizar detalles existentes
+
+Actualizar:
+
+- Detalle de presupuesto
+- Detalle de recepción
+- Detalle de OT
+
+En el encabezado agregar:
+
+- Trabajo asociado: TR-XXXX
+- Link “Ver ficha de trabajo”
+
+Esto es clave para que el usuario pueda volver siempre al viaje completo.
+
+### 14. Timeline
+
+Usar tabla existente:
+
+- `timeline_events`
+
+No crear una tabla nueva de timeline.
+
+Registrar eventos `entity_type = work_case` para:
+
+- work_case_created
+- quote_linked_to_work_case
+- reception_linked_to_work_case
+- work_order_linked_to_work_case
+- work_case_status_changed
+- work_case_recalculated
+
+El timeline consolidado debe también incluir eventos existentes de quote, reception y work_order.
+
+### 15. Datos semilla
+
+Actualizar seed/backfill para que existan al menos:
+
+#### TR-0001
+
+- Cliente Pedro González
+- Bicicleta Trek Slash
+- Presupuesto P-0001
+- Recepción R-0001
+- OT-0001
+- Estado: En trabajo
+
+#### TR-0002
+
+- Cliente María Soto
+- Bicicleta Specialized Stumpjumper
+- Presupuesto P-0002
+- Recepción R-0002
+- Estado según datos actuales
+
+#### TR-0003
+
+- Cliente Andrés Rojas
+- Bicicleta Giant Reign Advanced Pro
+- Presupuesto P-0003
+- Recepción R-0003
+- OT-0002 u OT correspondiente
+- Estado según datos actuales
+
+El seed/backfill debe ser idempotente.
+
+## Fuera de alcance
+
+No implementar todavía:
+
+- Agenda real
+- Calendario
+- FullCalendar
+- schedule_blocks
+- Capacidad real por mecánico
+- Pagos
+- Facturación
+- Portal cliente
+- WhatsApp real
+- Email real
+- Registro fotográfico
+- Upload de imágenes
+- Inventario avanzado
+- Stock de repuestos
+- Compras
+- Proveedores
+- Reportería avanzada
+- Múltiples sucursales
+- Roles/permisos complejos
+
+Esta etapa es solo para ordenar el seguimiento completo del trabajo.
+
+## Definition of Done
+
+Al terminar esta etapa debo poder:
+
+- Entrar con login.
+- Ver menú “Trabajos”.
+- Ir a `/trabajos`.
+- Ver TR-0001, TR-0002, TR-0003.
+- Ver para cada Trabajo cliente, bicicleta, estado general, presupuesto, recepción y OT.
+- Entrar a `/trabajos/:id`.
+- Entender el viaje completo del cliente en una sola pantalla.
+- Ver presupuesto asociado y navegar a él.
+- Ver recepción asociada y navegar a ella.
+- Ver OT asociada y navegar a ella.
+- Ver timeline consolidado.
+- Desde presupuesto, ver badge/link a TR.
+- Desde recepción, ver badge/link a TR.
+- Desde OT, ver badge/link a TR.
+- Crear un presupuesto nuevo y confirmar que se crea automáticamente un TR.
+- Crear recepción desde presupuesto y confirmar que hereda el mismo TR.
+- Crear presupuesto desde recepción y confirmar que hereda el mismo TR.
+- Crear OT desde presupuesto/recepción y confirmar que hereda el mismo TR.
+- Confirmar que no se duplican TR al correr seed/backfill.
+- Confirmar que dashboard muestra resumen de Trabajos.
+- Confirmar que mobile muestra tarjetas y detalle usable.
+
+## Pruebas manuales esperadas
+
+### Prueba 1: seguimiento completo existente
+
+1. Abrir `/trabajos`.
+2. Abrir TR-0001.
+3. Confirmar que muestra P-0001, R-0001 y OT-0001.
+4. Navegar a P-0001.
+5. Confirmar link de vuelta a TR-0001.
+6. Navegar a R-0001.
+7. Confirmar link de vuelta a TR-0001.
+8. Navegar a OT-0001.
+9. Confirmar link de vuelta a TR-0001.
+
+### Prueba 2: nuevo flujo desde presupuesto
+
+1. Crear nuevo presupuesto.
+2. Confirmar que se crea TR nuevo automáticamente.
+3. Ir al detalle del presupuesto.
+4. Confirmar badge TR.
+5. Ir al detalle del TR.
+6. Confirmar que aparece el presupuesto.
+
+### Prueba 3: recepción desde presupuesto
+
+1. Desde un presupuesto con TR, crear recepción.
+2. Confirmar que la recepción hereda el mismo TR.
+3. Confirmar que el TR muestra la recepción.
+
+### Prueba 4: presupuesto desde recepción
+
+1. Crear recepción directa sin presupuesto.
+2. Confirmar que se crea TR.
+3. Crear presupuesto desde recepción.
+4. Confirmar que el presupuesto hereda el mismo TR.
+
+### Prueba 5: OT desde presupuesto/recepción
+
+1. Crear OT desde flujo aprobado.
+2. Confirmar que la OT hereda el mismo TR.
+3. Confirmar que el TR muestra la OT.
+4. Confirmar que el estado general del TR se actualiza.
+
+### Prueba 6: responsive
+
+1. Abrir `/trabajos` en mobile.
+2. Confirmar tarjetas.
+3. Abrir `/trabajos/:id`.
+4. Confirmar que se entiende el viaje sin tablas incómodas.
+
+## Reglas de implementación
+
+- No refactorizar toda la app.
+- No cambiar el stack.
+- No eliminar P/R/OT.
+- No renombrar órdenes de trabajo.
+- No romper presupuestos.
+- No romper recepciones.
+- No romper órdenes.
+- No crear referencias circulares entre schemas.
+- No agregar `current_quote_id`, `current_reception_id` ni `current_work_order_id` como FK en `work_cases`.
+- No implementar agenda.
+- No implementar pagos.
+- No implementar facturación.
+- No agregar fotos.
+- No agregar inventario.
+- Mantener código simple.
+- Hacer el cambio mínimo necesario para crear la capa superior de seguimiento.
+- Usar el patrón actual del backend:
+  - Express Router
+  - requireAuth
+  - Zod v4
+  - Drizzle
+  - `if (!x) { res.status(...); return; }`
+- Actualizar `replit.md` con:
+  - concepto de Trabajo/Ficha de Trabajo
+  - tablas nuevas
+  - columnas nuevas
+  - endpoints nuevos
+  - rutas nuevas
+  - reglas de relación TR / P / R / OT
+  - pruebas manuales
+  - siguiente etapa sugerida
+
+## Archivos relevantes
+
+Backend / schema:
+
+- `lib/db/src/schema/workCases.ts`
+- `lib/db/src/schema/index.ts`
+- `lib/db/src/schema/quotes.ts`
+- `lib/db/src/schema/receptions.ts`
+- `lib/db/src/schema/workOrders.ts`
+- `lib/db/src/seed.ts`
+- `artifacts/api-server/src/routes/work-cases.ts`
+- `artifacts/api-server/src/routes/index.ts`
+- `artifacts/api-server/src/routes/quotes.ts`
+- `artifacts/api-server/src/routes/receptions.ts`
+- `artifacts/api-server/src/routes/work-orders.ts`
+- `artifacts/api-server/src/routes/dashboard.ts`
+
+OpenAPI / client:
+
+- `lib/api-spec/openapi.yaml`
+- `lib/api-client-react/src/generated/api.ts`
+- `lib/api-client-react/src/generated/api.schemas.ts`
+
+Frontend:
+
+- `artifacts/workshop-app/src/App.tsx`
+- `artifacts/workshop-app/src/pages/dashboard.tsx`
+- páginas actuales de presupuestos
+- páginas actuales de recepciones
+- páginas actuales de órdenes
+- nueva carpeta o archivos para trabajos
+
+Documentación:
+
+- `replit.md`
+
+Antes de empezar, revisar la estructura actual y confirmar brevemente qué archivos se van a crear o modificar.

@@ -1,0 +1,122 @@
+El plan está aprobado, pero antes de implementar aplica estos ajustes:
+
+1. No uses `recalculateWorkCaseStatus` como acción de negocio.
+
+Ese helper solo debe recalcular el estado general del TR después de que cambie una entidad real.
+
+Para botones como:
+- Marcar en trabajo
+- Marcar completado
+- Marcar listo para retiro
+- Marcar entregado
+
+Debes cambiar el estado real de la OT usando el endpoint existente de work-orders, y luego recalcular el TR.
+
+Ejemplo:
+- Marcar en trabajo → actualizar OT a `in_progress`
+- Marcar completado → actualizar OT a `quality_control` o `ready_for_pickup`, usando el mapeo más consistente con el sistema actual
+- Marcar listo para retiro → actualizar OT a `ready_for_pickup`
+- Marcar entregado → actualizar OT a `delivered`
+
+No actualizar solo el TR si existe una OT asociada.
+
+2. Define claramente los estados iniciales del quick-create.
+
+Cuando `POST /work-cases/quick-create` crea TR + P + R + OT:
+
+- Presupuesto debe quedar con ítems aprobados y estado coherente, idealmente `converted_to_work_order`.
+- Recepción debe quedar asociada al TR y a la OT.
+- OT debe quedar en `ready_to_work` por defecto, salvo que se defina otra regla.
+- Work Case debe recalcularse desde la OT y quedar en `in_work_order`.
+
+No dejar documentos en estados contradictorios.
+
+3. El endpoint `quick-create` debe ejecutarse en una transacción.
+
+Si falla la creación de OT, checklist o recepción, no debe quedar creado a medias:
+- cliente nuevo sin trabajo
+- bicicleta nueva sin trabajo
+- presupuesto sin recepción
+- recepción sin OT
+- OT sin checklist
+
+Usar transacción para todo el flujo.
+
+4. No dupliques lógica de creación de OT.
+
+Extrae un helper interno reutilizable, por ejemplo:
+
+`createWorkOrderFromQuoteInternal(...)`
+
+Debe ser usado por:
+- `POST /work-orders/from-quote/:quoteId`
+- `POST /work-cases/quick-create`
+
+No copiar/pegar toda la lógica de creación de OT en dos lados.
+
+5. Agregar ítem adicional desde TR debe quedar simple.
+
+Al agregar un servicio/repuesto adicional desde `/trabajos/:id`:
+
+- Crear `quote_item` asociado al presupuesto del TR.
+- `origin = during_work`
+- `approval_status = approved` si el usuario marca aprobado.
+- Guardar medio de aprobación si existe campo disponible; si no, dejarlo en nota/comentario por ahora.
+- Recalcular totales del presupuesto.
+- Mostrar el ítem en la ficha TR.
+
+Si actualizar automáticamente la OT es muy complejo, dejarlo visible como “Adicional agregado al presupuesto” y documentar que incorporar a OT queda para el siguiente ajuste. No romper el checklist existente.
+
+6. Comentarios rápidos: implementación mínima.
+
+El botón “Agregar comentario” puede usar `timeline_events` por ahora.
+
+No crear todavía un módulo complejo de comentarios si eso aumenta mucho el alcance.
+
+Tipos sugeridos:
+- Recepción
+- Durante trabajo
+- Aprobación cliente
+- Observación técnica
+- Entrega
+- Interno
+
+7. No implementar pagos todavía.
+
+Aunque aparezca botón “Marcar entregado”, no agregar:
+- pago
+- estado de pago
+- saldo
+- conciliación
+- reportes
+
+Eso viene después.
+
+8. No implementar fotos todavía.
+
+Mantener fuera de esta tarea:
+- upload
+- storage
+- galería
+- categorías de fotos
+
+9. Año de bicicleta.
+
+Agregar `year` opcional con validación:
+- nullable
+- si existe, entre 1990 y año actual + 1
+- mostrar como “Marca Modelo Año”
+- no hacerlo obligatorio en ningún flujo antiguo ni nuevo.
+
+10. Mobile-first.
+
+El wizard de `/trabajos/nuevo` debe ser realmente usable en celular:
+- pasos cortos
+- botones grandes
+- no tablas
+- selección rápida de cliente/bici/servicios
+- crear cliente/bici inline sin salir del flujo
+
+11. No romper módulos existentes.
+
+Presupuestos, Recepciones y Órdenes deben seguir funcionando como antes. Esta etapa solo agrega un flujo rápido encima.

@@ -1,0 +1,112 @@
+El plan está aprobado. Antes de implementar, aplica estos ajustes para evitar problemas:
+
+1. Agrega estado `closed` a `work_case_status`.
+
+Además de:
+- lead
+- quoted
+- quote_sent
+- quote_approved
+- bike_received
+- in_inspection
+- ready_for_work_order
+- in_work_order
+- in_progress
+- quality_control
+- ready_for_pickup
+- delivered
+- cancelled
+
+Debe existir también:
+- closed → Cerrado
+
+Esto será necesario cuando más adelante conectemos pagos/cierre.
+
+2. Ojo con el orden de rutas en Express.
+
+En `work-cases.ts`, registra rutas específicas antes de `/:id`.
+
+Correcto:
+- GET /work-cases/summary
+- GET /work-cases/:id/timeline
+- POST /work-cases/:id/recalculate-status
+- GET /work-cases/:id
+
+Incorrecto:
+- GET /work-cases/:id antes de /summary, porque puede capturar "summary" como id.
+
+3. Me parece bien usar `work_case_id` como integer nullable sin FK estricta para evitar dependencias circulares, pero mantén consistencia manual desde backend.
+
+Regla:
+- quote.workCaseId
+- reception.workCaseId
+- workOrder.workCaseId
+
+Siempre deben apuntar al mismo TR cuando pertenezcan al mismo flujo.
+
+4. No sobrecargar `work_cases` con referencias actuales.
+
+No agregar:
+- current_quote_id
+- current_reception_id
+- current_work_order_id
+
+El detalle de `/trabajos/:id` debe construir la vista consolidada buscando por `work_case_id` en quotes, receptions y work_orders.
+
+5. El backfill/seed debe ser idempotente.
+
+Antes de crear TR nuevo, verificar si ya existe una relación por:
+- quote.workCaseId
+- reception.workCaseId
+- workOrder.workCaseId
+- combinación quote/reception/work_order existente
+
+No debe duplicar TR-0001, TR-0002, TR-0003 si corro el seed dos veces.
+
+6. Al crear TR automáticamente, registrar timeline.
+
+Eventos mínimos:
+- work_case_created
+- quote_linked_to_work_case
+- reception_linked_to_work_case
+- work_order_linked_to_work_case
+- work_case_status_changed
+
+7. En el dashboard, no reemplaces secciones existentes.
+
+Solo agrega sección “Trabajos”. Mantén:
+- Taller
+- Presupuestos
+- Recepciones
+- Órdenes de trabajo
+
+8. En mobile, el TR debe verse siempre.
+
+En tarjetas de:
+- presupuestos
+- recepciones
+- órdenes
+
+Mostrar badge visible:
+Trabajo: TR-XXXX
+
+Debe ser clickeable hacia `/trabajos/:id`.
+
+9. No refactorices el flujo de presupuestos, recepciones ni órdenes más de lo necesario.
+
+Solo agrega:
+- workCaseId
+- badge/link a TR
+- herencia de TR en creación
+- recálculo de estado general
+
+No cambies lógica de aprobación, versiones, checklist ni estados existentes salvo lo estrictamente necesario.
+
+10. Actualiza `replit.md` con una explicación clara:
+
+- TR = Trabajo / Ficha de Trabajo / hilo conductor.
+- P = Presupuesto.
+- R = Recepción.
+- OT = Orden de trabajo.
+- Un TR puede agrupar P + R + OT.
+- Las pantallas P/R/OT siguen existiendo, pero `/trabajos` es la vista principal de seguimiento.

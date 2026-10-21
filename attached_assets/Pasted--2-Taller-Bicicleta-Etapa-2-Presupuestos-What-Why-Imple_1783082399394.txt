@@ -1,0 +1,508 @@
+#2 - Taller Bicicleta — Etapa 2: Presupuestos
+
+What & Why
+
+Implementar el módulo de presupuestos, que es el primer flujo operativo real de la app.
+
+El taller normalmente recibe un contacto por WhatsApp, llamada, Instagram o presencial. Desde ahí se crea un presupuesto preliminar con los requerimientos del cliente. El presupuesto puede incluir servicios técnicos, repuestos, mano de obra adicional, diagnósticos, recomendaciones, descuentos u otros ítems.
+
+El objetivo de esta etapa es poder crear, editar, enviar manualmente, versionar, aprobar/rechazar ítems y dejar un presupuesto listo para convertirse en orden de trabajo en una etapa posterior.
+
+Importante:
+Usar siempre el término “presupuesto”, no “cotización”.
+
+Done looks like
+
+- Puedo crear un presupuesto desde un contacto inicial del cliente.
+- Puedo seleccionar cliente existente o crear uno rápidamente si no existe.
+- Puedo asociar una bicicleta existente del cliente o dejarla pendiente si aún no está registrada.
+- Puedo registrar canal de origen: WhatsApp, llamada, Instagram, presencial u otro.
+- Puedo registrar el requerimiento inicial del cliente.
+- Puedo agregar ítems al presupuesto.
+- Puedo agregar servicios técnicos desde el catálogo existente.
+- Al agregar un servicio técnico, se copia automáticamente:
+  - nombre/descripción
+  - precio base
+  - horas hombre estimadas
+  - categoría
+  - referencia al servicio original
+- Puedo agregar repuestos desde el catálogo existente.
+- Al agregar un repuesto, se copia:
+  - nombre/descripción
+  - precio sugerido
+  - referencia al repuesto original
+- Puedo agregar ítems manuales: mano de obra adicional, diagnóstico, recomendación, descuento u otro.
+- Cada ítem tiene cantidad, precio unitario, total calculado, horas estimadas si aplica, origen y estado de aprobación.
+- El presupuesto calcula automáticamente:
+  - subtotal
+  - descuentos
+  - total
+  - total de horas hombre estimadas
+- Puedo guardar el presupuesto como borrador.
+- Puedo marcarlo como enviado al cliente.
+- Puedo aprobarlo total o parcialmente.
+- Puedo rechazarlo.
+- Puedo aprobar/rechazar ítems individualmente.
+- Puedo crear una nueva versión cuando el presupuesto cambia después de haber sido enviado.
+- Puedo ver historial de versiones del presupuesto.
+- Puedo ver un resumen del presupuesto listo para copiar y enviar manualmente por WhatsApp/email, sin integración real.
+- En mobile, la lista de presupuestos se muestra como tarjetas.
+- En desktop, la lista se muestra como tabla.
+- La pantalla de detalle de presupuesto es usable en celular.
+- El dashboard empieza a mostrar conteos simples de presupuestos:
+  - presupuestos borrador
+  - presupuestos enviados
+  - presupuestos aprobados
+  - presupuestos pendientes de aprobación
+
+Out of scope
+
+- No implementar órdenes de trabajo reales todavía.
+- No implementar recepción de bicicletas todavía.
+- No implementar inspección visual todavía.
+- No implementar agenda.
+- No implementar pagos.
+- No implementar facturación.
+- No implementar portal cliente.
+- No implementar aprobación online por cliente.
+- No implementar WhatsApp real.
+- No implementar envío de emails.
+- No implementar registro fotográfico.
+- No implementar inventario de repuestos.
+- No implementar calendario.
+- No crear lógica de capacidad todavía más allá de mostrar horas estimadas del presupuesto.
+
+Regla importante sobre conversión a OT
+
+En esta etapa puede existir un botón visible “Convertir en orden de trabajo”, pero no debe implementar todavía toda la lógica de OT.
+
+Opciones aceptables:
+- dejar el botón deshabilitado con mensaje “Disponible en Etapa 4”
+o
+- preparar una función placeholder que valide que el presupuesto tenga ítems aprobados, pero sin crear todavía una OT real.
+
+No construir el módulo de órdenes de trabajo en esta etapa.
+
+Modelo de datos
+
+Agregar tablas nuevas:
+
+quotes
+- id
+- quote_number
+- client_id
+- bicycle_id nullable
+- origin_channel
+- initial_requirement
+- status
+- current_version
+- customer_notes
+- internal_notes
+- subtotal
+- discount_total
+- total
+- estimated_labor_hours
+- sent_at nullable
+- approved_at nullable
+- rejected_at nullable
+- active
+- created_at
+- updated_at
+
+quote_items
+- id
+- quote_id
+- item_type
+- origin
+- description
+- quantity
+- unit_price
+- total
+- estimated_labor_hours
+- approval_status
+- service_id nullable
+- part_id nullable
+- sort_order
+- active
+- created_at
+- updated_at
+
+quote_versions
+- id
+- quote_id
+- version_number
+- status
+- subtotal
+- discount_total
+- total
+- estimated_labor_hours
+- items_snapshot jsonb
+- customer_notes_snapshot
+- internal_notes_snapshot
+- created_at
+- sent_at nullable
+- approved_at nullable
+
+timeline_events
+- id
+- entity_type
+- entity_id
+- user_id nullable
+- action
+- previous_status nullable
+- new_status nullable
+- comment nullable
+- created_at
+
+Estados de presupuesto
+
+Usar estos estados:
+
+- draft
+- sent
+- partially_approved
+- approved
+- rejected
+- updated_after_sent
+- ready_for_work_order
+
+Mostrar labels en español:
+
+- Borrador
+- Enviado al cliente
+- Aprobado parcialmente
+- Aprobado
+- Rechazado
+- Actualizado después de envío
+- Listo para orden de trabajo
+
+Tipos de ítem
+
+- service
+- part
+- additional_labor
+- diagnosis
+- recommendation
+- discount
+- other
+
+Mostrar labels en español:
+
+- Servicio
+- Repuesto
+- Mano de obra adicional
+- Diagnóstico
+- Recomendación
+- Descuento
+- Otro
+
+Origen del ítem
+
+- customer_request
+- mechanic_recommendation
+- visual_inspection
+- during_work
+- warranty_correction
+- manual
+
+Mostrar labels en español:
+
+- Requerimiento cliente
+- Recomendación mecánico
+- Inspección visual
+- Adicional durante trabajo
+- Garantía / corrección
+- Manual
+
+Estado de aprobación de ítem
+
+- pending
+- approved
+- rejected
+
+Mostrar labels en español:
+
+- Pendiente de aprobación
+- Aprobado
+- Rechazado
+
+Reglas de negocio
+
+1. El número de presupuesto debe ser automático:
+   P-0001, P-0002, P-0003, etc.
+
+2. Un presupuesto puede existir sin bicicleta asociada, porque a veces nace desde WhatsApp antes de recibir la bici.
+
+3. Un presupuesto siempre debe tener cliente.
+
+4. El total debe recalcularse automáticamente cada vez que cambian los ítems.
+
+5. Las horas hombre estimadas deben calcularse como la suma de horas de los ítems activos.
+
+6. Los descuentos deben manejarse como ítems de tipo discount con monto negativo o como discount_total, elegir la implementación más simple y consistente.
+
+7. Si un presupuesto está en borrador, se puede editar sin crear nueva versión.
+
+8. Cuando un presupuesto pasa a “Enviado al cliente”, crear una versión snapshot en quote_versions.
+
+9. Si un presupuesto ya fue enviado y luego se edita, marcar estado como “Actualizado después de envío” y crear nueva versión al volver a enviarlo.
+
+10. Si todos los ítems activos están aprobados, el presupuesto puede pasar a “Aprobado”.
+
+11. Si algunos ítems están aprobados y otros pendientes/rechazados, el presupuesto puede pasar a “Aprobado parcialmente”.
+
+12. Si todos los ítems están rechazados, puede pasar a “Rechazado”.
+
+13. Un presupuesto aprobado o aprobado parcialmente debe poder quedar como “Listo para orden de trabajo”, pero no crear todavía la OT real.
+
+14. Cada cambio relevante debe crear un evento en timeline_events:
+   - presupuesto creado
+   - presupuesto editado
+   - presupuesto enviado
+   - nueva versión creada
+   - ítem aprobado
+   - ítem rechazado
+   - presupuesto aprobado
+   - presupuesto aprobado parcialmente
+   - presupuesto rechazado
+   - presupuesto listo para OT
+
+Backend/API
+
+Implementar endpoints REST para:
+
+Presupuestos:
+- GET /quotes
+- GET /quotes/:id
+- POST /quotes
+- PATCH /quotes/:id
+- DELETE /quotes/:id soft-delete
+- POST /quotes/:id/send
+- POST /quotes/:id/approve
+- POST /quotes/:id/reject
+- POST /quotes/:id/mark-ready-for-work-order
+
+Ítems:
+- POST /quotes/:id/items
+- PATCH /quotes/:id/items/:itemId
+- DELETE /quotes/:id/items/:itemId soft-delete
+- POST /quotes/:id/items/:itemId/approve
+- POST /quotes/:id/items/:itemId/reject
+- POST /quotes/:id/items/reorder
+
+Versiones:
+- GET /quotes/:id/versions
+- GET /quotes/:id/versions/:versionNumber
+
+Timeline:
+- GET /quotes/:id/timeline
+
+Resumen:
+- GET /quotes/summary
+
+El endpoint GET /quotes debe soportar filtros:
+- status
+- client_id
+- origin_channel
+- active
+- search
+- date_from
+- date_to
+
+El search debe buscar al menos por:
+- número de presupuesto
+- nombre de cliente
+- requerimiento inicial
+
+Frontend
+
+Crear pantallas:
+
+1. /presupuestos
+Lista de presupuestos.
+
+Desktop:
+- tabla con columnas:
+  - número
+  - cliente
+  - bicicleta
+  - estado
+  - canal
+  - total
+  - horas estimadas
+  - fecha creación
+  - acciones
+
+Mobile:
+- tarjetas con:
+  - número
+  - cliente
+  - estado
+  - total
+  - horas
+  - acción ver/editar
+
+Filtros:
+- estado
+- cliente
+- canal
+- búsqueda texto
+
+2. /presupuestos/nuevo
+Formulario para crear presupuesto.
+
+Campos:
+- cliente
+- bicicleta opcional
+- canal origen
+- requerimiento inicial
+- notas visibles al cliente
+- notas internas
+
+Debe permitir crear el presupuesto y luego pasar al detalle para agregar ítems.
+
+3. /presupuestos/:id
+Detalle/edición de presupuesto.
+
+Debe mostrar:
+- encabezado con número, estado, cliente, bicicleta, canal y fechas
+- requerimiento inicial
+- notas
+- ítems
+- totales
+- horas estimadas
+- versiones
+- timeline
+
+Acciones:
+- guardar cambios
+- agregar servicio
+- agregar repuesto
+- agregar ítem manual
+- aprobar ítem
+- rechazar ítem
+- enviar al cliente
+- aprobar presupuesto
+- aprobar parcialmente
+- rechazar presupuesto
+- marcar listo para OT
+- copiar resumen para cliente
+
+4. Componente de resumen para cliente
+
+Crear un resumen simple, copiable, sin envío real:
+
+Ejemplo:
+
+Hola Pedro, te compartimos el presupuesto P-0008 para tu bicicleta Trek Slash:
+
+Servicios / ítems:
+- Servicio horquilla: $60.000
+- Sangrado frenos: $25.000
+- Pastillas de freno: $18.000
+
+Total estimado: $103.000
+Horas estimadas de trabajo: 2,75 h
+
+Quedamos atentos a tu aprobación para avanzar.
+
+No integrar WhatsApp. Solo botón “Copiar mensaje”.
+
+5. Dashboard
+
+Actualizar dashboard placeholder para incluir cards:
+- Presupuestos borrador
+- Presupuestos enviados
+- Presupuestos aprobados
+- Presupuestos pendientes de aprobación
+
+Validaciones
+
+- Cliente obligatorio.
+- Canal de origen obligatorio.
+- No permitir aprobar presupuesto sin ítems activos.
+- No permitir marcar listo para OT si no hay al menos un ítem aprobado.
+- Cantidad debe ser mayor que 0, excepto descuentos si se implementan como monto negativo.
+- Precio unitario debe permitir 0 o más, excepto descuentos si se implementan como negativo.
+- Horas estimadas debe permitir 0 o más.
+- Si se elimina/desactiva un ítem, recalcular totales.
+
+Datos semilla
+
+Agregar presupuestos de prueba:
+
+1. P-0001
+Cliente Pedro González
+Bicicleta Trek Slash
+Canal WhatsApp
+Estado Enviado
+Ítems:
+- Servicio horquilla
+- Servicio shock
+- Sangrado frenos
+
+2. P-0002
+Cliente María Soto
+Bicicleta Specialized Stumpjumper
+Canal Presencial
+Estado Borrador
+Ítems:
+- Mantención general
+- Ajuste transmisión
+
+3. P-0003
+Cliente Andrés Rojas
+Sin bicicleta asociada
+Canal WhatsApp
+Estado Aprobado parcialmente
+Ítems:
+- Diagnóstico aprobado
+- Servicio cuadro/pivotes pendiente
+
+UX/UI
+
+- Mantener mobile-first.
+- En mobile, usar tarjetas para lista de presupuestos.
+- En detalle mobile, usar secciones colapsables si ayuda:
+  - Datos generales
+  - Ítems
+  - Totales
+  - Versiones
+  - Historial
+- En desktop, usar layout más amplio.
+- Usar badges de estado claros.
+- Usar acciones principales visibles.
+- Confirmar acciones importantes como rechazar presupuesto o desactivar ítem.
+
+Relevant files
+
+artifacts/api-server/src/app.ts
+artifacts/api-server/src/routes/index.ts
+lib/db/src/schema/index.ts
+lib/api-spec/openapi.yaml
+lib/api-client-react/src/generated/api.ts
+replit.md
+
+Criterio de éxito final
+
+Al terminar esta etapa debo poder:
+
+- Entrar con login.
+- Ir a Presupuestos.
+- Ver presupuestos semilla.
+- Crear un presupuesto nuevo desde un contacto inicial.
+- Asociarlo a cliente y opcionalmente bicicleta.
+- Agregar servicios desde catálogo.
+- Agregar repuestos desde catálogo.
+- Agregar ítems manuales.
+- Ver total monetario y horas estimadas.
+- Enviar presupuesto y generar versión.
+- Editar presupuesto enviado y generar nueva versión al reenviarlo.
+- Aprobar/rechazar ítems.
+- Aprobar presupuesto total o parcialmente.
+- Ver historial de versiones.
+- Ver timeline de cambios.
+- Copiar resumen para enviar manualmente al cliente.
+- Ver dashboard actualizado con conteos de presupuestos.
+
+No avanzar a Etapa 3 hasta validar todo esto.

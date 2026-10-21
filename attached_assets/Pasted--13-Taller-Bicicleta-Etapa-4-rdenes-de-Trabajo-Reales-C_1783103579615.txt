@@ -1,0 +1,828 @@
+#13 - Taller Bicicleta — Etapa 4: Órdenes de Trabajo Reales + Checklist Operativo
+
+## Contexto
+
+Ya están implementadas:
+
+- Etapa 0: setup, layout, login, navegación, base de datos y seed.
+- Etapa 1: CRUDs maestros de usuarios/mecánicos, clientes, bicicletas, servicios, checklist, repuestos, categorías y métodos de pago.
+- Etapa 2: presupuestos completos con ítems, versiones, timeline, aprobación/rechazo de ítems y estado “Listo para orden de trabajo”.
+- Etapa 3: recepciones e inspección visual, hallazgos, adicionales desde inspección y vínculo con presupuestos.
+
+Ahora necesitamos implementar la Etapa 4: órdenes de trabajo reales.
+
+Esta etapa es el núcleo operativo del taller. Una orden de trabajo debe nacer desde un presupuesto aprobado o aprobado parcialmente, idealmente con bicicleta recibida. La OT debe copiar los ítems aprobados, asignar mecánico responsable, generar checklist operativo por servicio y permitir actualizar el progreso del trabajo.
+
+IMPORTANTE:
+No implementar todavía agenda/calendario, pagos ni facturación. Eso viene en etapas posteriores.
+
+## Objetivo
+
+Implementar el módulo completo de órdenes de trabajo para que el taller pueda:
+
+- Crear una OT real desde un presupuesto aprobado o aprobado parcialmente.
+- Asociar la OT a cliente, bicicleta, presupuesto y recepción.
+- Copiar solo los ítems aprobados del presupuesto.
+- Copiar servicios, repuestos y mano de obra aprobada.
+- Generar checklist operativo desde los servicios aprobados.
+- Asignar mecánico responsable.
+- Cambiar estados de la OT.
+- Actualizar avance de checklist.
+- Registrar notas internas y notas visibles para cliente.
+- Ver timeline de la OT.
+- Llevar control de calidad.
+- Marcar la OT como lista para retiro.
+- Mantener el botón de pagos/facturación fuera de alcance por ahora.
+
+## Alcance incluido
+
+### 1. Crear órdenes de trabajo
+
+La OT debe poder crearse desde:
+
+- Detalle de presupuesto `/presupuestos/:id`
+- Detalle de recepción `/recepciones/:id`, si tiene presupuesto asociado aprobado o parcialmente aprobado
+
+El botón “Convertir en OT” ya existía como placeholder. Ahora debe crear una OT real.
+
+Reglas para crear OT:
+
+1. El presupuesto debe estar en uno de estos estados:
+   - approved
+   - partially_approved
+   - ready_for_work_order
+
+2. Debe existir al menos un ítem aprobado en el presupuesto.
+
+3. La OT debe copiar solo ítems activos y aprobados.
+
+4. Si hay ítems pendientes o rechazados, no copiarlos a la OT, pero mostrar advertencia:
+   “Este presupuesto tiene ítems no aprobados que no serán incluidos en la OT.”
+
+5. La OT debe asociar:
+   - client_id
+   - bicycle_id
+   - quote_id
+   - reception_id, si existe
+   - assigned_mechanic_id
+   - status inicial
+   - total estimado
+   - horas hombre estimadas
+
+6. Si el presupuesto no tiene bicicleta, no permitir crear OT. Mostrar mensaje:
+   “Para crear una orden de trabajo debes asociar una bicicleta.”
+
+7. Si el presupuesto tiene recepción asociada, copiarla a la OT.
+
+8. Si no tiene recepción asociada, permitir crear OT igual solo si existe bicicleta, pero mostrar advertencia:
+   “Este presupuesto no tiene recepción asociada.”
+
+9. No crear agenda todavía.
+
+10. No registrar pagos todavía.
+
+### 2. Número automático de OT
+
+Crear número automático:
+
+- OT-0001
+- OT-0002
+- OT-0003
+
+Debe ser único.
+
+### 3. Estados de orden de trabajo
+
+Usar estos estados internos:
+
+- `received` → Bici recibida
+- `in_inspection` → En inspección
+- `waiting_customer_approval` → Esperando aprobación cliente
+- `waiting_parts` → Esperando repuestos
+- `ready_to_work` → Lista para trabajar
+- `in_progress` → En trabajo
+- `quality_control` → En control de calidad
+- `ready_for_pickup` → Lista para retiro
+- `delivered` → Entregada
+- `closed` → Cerrada
+- `cancelled` → Cancelada
+
+En esta etapa, implementar cambio manual de estado con validaciones mínimas.
+
+Reglas mínimas:
+
+- Al crear OT, estado sugerido:
+  - `ready_to_work` si hay presupuesto aprobado y recepción lista para OT
+  - `received` si hay recepción pero aún no está marcada lista
+  - `ready_to_work` si no hay recepción pero presupuesto está aprobado
+
+- Para pasar a `in_progress`, debe tener mecánico asignado.
+
+- Para pasar a `quality_control`, debe tener al menos un checklist con pasos completados o permitir confirmación manual si no hay servicios con checklist.
+
+- Para pasar a `ready_for_pickup`, debe pasar antes por `quality_control`.
+
+- `closed` todavía no debe depender de pago, porque pagos vienen en Etapa 6.
+
+### 4. Estado de agenda
+
+Agregar en OT un campo simple, pero no implementar agenda todavía:
+
+- `schedule_status`
+
+Valores:
+
+- `unscheduled` → Sin agendar
+- `scheduled` → Agendada
+- `rescheduled` → Reagendada
+- `late` → Atrasada
+- `completed` → Completada
+
+En esta etapa, al crear OT dejar:
+
+- `schedule_status = unscheduled`
+
+No crear calendario ni bloques de agenda todavía.
+
+### 5. Mecánico asignado
+
+La OT debe tener un mecánico responsable.
+
+Campos:
+
+- assigned_mechanic_id
+
+Reglas:
+
+- Puede quedar vacío al crear OT si todavía no se sabe.
+- Es obligatorio para pasar a estado `in_progress`.
+- El selector debe mostrar usuarios activos con rol mecánico o admin.
+- Mostrar horas semanales del mecánico como referencia, pero no calcular capacidad todavía.
+
+### 6. Ítems de OT
+
+Crear tabla `work_order_items`.
+
+Cada ítem debe copiar información desde `quote_items`:
+
+- quote_item_id
+- work_order_id
+- item_type
+- origin
+- description
+- quantity
+- unit_price
+- total
+- estimated_labor_hours
+- service_id nullable
+- part_id nullable
+- assigned_mechanic_id nullable
+- status
+- active
+- created_at
+- updated_at
+
+Estados de ítem OT:
+
+- `pending` → Pendiente
+- `in_progress` → En proceso
+- `completed` → Completado
+- `cancelled` → Cancelado
+
+Reglas:
+
+- Al crear OT, todos los ítems quedan `pending`.
+- Los ítems de tipo servicio deben generar checklist si tienen servicio asociado con pasos.
+- Repuestos no generan checklist.
+- Mano de obra adicional puede quedar sin checklist.
+
+### 7. Checklist operativo
+
+Crear checklist real de OT a partir de las plantillas de servicios.
+
+Tabla sugerida:
+
+`work_order_checklist_items`
+
+Campos:
+
+- id
+- work_order_id
+- work_order_item_id
+- service_step_id nullable
+- step_order
+- description
+- status
+- mechanic_notes nullable
+- completed_by_user_id nullable
+- completed_at nullable
+- active
+- created_at
+- updated_at
+
+Estados de checklist:
+
+- `pending` → Pendiente
+- `in_progress` → En proceso
+- `completed` → Completado
+- `not_applicable` → No aplica
+- `with_observation` → Con observación
+
+Reglas:
+
+1. Al crear OT, para cada ítem aprobado de tipo servicio:
+   - buscar pasos del servicio
+   - copiar pasos a `work_order_checklist_items`
+
+2. El checklist copiado debe ser independiente de la plantilla.
+   Si después se modifica el servicio maestro, no debe cambiar la OT ya creada.
+
+3. Cada paso debe poder:
+   - marcarse pendiente
+   - marcarse en proceso
+   - marcarse completado
+   - marcarse no aplica
+   - marcarse con observación
+   - guardar nota del mecánico
+
+4. Al completar pasos, registrar `completed_by_user_id` y `completed_at`.
+
+5. Mostrar progreso:
+   - pasos completados / pasos totales
+   - porcentaje de avance por servicio
+   - porcentaje de avance general de la OT
+
+### 8. Timeline de OT
+
+Usar tabla `timeline_events` ya existente.
+
+Registrar eventos:
+
+- OT creada.
+- Mecánico asignado.
+- Estado cambiado.
+- Ítem iniciado.
+- Ítem completado.
+- Checklist actualizado.
+- Paso de checklist completado.
+- Paso marcado con observación.
+- OT pasó a control de calidad.
+- OT lista para retiro.
+- OT entregada.
+- OT cerrada.
+- OT cancelada.
+- Nota agregada/editada.
+
+Usar:
+
+- `entity_type = work_order`
+
+Si un evento también afecta presupuesto o recepción, registrar evento adicional en la entidad correspondiente solo si es simple.
+
+### 9. Vista de lista de órdenes
+
+Ruta:
+
+- `/ordenes`
+
+Desktop:
+Tabla con columnas:
+
+- Número OT
+- Cliente
+- Bicicleta
+- Presupuesto
+- Recepción
+- Mecánico
+- Estado
+- Estado agenda
+- Total
+- Horas estimadas
+- Progreso
+- Fecha creación
+- Acciones
+
+Mobile:
+Tarjetas con:
+
+- Número OT
+- Cliente
+- Bicicleta
+- Estado
+- Mecánico
+- Progreso
+- Total
+- Acción ver detalle
+
+Filtros:
+
+- Estado
+- Mecánico
+- Cliente
+- Fecha
+- Búsqueda texto
+
+Search debe buscar:
+
+- número OT
+- cliente
+- bicicleta
+- presupuesto
+
+### 10. Detalle de OT
+
+Ruta:
+
+- `/ordenes/:id`
+
+Debe mostrar:
+
+#### Encabezado
+
+- Número OT
+- Estado badge
+- Cliente
+- Bicicleta
+- Presupuesto asociado
+- Recepción asociada
+- Mecánico asignado
+- Fecha creación
+- Fecha estimada de entrega, si se define
+- Progreso general
+
+#### Datos generales editables
+
+- Mecánico asignado
+- Prioridad: baja, normal, alta
+- Fecha estimada de entrega
+- Notas internas
+- Notas visibles para cliente
+
+#### Ítems de trabajo
+
+Mostrar ítems copiados desde presupuesto:
+
+- Tipo
+- Descripción
+- Cantidad
+- Precio unitario
+- Total
+- Horas estimadas
+- Estado
+- Acciones: iniciar, completar, cancelar
+
+#### Servicios con checklist
+
+Por cada servicio con checklist:
+
+- Nombre del servicio
+- Progreso del servicio
+- Lista de pasos
+- Estado de cada paso
+- Nota del mecánico
+- Botones para cambiar estado
+
+#### Timeline
+
+Mostrar historial de eventos.
+
+#### Acciones de estado
+
+Botones:
+
+- Marcar lista para trabajar
+- Iniciar trabajo
+- Enviar a control de calidad
+- Marcar lista para retiro
+- Marcar entregada
+- Cerrar OT
+- Cancelar OT
+
+No implementar pago todavía.
+
+### 11. Actualizar presupuesto y recepción
+
+Al crear una OT desde presupuesto:
+
+- El presupuesto debe quedar con estado `converted_to_work_order` o mantener `ready_for_work_order` con referencia a OT.
+
+Si el enum actual no tiene `converted_to_work_order`, agregarlo si no rompe la lógica.
+
+Label:
+- Convertido en orden de trabajo
+
+En detalle de presupuesto:
+
+- Mostrar OT asociada.
+- Link a OT.
+- Deshabilitar crear otra OT si ya existe una OT activa asociada.
+
+En detalle de recepción:
+
+- Mostrar OT asociada.
+- Link a OT.
+- Deshabilitar crear OT duplicada si ya existe una OT activa.
+
+Regla:
+
+- No permitir crear dos OTs activas para el mismo presupuesto.
+- Si una OT fue cancelada, permitir crear nueva solo si se confirma explícitamente.
+
+### 12. Dashboard
+
+Actualizar dashboard con cards de órdenes:
+
+- Órdenes abiertas
+- Órdenes sin mecánico asignado
+- Órdenes en trabajo
+- Órdenes en control de calidad
+- Órdenes listas para retiro
+- Órdenes atrasadas por fecha estimada de entrega, si aplica
+
+No agregar pagos ni agenda todavía.
+
+## Fuera de alcance
+
+No implementar:
+
+- Agenda/calendario.
+- FullCalendar.
+- schedule_blocks.
+- Capacidad real por mecánico.
+- Pagos.
+- Facturación.
+- Cierre condicionado a pago.
+- Portal cliente.
+- WhatsApp real.
+- Email real.
+- Registro fotográfico.
+- Upload de imágenes.
+- Inventario avanzado.
+- Stock de repuestos.
+- Compras.
+- Proveedores.
+- Reportería avanzada.
+- Múltiples sucursales.
+- Roles/permisos complejos.
+
+## Requisitos técnicos
+
+### Schema DB
+
+Agregar tablas:
+
+#### work_orders
+
+Campos sugeridos:
+
+- id
+- work_order_number
+- quote_id
+- reception_id nullable
+- client_id
+- bicycle_id
+- assigned_mechanic_id nullable
+- status
+- schedule_status
+- priority
+- estimated_delivery_date nullable
+- actual_delivery_date nullable
+- internal_notes nullable
+- customer_notes nullable
+- subtotal
+- discount_total
+- total
+- estimated_labor_hours
+- actual_labor_hours nullable
+- progress_percentage
+- active
+- created_at
+- updated_at
+
+#### work_order_items
+
+Campos sugeridos:
+
+- id
+- work_order_id
+- quote_item_id nullable
+- item_type
+- origin
+- description
+- quantity
+- unit_price
+- total
+- estimated_labor_hours
+- actual_labor_hours nullable
+- service_id nullable
+- part_id nullable
+- assigned_mechanic_id nullable
+- status
+- active
+- created_at
+- updated_at
+
+#### work_order_checklist_items
+
+Campos sugeridos:
+
+- id
+- work_order_id
+- work_order_item_id
+- service_step_id nullable
+- step_order
+- description
+- status
+- mechanic_notes nullable
+- completed_by_user_id nullable
+- completed_at nullable
+- active
+- created_at
+- updated_at
+
+Agregar enums necesarios para:
+
+- work_order_status
+- schedule_status
+- work_order_item_status
+- checklist_item_status
+- priority
+
+No crear `schedule_blocks` todavía.
+
+No crear pagos todavía.
+
+No agregar fotos.
+
+### API
+
+Crear endpoints:
+
+#### Órdenes
+
+- GET `/work-orders`
+- GET `/work-orders/:id`
+- POST `/work-orders/from-quote/:quoteId`
+- POST `/work-orders/from-reception/:receptionId`
+- PATCH `/work-orders/:id`
+- DELETE `/work-orders/:id` soft-delete
+- POST `/work-orders/:id/cancel`
+
+#### Estados
+
+- POST `/work-orders/:id/status`
+  Body:
+  - status
+  - comment optional
+
+#### Mecánico
+
+- POST `/work-orders/:id/assign-mechanic`
+  Body:
+  - assigned_mechanic_id
+
+#### Ítems
+
+- GET `/work-orders/:id/items`
+- PATCH `/work-orders/:id/items/:itemId`
+- POST `/work-orders/:id/items/:itemId/start`
+- POST `/work-orders/:id/items/:itemId/complete`
+- POST `/work-orders/:id/items/:itemId/cancel`
+
+#### Checklist
+
+- GET `/work-orders/:id/checklist`
+- PATCH `/work-orders/:id/checklist/:checklistItemId`
+- POST `/work-orders/:id/checklist/:checklistItemId/status`
+
+#### Timeline
+
+- GET `/work-orders/:id/timeline`
+
+#### Dashboard
+
+Actualizar summary con contadores de órdenes.
+
+GET `/work-orders` debe soportar filtros:
+
+- status
+- assigned_mechanic_id
+- client_id
+- date_from
+- date_to
+- active
+- search
+
+Search debe buscar:
+
+- número OT
+- nombre cliente
+- marca/modelo bicicleta
+- número presupuesto
+- número recepción
+
+### Backend
+
+Crear archivo:
+
+- `artifacts/api-server/src/routes/work-orders.ts`
+
+Registrar en:
+
+- `artifacts/api-server/src/routes/index.ts`
+
+Reglas backend importantes:
+
+1. Validar que el presupuesto exista.
+2. Validar que tenga al menos un ítem aprobado.
+3. Validar que tenga bicicleta asociada.
+4. Validar que no exista una OT activa para ese presupuesto.
+5. Copiar solo ítems aprobados y activos.
+6. Copiar pasos de checklist desde servicios asociados.
+7. Recalcular totales y horas desde ítems copiados.
+8. Registrar timeline.
+9. Actualizar presupuesto para mostrar que ya fue convertido en OT.
+10. Actualizar recepción para mostrar OT asociada si aplica.
+11. No modificar ítems originales del presupuesto.
+12. No depender de pagos.
+13. No crear agenda.
+
+### Frontend
+
+Crear rutas:
+
+- `/ordenes`
+- `/ordenes/:id`
+
+Actualizar:
+
+- `/presupuestos/:id`
+- `/recepciones/:id`
+- `dashboard`
+- navegación si es necesario
+
+### UX/UI
+
+Mantener mobile-first.
+
+En mobile:
+
+- Lista de órdenes como tarjetas.
+- Detalle de OT dividido en secciones:
+  - Datos generales
+  - Ítems
+  - Checklist
+  - Timeline
+  - Acciones
+- Botones grandes para checklist.
+- Badges claros para estados.
+
+En desktop:
+
+- Tabla de órdenes.
+- Detalle amplio.
+- Checklist visible y fácil de actualizar.
+
+Usar confirmación para:
+
+- Cancelar OT.
+- Cerrar OT.
+- Marcar entregada.
+- Cambiar a control de calidad.
+- Crear OT desde presupuesto si hay ítems pendientes no aprobados.
+
+## Datos semilla
+
+Agregar OTs de prueba:
+
+1. OT-0001
+Desde P-0001
+Cliente Pedro González
+Bicicleta Trek Slash
+Recepción R-0001
+Mecánico Juan
+Estado: En trabajo
+Ítems:
+- Servicio horquilla
+- Servicio shock
+- Sangrado frenos
+Checklist parcialmente completado.
+
+2. OT-0002
+Desde P-0003, solo ítems aprobados
+Cliente Andrés Rojas
+Estado: Lista para trabajar
+Mecánico Diego
+Checklist pendiente.
+
+3. OT-0003
+Desde una recepción/presupuesto aprobado si existe
+Estado: En control de calidad
+Con algunos pasos completados.
+
+Si los datos semilla actuales no calzan exactamente, usa los presupuestos/recepciones existentes sin crear datos innecesarios.
+
+## Definition of Done
+
+Al terminar esta etapa debo poder:
+
+- Entrar con login.
+- Ir a Órdenes.
+- Ver órdenes semilla.
+- Crear OT desde un presupuesto aprobado o aprobado parcialmente.
+- Crear OT desde una recepción con presupuesto aprobado.
+- Confirmar que solo se copian ítems aprobados.
+- Confirmar que no se crea OT si no hay bicicleta asociada.
+- Confirmar que no se crea OT duplicada para el mismo presupuesto activo.
+- Asignar mecánico.
+- Cambiar estado de OT.
+- Ver ítems de trabajo.
+- Iniciar y completar ítems.
+- Ver checklist generado desde servicios.
+- Cambiar estado de pasos del checklist.
+- Agregar notas a pasos del checklist.
+- Ver progreso por servicio.
+- Ver progreso general de la OT.
+- Pasar OT a control de calidad.
+- Marcar OT como lista para retiro.
+- Ver timeline de la OT.
+- Ver en presupuesto link a OT creada.
+- Ver en recepción link a OT creada.
+- Ver dashboard actualizado con contadores de órdenes.
+- Confirmar que agenda, pagos y facturación siguen fuera de scope.
+
+## Pruebas manuales esperadas
+
+1. Crear OT desde presupuesto:
+- Ir a un presupuesto aprobado.
+- Click “Convertir en OT”.
+- Asignar mecánico.
+- Crear OT.
+- Confirmar que aparece en `/ordenes`.
+
+2. Validar copia de ítems:
+- Abrir OT.
+- Confirmar que solo se copiaron ítems aprobados.
+- Confirmar que ítems pendientes/rechazados no se copiaron.
+
+3. Validar checklist:
+- Abrir OT con servicio de horquilla.
+- Confirmar que aparecen pasos del checklist.
+- Marcar pasos como completados.
+- Confirmar que sube el progreso.
+
+4. Validar estados:
+- Cambiar OT a “En trabajo”.
+- Cambiar a “En control de calidad”.
+- Cambiar a “Lista para retiro”.
+- Confirmar timeline.
+
+5. Validar relación:
+- Ir al presupuesto original.
+- Confirmar que muestra link a OT.
+- Ir a recepción asociada.
+- Confirmar que muestra link a OT.
+
+6. Validar mobile:
+- Abrir `/ordenes` en mobile.
+- Confirmar tarjetas.
+- Abrir detalle.
+- Confirmar que checklist se puede usar cómodamente.
+
+## Reglas de implementación
+
+- No refactorizar toda la app.
+- No cambiar el stack.
+- No romper presupuestos ni recepciones.
+- No modificar ítems originales del presupuesto.
+- No implementar agenda.
+- No implementar pagos.
+- No implementar facturación.
+- No agregar fotos.
+- No agregar inventario.
+- No agregar integraciones externas.
+- Mantener código simple y legible.
+- Hacer el cambio mínimo necesario para completar Etapa 4.
+- Actualizar `replit.md` con lo implementado, rutas nuevas, endpoints nuevos, tablas nuevas, credenciales demo si aplica y próximos pasos.
+
+## Relevant files
+
+Probablemente tocar:
+
+- `lib/db/src/schema/index.ts`
+- `lib/db/src/seed.ts`
+- `lib/api-spec/openapi.yaml`
+- `lib/api-client-react/src/generated/api.ts`
+- `artifacts/api-server/src/routes/index.ts`
+- `artifacts/api-server/src/routes/dashboard.ts`
+- `artifacts/api-server/src/routes/quotes.ts`
+- `artifacts/api-server/src/routes/receptions.ts`
+- `artifacts/api-server/src/routes/work-orders.ts`
+- `artifacts/workshop-app/src/App.tsx`
+- `artifacts/workshop-app/src/pages/dashboard.tsx`
+- `artifacts/workshop-app/src/pages/quotes/`
+- `artifacts/workshop-app/src/pages/receptions/`
+- `artifacts/workshop-app/src/pages/work-orders/`
+- `replit.md`
+
+Antes de empezar, revisar la estructura actual y confirmar brevemente qué archivos se van a crear o modificar.

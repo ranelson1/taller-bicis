@@ -1,0 +1,483 @@
+Cómo seguimos
+
+Yo cambiaría el roadmap inmediatamente. No seguiría con agenda ni reportería todavía.
+
+Nuevo orden recomendado
+Etapa 5A — Nuevo Trabajo Rápido + Ficha Operativa
+Etapa 5B — Comentarios y evidencia fotográfica
+Etapa 5C — Cierre, entrega y pago simple
+Etapa 5D — Registro técnico de suspensión e insumos
+Etapa 5E — Reportería mensual y conciliación manual
+Etapa 6 — Agenda/capacidad, solo si sigue siendo importante
+
+La primera tarea debe ser reducir clicks. Todo lo demás depende de eso.
+
+Prompt recomendado para Replit
+
+Este sería el próximo prompt. Está diseñado para ser quirúrgico y no romper lo ya construido.
+
+#22 - Etapa 5A: Nuevo Trabajo Rápido + Ficha Operativa Simplificada
+
+## Contexto
+
+Después de mostrar el MVP a un taller real, el feedback principal fue:
+
+La app está completa, pero tiene demasiados clicks para procesar una bicicleta. El mecánico no quiere navegar entre Presupuestos, Recepciones y Órdenes para hacer un trabajo diario.
+
+El mecánico actúa como:
+- mecánico
+- recepcionista
+- cotizador
+- servicio al cliente
+- comprador
+- cobrador
+- administrador
+
+Por eso la UX debe centrarse en una sola pantalla: la Ficha de Trabajo.
+
+Ya existe la entidad `work_cases` y las pantallas:
+
+- `/trabajos`
+- `/trabajos/:id`
+
+Pero todavía falta un flujo rápido para crear un trabajo y operar desde la ficha.
+
+## Objetivo
+
+Crear un flujo rápido de “Nuevo Trabajo” y mejorar `/trabajos/:id` para que sea la pantalla principal operativa.
+
+El usuario debe poder crear una ficha de trabajo sin pasar manualmente por Presupuesto → Recepción → OT.
+
+Internamente se pueden seguir usando quotes, receptions y work_orders, pero la UX debe sentirse como:
+
+Nuevo Trabajo → Ficha TR → operar desde ahí.
+
+## Alcance incluido
+
+### 1. Agregar año opcional a bicicleta
+
+Modificar schema:
+
+`lib/db/src/schema/bicycles.ts`
+
+Agregar campo:
+
+- year integer nullable
+
+Actualizar:
+
+- API de bicicletas
+- OpenAPI/codegen si aplica
+- formulario de bicicletas
+- listado de bicicletas
+- selector de bicicleta donde corresponda
+
+Validación:
+
+- opcional
+- si se informa, debe ser un año razonable
+- sugerido: entre 1990 y año actual + 1
+
+Mostrar bicicleta como:
+
+- Specialized Stumpjumper 2024
+- Trek Slash 2022
+- Giant Reign, si no tiene año
+
+No hacer obligatorio el año.
+
+---
+
+### 2. Crear página real `/trabajos/nuevo`
+
+Actualmente `/trabajos/nuevo` apunta a la lista de trabajos. Cambiarlo por una página real.
+
+Crear:
+
+- `artifacts/workshop-app/src/pages/trabajo-nuevo.tsx`
+
+Actualizar:
+
+- `App.tsx`
+
+La página debe ser mobile-first y funcionar como wizard simple o modales/pasos.
+
+Pasos del flujo:
+
+#### Paso 1 — Cliente
+
+Debe permitir:
+
+- buscar cliente existente
+- seleccionar cliente
+- crear cliente en el mismo modal si no existe
+
+Campos mínimos para crear cliente:
+
+- nombre
+- teléfono / WhatsApp
+- email opcional
+- notas opcionales
+
+No mandar al usuario a la pantalla `/clientes`.
+
+#### Paso 2 — Bicicleta
+
+Una vez seleccionado el cliente:
+
+- listar bicicletas del cliente
+- seleccionar bicicleta
+- crear bicicleta en el mismo modal si no existe
+
+Campos mínimos:
+
+- marca
+- modelo
+- año opcional
+- tipo
+- color
+- número de serie opcional
+- notas opcionales
+
+No mandar al usuario a `/bicicletas`.
+
+#### Paso 3 — Servicios, repuestos e ítems iniciales
+
+Permitir agregar:
+
+- servicios desde catálogo
+- repuestos desde catálogo
+- ítems manuales
+
+Cada ítem debe permitir:
+
+- tipo
+- descripción
+- cantidad
+- precio unitario
+- horas estimadas opcionales
+- aprobado por defecto
+
+Regla UX:
+Los ítems iniciales del “Nuevo Trabajo” deben quedar aprobados por defecto, porque representan lo que el cliente está dejando solicitado o ya conversado.
+
+#### Paso 4 — Comentarios iniciales
+
+Campos:
+
+- comentario del cliente
+- comentario del mecánico / recepción
+- estado inicial de la bicicleta
+- accesorios recibidos
+
+Accesorios recibidos puede reutilizar la lógica existente de recepciones.
+
+#### Paso 5 — Crear ficha
+
+Al confirmar, debe crear una ficha de trabajo completa.
+
+Idealmente usar un endpoint backend nuevo para evitar múltiples llamadas frágiles desde frontend:
+
+POST `/work-cases/quick-create`
+
+Este endpoint debe orquestar:
+
+1. Crear o usar cliente.
+2. Crear o usar bicicleta.
+3. Crear Work Case TR.
+4. Crear Presupuesto P asociado al TR.
+5. Crear ítems de presupuesto aprobados.
+6. Crear Recepción R asociada al TR.
+7. Crear OT asociada al TR con los ítems aprobados.
+8. Copiar checklist de servicios, como ya hace la lógica actual de OT.
+9. Recalcular estado del TR.
+10. Redirigir a `/trabajos/:id`.
+
+Si es demasiado grande crear todo en backend, se puede hacer desde frontend reutilizando endpoints existentes, pero la opción backend es preferible para mantener consistencia.
+
+Resultado esperado:
+El mecánico termina el flujo y llega directo a la ficha `TR-XXXX`.
+
+---
+
+### 3. Actualizar `/trabajos/:id` para ser más operativa
+
+Hoy `/trabajos/:id` muestra resumen y links. Mantener eso, pero agregar una sección superior de acciones rápidas.
+
+Agregar botones grandes:
+
+- Agregar servicio
+- Agregar repuesto
+- Agregar comentario
+- Marcar en trabajo
+- Marcar completado
+- Marcar listo para retiro
+- Marcar entregado
+
+Por ahora, algunos botones pueden reutilizar la lógica existente o abrir modales simples.
+
+No implementar fotos todavía en esta tarea.
+
+No implementar pagos todavía en esta tarea.
+
+No implementar suspensión todavía en esta tarea.
+
+Objetivo de esta etapa:
+Que la ficha empiece a sentirse como lugar de trabajo principal, aunque algunas acciones todavía sean simples.
+
+---
+
+### 4. Agregar servicio/repuesto desde la ficha TR
+
+En `/trabajos/:id`, permitir agregar ítems adicionales al trabajo desde un modal.
+
+Modal “Agregar ítem”:
+
+- tipo: servicio, repuesto, mano de obra, otro
+- seleccionar servicio/repuesto si aplica
+- descripción
+- cantidad
+- precio unitario
+- horas estimadas opcionales
+- nota
+- aprobado por cliente: sí/no
+- medio de aprobación: WhatsApp, presencial, llamada, otro
+
+Regla:
+Esto debe actualizar el presupuesto asociado al TR y, si ya existe OT, también debe permitir que el ítem quede visible en la ficha.
+
+Implementación mínima aceptable:
+- agregarlo al presupuesto asociado como quote_item
+- marcar origen `during_work`
+- approval_status según “aprobado por cliente”
+- recalcular totales
+- mostrarlo en la ficha de trabajo
+
+Si actualizar automáticamente la OT complica mucho, dejar el ítem visible como “Adicional pendiente de incorporar a OT” y documentarlo. No romper la OT existente.
+
+---
+
+### 5. Simplificar navegación
+
+Actualizar mobile bottom nav en:
+
+`artifacts/workshop-app/src/components/layout/app-layout.tsx`
+
+Cambiar la navegación mobile a:
+
+- Inicio
+- Trabajos
+- Nuevo
+- Clientes
+
+Donde:
+
+- Trabajos → `/trabajos`
+- Nuevo → `/trabajos/nuevo`
+
+No priorizar `/ordenes` en mobile.
+
+En desktop, mantener módulos existentes, pero “Trabajos” debe seguir arriba de Presupuestos.
+
+---
+
+### 6. No eliminar módulos existentes
+
+Mantener:
+
+- Presupuestos
+- Recepciones
+- Órdenes
+- Clientes
+- Bicicletas
+- Servicios
+- Repuestos
+
+Pero el flujo diario principal debe ser:
+
+`/trabajos` → `/trabajos/nuevo` → `/trabajos/:id`
+
+No borrar pantallas antiguas.
+
+No romper flujos antiguos.
+
+---
+
+## Fuera de alcance
+
+No implementar todavía:
+
+- registro fotográfico
+- pagos
+- estado de pago
+- estado de entrega separado
+- reportes mensuales
+- conciliación bancaria
+- registro técnico de suspensión
+- consumo de aceites
+- inventario
+- agenda/calendario
+- WhatsApp real
+- portal cliente
+- facturación electrónica
+- múltiples sucursales
+- refactor grande del sistema
+
+Esta etapa es solo para reducir clicks y centrar la operación en Trabajos.
+
+---
+
+## Backend requerido
+
+Crear endpoint:
+
+POST `/work-cases/quick-create`
+
+Body sugerido:
+
+```json
+{
+  "client": {
+    "mode": "existing" | "new",
+    "id": 1,
+    "name": "Pedro González",
+    "phone": "+569...",
+    "email": null,
+    "notes": null
+  },
+  "bicycle": {
+    "mode": "existing" | "new",
+    "id": 1,
+    "brand": "Trek",
+    "model": "Slash",
+    "year": 2024,
+    "type": "mtb",
+    "color": "Roja",
+    "serialNumber": null,
+    "notes": null
+  },
+  "originChannel": "whatsapp",
+  "customerComment": "Cliente pide mantención full y revisión de suspensión.",
+  "mechanicComment": "Se recibe bici con rayón en vaina derecha.",
+  "initialVisualCondition": "Bici usada, transmisión sucia, sin daños estructurales visibles.",
+  "accessoriesReceived": ["Pedales", "Porta caramayola"],
+  "items": [
+    {
+      "itemType": "service",
+      "serviceId": 1,
+      "description": "Servicio horquilla",
+      "quantity": 1,
+      "unitPrice": 65000,
+      "estimatedLaborHours": 2
+    }
+  ]
+}
+
+El endpoint debe:
+
+validar cliente/bicicleta
+validar que la bicicleta pertenezca al cliente si es existente
+crear TR
+crear presupuesto asociado
+crear quote_items aprobados
+crear recepción asociada
+crear OT asociada con checklist
+registrar timeline
+recalcular TR
+devolver el WorkCase creado/enriquecido
+
+Usar helpers existentes de work orders cuando sea posible. No duplicar toda la lógica si se puede extraer función compartida.
+
+Si la lógica de crear OT desde quote está muy pegada al endpoint actual, extraer helper interno, por ejemplo:
+
+createWorkOrderFromQuoteInternal(...)
+
+para que lo usen:
+
+POST /work-orders/from-quote/:quoteId
+POST /work-cases/quick-create
+
+No hacer refactor masivo.
+
+Frontend requerido
+
+Crear:
+
+artifacts/workshop-app/src/pages/trabajo-nuevo.tsx
+
+Actualizar:
+
+App.tsx
+app-layout.tsx
+trabajos.tsx
+trabajo-detail.tsx
+bicycles.tsx
+formularios/selectores de bicicleta donde aplique
+
+En /trabajos, el botón “Nuevo Trabajo” debe ir a:
+
+/trabajos/nuevo
+
+En /trabajos/nuevo, el flujo debe ser simple y apto para celular.
+
+Definition of Done
+
+Al terminar debo poder:
+
+Entrar a la app.
+Ir a /trabajos.
+Hacer clic en “Nuevo Trabajo”.
+Seleccionar cliente existente o crear uno nuevo sin salir del flujo.
+Seleccionar bicicleta existente o crear una nueva sin salir del flujo.
+Informar año opcional de bicicleta.
+Agregar servicios y repuestos iniciales.
+Agregar comentarios iniciales del cliente y del mecánico.
+Crear la ficha.
+Ser redirigido a /trabajos/:id.
+Ver que el TR tiene presupuesto, recepción y OT asociados.
+Ver los servicios/repuestos agregados.
+Ver la bicicleta con año si se informó.
+En mobile, navegar principalmente por Trabajos/Nuevo.
+Agregar un servicio/repuesto adicional desde la ficha TR.
+Confirmar que no se rompieron las pantallas antiguas de Presupuestos, Recepciones ni Órdenes.
+Pruebas manuales
+Prueba 1 — Cliente y bici existentes
+Crear nuevo trabajo.
+Seleccionar cliente existente.
+Seleccionar bicicleta existente.
+Agregar servicio horquilla.
+Crear ficha.
+Confirmar TR, P, R y OT asociados.
+Prueba 2 — Cliente nuevo y bici nueva
+Crear nuevo trabajo.
+Crear cliente en el modal.
+Crear bicicleta en el modal con año 2024.
+Agregar mantención general.
+Crear ficha.
+Confirmar que el cliente y bici existen en sus mantenedores.
+Confirmar que la ficha muestra la bici con año.
+Prueba 3 — Adicional durante trabajo
+Abrir una ficha TR existente.
+Agregar adicional “Instalación cadena”.
+Marcar aprobado por WhatsApp.
+Confirmar que aparece en la ficha y en el presupuesto asociado.
+Prueba 4 — Mobile
+Abrir en vista mobile.
+Confirmar bottom nav:
+Inicio
+Trabajos
+Nuevo
+Clientes
+Crear nuevo trabajo desde mobile.
+Confirmar que el flujo no obliga a navegar entre Presupuestos, Recepciones y Órdenes.
+Reglas de implementación
+No refactorizar toda la app.
+No eliminar Presupuestos, Recepciones ni Órdenes.
+No romper el flujo existente.
+No implementar fotos todavía.
+No implementar pagos todavía.
+No implementar reportes todavía.
+No implementar suspensión todavía.
+No implementar agenda.
+Mantener el cambio centrado en reducir clicks.
+Actualizar replit.md con el nuevo flujo recomendado: Trabajos como pantalla principal.

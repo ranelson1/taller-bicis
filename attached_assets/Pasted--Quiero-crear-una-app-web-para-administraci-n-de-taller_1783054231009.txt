@@ -1,0 +1,869 @@
+
+
+
+Quiero crear una app web para administración de talleres de bicicleta.
+
+La app debe ser simple, práctica, responsive y mobile-first. Debe servir tanto en computador como en celular. El foco es que un mecánico o dueño de taller pueda ordenar su operación diaria sin convertir esto en un ERP complejo.
+
+Contexto de negocio:
+Los talleres de bicicleta muchas veces reciben solicitudes por WhatsApp, llamadas, Instagram o presencialmente. El flujo real no parte siempre con una orden de trabajo. Muchas veces parte con un contacto informal del cliente, luego se arma un presupuesto, luego el cliente aprueba, luego la bicicleta llega al taller, se inspecciona, pueden aparecer adicionales y finalmente se ejecuta una orden de trabajo.
+
+El mecanico generalmente es el aue atiende a los clientes. Entonces la idea es reducir esa friccion y que pueda dedicarse a hacer mecanica. 
+
+
+Usar siempre el término “presupuesto”, no “cotización”.
+
+Objetivo general:
+Construir un MVP funcional para que el taller pueda:
+- Registrar clientes.
+- Registrar bicicletas.
+- Crear presupuestos desde requerimientos del cliente.
+- Enviar/aprobar presupuestos manualmente.
+- Registrar recepción de bicicletas.
+- Hacer inspección visual.
+- Agregar servicios, repuestos o adicionales.
+- Manejar aprobación de ítems.
+- Convertir presupuestos aprobados en órdenes de trabajo.
+- Asignar mecánicos.
+- Usar servicios técnicos con horas hombre estimadas.
+- Usar checklist interno por servicio.
+- Agendar trabajo por mecánico.
+- Ver capacidad disponible del taller.
+- Actualizar progreso de la orden.
+- Registrar pagos.
+- Dejar la información preparada para facturación futura.
+
+IMPORTANTE:
+Antes de programar, primero propón brevemente:
+1. Stack técnico recomendado.
+2. Modelo de datos/tablas.
+3. Rutas o pantallas principales.
+4. Plan de implementación por etapas.
+5. Qué NO se implementará en el MVP.
+
+Después de eso, implementa incrementalmente por etapas. No construyas funcionalidades fuera de alcance sin preguntar.
+
+==================================================
+PRINCIPIOS DE PRODUCTO
+==================================================
+
+La app debe ser:
+- Mobile-first.
+- Responsive para PC y celular.
+- Simple de usar en un taller real.
+- Rápida para actualizar estados.
+- Cómoda para usar con dedos en celular.
+- Clara para visualizar trabajo pendiente.
+- No sobrecargada de campos innecesarios.
+- Sin inventario avanzado en el MVP.
+- Sin integración real con WhatsApp en el MVP.
+- Sin facturación electrónica en el MVP.
+- Sin portal de cliente en el MVP.
+- Sin múltiples sucursales en el MVP.
+
+La app debe resolver principalmente:
+- Qué trabajos tengo abiertos.
+- Qué presupuestos están esperando aprobación.
+- Qué bicicletas están recibidas.
+- Qué servicios están en proceso.
+- Qué mecánico tiene asignado cada trabajo.
+- Cuántas horas hombre tengo comprometidas.
+- Cuánta capacidad disponible tiene el taller.
+- Qué órdenes están listas para retiro.
+- Qué está pendiente de pago.
+- Qué está pendiente de facturar a futuro.
+
+==================================================
+FLUJOS PRINCIPALES
+==================================================
+
+Flujo A: Cliente contacta antes de llevar la bicicleta
+
+1. Cliente contacta por WhatsApp, llamada, Instagram o presencial.
+2. Se crea una solicitud/contacto inicial.
+3. Se crea un presupuesto preliminar con los requerimientos del cliente.
+4. Se agregan servicios, repuestos estimados o diagnósticos.
+5. Se envía manualmente al cliente.
+6. Cliente aprueba, rechaza o pide cambios.
+7. Cliente entrega bicicleta.
+8. Se registra recepción.
+9. Mecánico hace inspección visual.
+10. Si aparecen adicionales, se actualiza el presupuesto vigente.
+11. Los nuevos ítems quedan pendientes de aprobación.
+12. Cliente aprueba o rechaza adicionales.
+13. Se convierte lo aprobado en orden de trabajo.
+14. Se agenda y asigna mecánico.
+15. Se ejecutan servicios con checklist.
+16. Se pasa a control de calidad.
+17. Se marca lista para retiro.
+18. Se registra pago.
+19. Se entrega y cierra la orden.
+
+Flujo B: Cliente deja bicicleta directamente
+
+1. Cliente llega al taller y deja la bicicleta.
+2. Se crea cliente y bicicleta, si no existen.
+3. Se registra recepción.
+4. Se hace inspección visual.
+5. Se crea presupuesto.
+6. Cliente aprueba.
+7. Se convierte en orden de trabajo.
+8. Se agenda, ejecuta, cobra y cierra.
+
+==================================================
+MÓDULOS DEL MVP
+==================================================
+
+1. Dashboard
+Debe mostrar:
+- Órdenes abiertas.
+- Órdenes sin agendar.
+- Órdenes atrasadas.
+- Órdenes esperando aprobación.
+- Órdenes esperando repuestos.
+- Órdenes listas para retiro.
+- Presupuestos pendientes de aprobación.
+- Horas hombre agendadas esta semana.
+- Horas hombre disponibles esta semana.
+- Utilización por mecánico.
+- Monto pendiente de cobro.
+- Monto pendiente de facturar.
+
+2. Clientes
+CRUD completo.
+
+Campos:
+- Nombre.
+- Teléfono / WhatsApp.
+- Email opcional.
+- Notas.
+- Fecha de creación.
+- Activo/inactivo.
+
+3. Bicicletas
+CRUD completo.
+
+Cada cliente puede tener una o más bicicletas.
+
+Campos:
+- Cliente asociado.
+- Marca.
+- Modelo.
+- Tipo: MTB, ruta, gravel, urbano, e-bike, niño, otro.
+- Color.
+- Aro / talla opcional.
+- Número de serie opcional.
+- Notas.
+- Activo/inactivo.
+
+4. Usuarios / mecánicos
+CRUD simple.
+
+Campos:
+- Nombre.
+- Email.
+- Rol: admin, mecánico, recepción.
+- Activo/inactivo.
+- Horas semanales disponibles.
+- Color de calendario opcional.
+
+Regla:
+El mecánico asignado es importante porque los servicios tienen horas hombre estimadas y la app debe calcular capacidad del taller.
+
+5. Servicios técnicos
+CRUD completo.
+
+Los servicios son lo principal que vende el taller.
+
+Ejemplos:
+- Servicio horquilla.
+- Servicio shock.
+- Servicio dropper.
+- Servicio cuadro / pivotes.
+- Sangrado frenos.
+- Ajuste transmisión.
+- Mantención general.
+- Armado bicicleta.
+- Diagnóstico.
+- Tubeless.
+- Revisión pre-carrera.
+- Diagnóstico e-bike.
+
+Campos:
+- Nombre del servicio.
+- Categoría.
+- Precio base.
+- Horas hombre estimadas.
+- Descripción visible al cliente.
+- Descripción interna.
+- Activo/inactivo.
+
+Cada servicio debe poder tener un checklist interno con pasos ordenados.
+
+6. Checklist interno de servicios
+Cada servicio técnico debe tener una plantilla de pasos.
+
+Ejemplo servicio horquilla:
+- Recepción y revisión visual.
+- Desmontaje de horquilla.
+- Limpieza externa.
+- Desarme de botellas.
+- Revisión de barras.
+- Revisión de retenes.
+- Cambio de aceite.
+- Cambio de sellos, si aplica.
+- Armado.
+- Torque final.
+- Prueba de funcionamiento.
+- Control de fugas.
+- Marcado como terminado.
+
+Cada paso del checklist en una orden debe tener:
+- Descripción.
+- Estado: pendiente, en proceso, completado, no aplica, con observación.
+- Nota opcional.
+- Usuario que lo completó.
+- Fecha de completado.
+
+7. Repuestos
+CRUD simple de catálogo, SIN inventario avanzado.
+
+Campos:
+- Nombre.
+- Categoría.
+- Marca opcional.
+- Precio sugerido.
+- SKU opcional.
+- Activo/inactivo.
+
+Importante:
+En el MVP los repuestos solo sirven para agregarlos a presupuestos y órdenes de trabajo. No implementar stock, compras, proveedores, costo promedio ni movimientos de inventario.
+
+8. Categorías
+CRUD simple para ordenar servicios y repuestos.
+
+Ejemplos:
+- Suspensión.
+- Transmisión.
+- Frenos.
+- Ruedas.
+- Cuadro.
+- E-bike.
+- Mantención general.
+- Diagnóstico.
+- Repuestos.
+- Mano de obra.
+
+9. Métodos de pago
+CRUD simple.
+
+Valores iniciales:
+- Efectivo.
+- Transferencia.
+- Débito.
+- Crédito.
+- Otro.
+
+Campos:
+- Nombre.
+- Activo/inactivo.
+- Notas opcionales.
+
+10. Presupuestos
+Crear, editar, listar y aprobar presupuestos.
+
+Campos principales:
+- Código automático tipo P-0001.
+- Cliente.
+- Bicicleta, opcional al inicio.
+- Canal de origen: WhatsApp, llamada, Instagram, presencial, otro.
+- Requerimiento inicial del cliente.
+- Estado.
+- Versión actual.
+- Fecha creación.
+- Fecha envío.
+- Fecha aprobación.
+- Notas internas.
+- Notas visibles al cliente.
+- Total monetario.
+- Total horas hombre estimadas.
+
+Estados de presupuesto:
+- Borrador.
+- Enviado al cliente.
+- Aprobado parcialmente.
+- Aprobado.
+- Rechazado.
+- Actualizado post-inspección.
+- Convertido en orden de trabajo.
+
+Cada presupuesto debe tener ítems.
+
+Tipos de ítem:
+- Servicio.
+- Repuesto.
+- Mano de obra adicional.
+- Diagnóstico.
+- Recomendación.
+- Descuento.
+- Otro.
+
+Cada ítem debe tener:
+- Tipo.
+- Origen.
+- Descripción.
+- Cantidad.
+- Precio unitario.
+- Total calculado.
+- Horas hombre estimadas, si aplica.
+- Estado de aprobación.
+- Servicio asociado, si aplica.
+- Repuesto asociado, si aplica.
+
+Origen del ítem:
+- Requerimiento cliente.
+- Inspección visual.
+- Recomendación mecánico.
+- Adicional durante trabajo.
+- Garantía / corrección.
+
+Estado de aprobación del ítem:
+- Pendiente de aprobación.
+- Aprobado.
+- Rechazado.
+
+Regla importante:
+Si durante la inspección visual o durante el trabajo aparecen nuevos problemas, no crear necesariamente un presupuesto nuevo desde cero. Se debe actualizar el presupuesto vigente, guardar una nueva versión y marcar los nuevos ítems como pendientes de aprobación.
+
+11. Versiones de presupuesto
+Cada vez que se modifica un presupuesto ya enviado o aprobado parcialmente, guardar una nueva versión.
+
+Ejemplo:
+- P-0008 v1.
+- P-0008 v2.
+- P-0008 v3.
+
+Guardar:
+- Número de versión.
+- Total de la versión.
+- Estado.
+- Fecha de creación.
+- Fecha de envío.
+- Fecha de aprobación.
+- Ítems incluidos.
+
+12. Recepción de bicicleta
+Debe existir una acción separada llamada “Registrar recepción de bicicleta”.
+
+La recepción puede ocurrir antes o después del presupuesto.
+
+Campos:
+- Cliente.
+- Bicicleta.
+- Presupuesto asociado, opcional.
+- Fecha de recepción.
+- Usuario que recibe.
+- Problema reportado por cliente.
+- Estado visual inicial.
+- Accesorios recibidos: batería, cargador, luces, bolso, rueda, otros.
+- Notas internas.
+- Notas visibles al cliente.
+
+No implementar fotos todavía, pero dejar la arquitectura preparada para registro fotográfico futuro.
+
+13. Inspección visual
+Después de recibir una bicicleta, el mecánico puede registrar hallazgos.
+
+Campos:
+- Orden/presupuesto/bicicleta asociada.
+- Mecánico.
+- Fecha.
+- Hallazgo.
+- Severidad: baja, media, alta.
+- Recomendación.
+- Crear ítem adicional en presupuesto: sí/no.
+- Estado de aprobación del adicional.
+
+14. Órdenes de trabajo
+Este es el núcleo operativo.
+
+Una orden de trabajo puede nacer desde:
+- Un presupuesto aprobado.
+- Un presupuesto aprobado parcialmente.
+- Una recepción directa.
+- Una inspección que luego fue aprobada.
+
+Campos:
+- Código automático tipo OT-0001.
+- Cliente.
+- Bicicleta.
+- Presupuesto asociado.
+- Mecánico asignado principal.
+- Estado de OT.
+- Estado de agenda.
+- Prioridad: baja, normal, alta.
+- Fecha de ingreso.
+- Fecha estimada de entrega.
+- Fecha real de entrega.
+- Ítems aprobados.
+- Ítems pendientes de aprobación.
+- Servicios con checklist.
+- Total horas hombre estimadas.
+- Total horas hombre reales, opcional.
+- Notas internas.
+- Notas visibles al cliente.
+- Subtotal.
+- Descuento.
+- Total.
+- Monto pagado.
+- Saldo pendiente.
+- Método de pago.
+- Estado de pago.
+- Tipo de documento futuro.
+- Estado de facturación.
+- Referencia de documento tributario opcional.
+
+Estados de OT:
+- Bici recibida.
+- En inspección.
+- Esperando aprobación cliente.
+- Esperando repuestos.
+- Lista para trabajar.
+- En trabajo.
+- En control de calidad.
+- Lista para retiro.
+- Entregada.
+- Cerrada.
+- Cancelada.
+
+Estado de agenda:
+- Sin agendar.
+- Agendada.
+- Reagendada.
+- Atrasada.
+- Completada.
+
+Regla:
+La OT debe tener un mecánico asignado principal obligatorio cuando pasa a “Lista para trabajar” o “En trabajo”.
+
+15. Timeline / historial
+Cada presupuesto y orden de trabajo debe tener historial.
+
+Registrar:
+- Fecha.
+- Usuario.
+- Acción.
+- Estado anterior.
+- Estado nuevo.
+- Comentario opcional.
+
+Ejemplos:
+- Se creó presupuesto.
+- Se envió presupuesto al cliente.
+- Cliente aprobó presupuesto.
+- Se registró recepción de bicicleta.
+- Se agregó adicional por inspección visual.
+- Se cambió estado de OT.
+- Se completó paso de checklist.
+- Se registró pago.
+- Se cerró orden.
+
+16. Agenda interna del taller
+Crear calendario interno simple. No integrar Google Calendar todavía.
+
+Debe permitir:
+- Ver agenda por semana.
+- Ver agenda por día.
+- Ver bloques por mecánico.
+- Agendar una orden de trabajo completa.
+- Agendar un servicio específico.
+- Registrar fecha/hora inicio.
+- Registrar fecha/hora término.
+- Calcular horas agendadas.
+- Mostrar capacidad disponible por mecánico.
+
+Cada bloque de agenda debe tener:
+- Orden de trabajo asociada.
+- Servicio asociado, opcional.
+- Mecánico.
+- Fecha y hora inicio.
+- Fecha y hora término.
+- Horas estimadas.
+- Estado.
+- Notas.
+
+17. Capacidad del taller
+Cada mecánico tiene capacidad semanal en horas.
+
+El sistema debe calcular:
+- Capacidad semanal del mecánico.
+- Horas ya agendadas.
+- Horas disponibles.
+- Porcentaje de utilización.
+- Total de capacidad del taller.
+- Total horas agendadas.
+- Total horas disponibles.
+
+Ejemplo de vista:
+Mecánico Juan:
+- Capacidad: 40 h.
+- Agendado: 32 h.
+- Disponible: 8 h.
+- Utilización: 80%.
+
+Mecánico Diego:
+- Capacidad: 35 h.
+- Agendado: 37 h.
+- Disponible: -2 h.
+- Utilización: 106%.
+
+18. Pagos
+Permitir registrar pagos asociados a una orden.
+
+Campos:
+- Orden de trabajo.
+- Monto.
+- Método de pago.
+- Fecha.
+- Nota opcional.
+
+La orden debe mostrar:
+- Total.
+- Monto pagado.
+- Saldo pendiente.
+- Estado de pago.
+
+Estados de pago:
+- Pendiente.
+- Parcial.
+- Pagado.
+
+19. Datos para facturación futura
+No implementar facturación electrónica todavía.
+
+Pero la OT debe guardar:
+- Método de pago.
+- Estado de pago.
+- Tipo de documento futuro: boleta, factura, sin definir, no aplica.
+- Estado de facturación: pendiente, emitida, no requerida.
+- Referencia de documento tributario opcional.
+
+==================================================
+DISEÑO UX/UI
+==================================================
+
+La app debe tener navegación clara.
+
+Menú operación:
+- Dashboard.
+- Presupuestos.
+- Recepciones.
+- Órdenes de trabajo.
+- Agenda.
+- Clientes.
+- Bicicletas.
+- Pagos.
+
+Menú administración:
+- Usuarios / mecánicos.
+- Servicios.
+- Repuestos.
+- Categorías.
+- Métodos de pago.
+
+Pantallas más importantes:
+1. Dashboard.
+2. Lista de órdenes de trabajo.
+3. Detalle de orden de trabajo.
+4. Presupuesto.
+5. Agenda semanal.
+6. Capacidad por mecánico.
+
+En celular priorizar:
+- Crear presupuesto rápido.
+- Ver agenda del día.
+- Cambiar estado de OT.
+- Marcar checklist.
+- Registrar inspección.
+- Registrar pago.
+- Ver datos del cliente.
+- Llamar o abrir WhatsApp manualmente.
+
+En PC priorizar:
+- Dashboard.
+- Agenda semanal.
+- Administración de servicios.
+- Capacidad por mecánico.
+- Revisión de presupuestos.
+- Control de cobros.
+
+==================================================
+RESPONSIVE / MOBILE-FIRST
+==================================================
+
+La app debe ser responsive desde el inicio.
+
+Requisitos:
+- Debe verse bien en computador.
+- Debe verse bien en celular.
+- Formularios simples.
+- Botones grandes.
+- Tablas adaptadas a tarjetas en mobile.
+- Evitar tablas anchas imposibles de usar en celular.
+- En mobile, mostrar tarjetas resumidas para presupuestos y órdenes.
+- En desktop, permitir tablas y vistas calendario amplias.
+
+==================================================
+FUNCIONALIDADES FUTURAS, NO IMPLEMENTAR EN MVP
+==================================================
+
+No implementar todavía, pero dejar documentado en backlog y evitar decisiones técnicas que lo bloqueen.
+
+1. Registro fotográfico
+Funcionalidad futura clave:
+- Fotos de recepción.
+- Fotos de inspección visual.
+- Fotos de daños detectados.
+- Fotos de recomendaciones.
+- Fotos durante el trabajo.
+- Fotos de control de calidad.
+- Fotos de entrega final.
+- Fotos para garantía/reclamo.
+
+Cada foto debería poder asociarse a:
+- Cliente.
+- Bicicleta.
+- Presupuesto.
+- Orden de trabajo.
+- Servicio.
+- Checklist.
+- Ítem recomendado.
+
+Tipos de foto:
+- Recepción.
+- Inspección visual.
+- Daño detectado.
+- Recomendación.
+- Durante el trabajo.
+- Control de calidad.
+- Entrega final.
+- Garantía/reclamo.
+
+También debe poder distinguir:
+- Foto interna.
+- Foto visible para cliente.
+
+2. Seguimiento cliente
+No implementar portal todavía.
+
+Futuro:
+- Generar mensajes prearmados para WhatsApp.
+- Copiar mensaje manualmente.
+- Link público de presupuesto.
+- Link público de seguimiento de orden.
+- Aprobación online de adicionales.
+- Visualización de fotos compartidas.
+- Historial de comunicaciones.
+- Notificaciones automáticas.
+
+3. Inventario avanzado
+No implementar todavía.
+
+Futuro:
+- Stock de repuestos.
+- Entradas y salidas.
+- Reservas por OT.
+- Compras.
+- Proveedores.
+- Stock mínimo.
+- Costo promedio.
+
+4. Integraciones futuras
+No implementar todavía:
+- WhatsApp Business API.
+- Google Calendar.
+- Facturación electrónica.
+- Pasarela de pago.
+- Portal cliente.
+
+==================================================
+DATOS DE PRUEBA
+==================================================
+
+Crear datos semilla para probar la app:
+
+Usuarios:
+- Admin Taller.
+- Mecánico Juan, 40 h semanales.
+- Mecánico Diego, 35 h semanales.
+
+Clientes:
+- Pedro González.
+- María Soto.
+- Andrés Rojas.
+
+Bicicletas:
+- Trek Slash MTB.
+- Specialized Stumpjumper MTB.
+- Giant Reign MTB.
+- Gravel genérica.
+
+Servicios:
+- Servicio horquilla, 2.0 h.
+- Servicio shock, 1.5 h.
+- Servicio dropper, 1.0 h.
+- Sangrado frenos, 0.75 h.
+- Ajuste transmisión, 0.5 h.
+- Mantención general, 2.5 h.
+- Servicio cuadro/pivotes, 3.0 h.
+- Diagnóstico, 0.5 h.
+
+Métodos de pago:
+- Efectivo.
+- Transferencia.
+- Débito.
+- Crédito.
+- Otro.
+
+Crear algunos presupuestos y órdenes de prueba con distintos estados.
+
+==================================================
+PLAN DE IMPLEMENTACIÓN POR ETAPAS
+==================================================
+
+Etapa 0: Arquitectura y setup
+- Proponer stack.
+- Crear estructura base.
+- Crear base de datos.
+- Crear layout responsive.
+- Crear navegación principal.
+- Crear datos semilla.
+- Crear autenticación simple.
+
+Etapa 1: CRUDs maestros
+Implementar:
+- Usuarios/mecánicos.
+- Clientes.
+- Bicicletas.
+- Servicios.
+- Checklist de servicios.
+- Repuestos simples.
+- Categorías.
+- Métodos de pago.
+
+Criterio de éxito:
+Puedo administrar los datos base necesarios para operar el taller.
+
+Etapa 2: Presupuestos
+Implementar:
+- Crear presupuesto desde contacto inicial.
+- Canal de origen.
+- Requerimiento del cliente.
+- Agregar ítems.
+- Agregar servicios desde catálogo.
+- Agregar repuestos desde catálogo.
+- Calcular total monetario.
+- Calcular horas hombre estimadas.
+- Estados de aprobación.
+- Versiones de presupuesto.
+- Aprobar/rechazar ítems.
+- Convertir presupuesto en OT.
+
+Criterio de éxito:
+Puedo crear un presupuesto realista, modificarlo, aprobarlo y convertirlo en orden.
+
+Etapa 3: Recepción e inspección
+Implementar:
+- Registrar recepción de bicicleta.
+- Asociar recepción a cliente, bicicleta y presupuesto.
+- Registrar problema reportado.
+- Registrar accesorios recibidos.
+- Registrar inspección visual.
+- Crear adicionales desde inspección.
+- Marcar adicionales como pendientes de aprobación.
+
+Criterio de éxito:
+Puedo manejar tanto el caso de cliente que llega con presupuesto previo como el que deja la bici directamente.
+
+Etapa 4: Órdenes de trabajo y checklist
+Implementar:
+- Crear OT desde presupuesto.
+- Asignar mecánico.
+- Estados de OT.
+- Ítems aprobados y pendientes.
+- Servicios con checklist copiado desde plantilla.
+- Actualización de avance.
+- Timeline/historial.
+- Control de calidad.
+- Lista para retiro.
+- Cierre de OT.
+
+Criterio de éxito:
+Puedo ejecutar una orden real, marcar avances y ver trazabilidad.
+
+Etapa 5: Agenda y capacidad
+Implementar:
+- Calendario interno semanal.
+- Agenda diaria.
+- Bloques por mecánico.
+- Agendar OT o servicio.
+- Calcular horas agendadas.
+- Calcular horas disponibles.
+- Mostrar utilización por mecánico.
+- Mostrar órdenes sin agendar.
+- Mostrar órdenes atrasadas.
+
+Criterio de éxito:
+Puedo saber si el taller tiene capacidad para recibir nuevos servicios y cuándo prometer entrega.
+
+Etapa 6: Pagos y facturación futura
+Implementar:
+- Registrar pagos.
+- Método de pago.
+- Estado de pago.
+- Saldo pendiente.
+- Tipo de documento futuro.
+- Estado de facturación.
+- Monto pendiente de cobro.
+- Monto pendiente de facturar.
+
+Criterio de éxito:
+Puedo cerrar una orden y dejar ordenada la información para cobro y futura facturación.
+
+Etapa 7: Pulido responsive y UX
+Implementar:
+- Mejoras mobile-first.
+- Tarjetas en celular.
+- Tablas cómodas en PC.
+- Acciones rápidas.
+- Validaciones.
+- Estados visuales.
+- Badges de colores.
+- Filtros útiles.
+- Dashboard final.
+
+Criterio de éxito:
+La app se puede usar cómodamente desde celular dentro del taller y desde PC para administración.
+
+==================================================
+RESTRICCIONES IMPORTANTES PARA EL AGENTE
+==================================================
+
+No sobreconstruir.
+No agregar funcionalidades fuera del MVP.
+No implementar inventario avanzado.
+No implementar WhatsApp real.
+No implementar facturación electrónica.
+No implementar portal cliente.
+No implementar Google Calendar.
+No crear múltiples sucursales.
+No crear roles/permisos complejos.
+No hacer reportería avanzada todavía.
+
+Priorizar funcionalidad operativa simple.
+
+Cada vez que termines una etapa:
+- Explica qué se implementó.
+- Explica cómo probarlo.
+- Verifica que no rompiste lo anterior.
+- Propón el siguiente paso.

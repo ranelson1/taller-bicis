@@ -1,0 +1,35 @@
+Sí, el task está bien encaminado y apruebo avanzar con Etapa 0 y Etapa 1, pero con algunos ajustes antes de comenzar:
+
+1. Cambia “login simple sin autenticación real” por una autenticación básica usando la tabla users. Puede ser simple para MVP, pero no quiero una sesión local falsa que después parezca segura. No hace falta roles complejos todavía, pero sí login básico real.
+2. En los CRUDs maestros, evita borrado duro cuando el dato pueda usarse después en presupuestos u órdenes. Para usuarios, clientes, bicicletas, servicios, repuestos, categorías y métodos de pago, usa preferentemente activo/inactivo. Si implementas eliminar, que sea solo cuando no existan relaciones asociadas.
+3. No incluyas campos de fotos futuras en el schema todavía. El registro fotográfico queda documentado en backlog, pero no quiero UI, storage, upload ni columnas específicas de fotos en esta etapa.
+4. OpenAPI + Orval está bien solo si ya está integrado y no frena el avance. Si complica demasiado, prioriza endpoints REST funcionales y hooks simples con React Query. El objetivo es avanzar con una base estable, no sobreconstruir infraestructura.
+5. Los “wow endpoints” están bien si son simples:
+
+* clientes con conteo de bicicletas
+* servicios con conteo de pasos
+* resumen básico de capacidad por mecánico
+
+Pero no quiero lógica compleja de capacidad todavía, porque agenda y órdenes vienen en etapas posteriores.
+
+6. Para checklist de servicios, no hace falta drag & drop complejo. Basta con poder crear, editar, eliminar y reordenar pasos con botones subir/bajar o campo de orden.
+7. Mantén FullCalendar y cualquier calendario fuera de esta etapa.
+8. Mantén presupuestos, recepciones, órdenes, agenda y pagos solo como placeholders de navegación. No implementes lógica de esas etapas todavía.
+
+Con esos ajustes, avanza con Etapa 0 y Etapa 1.
+
+Al terminar quiero poder:
+
+* iniciar sesión
+* navegar por la app en desktop y mobile
+* ver dashboard placeholder
+* administrar usuarios/mecánicos
+* administrar clientes
+* administrar bicicletas asociadas a clientes
+* administrar servicios técnicos
+* administrar checklist por servicio
+* administrar repuestos simples sin stock
+* administrar categorías
+* administrar métodos de pago
+* ver datos semilla funcionando
+* comprobar que en mobile las listas se ven como tarjetas y no como tablas incómodas

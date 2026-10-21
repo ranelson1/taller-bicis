@@ -1,0 +1,752 @@
+#8 - Taller Bicicleta — Etapa 3: Recepción de Bicicletas e Inspección Visual
+
+## Contexto
+
+Ya están implementadas:
+
+- Etapa 0: setup, layout, login, navegación, base de datos y seed.
+- Etapa 1: CRUDs maestros de usuarios/mecánicos, clientes, bicicletas, servicios, checklist de servicios, repuestos, categorías y métodos de pago.
+- Etapa 2: módulo completo de presupuestos con ítems, versiones, timeline, aprobación/rechazo de ítems, resumen para cliente y estado “Listo para orden de trabajo”.
+
+Ahora necesitamos implementar la Etapa 3: recepción de bicicletas e inspección visual.
+
+Esta etapa conecta el presupuesto con la realidad física del taller. En la operación real hay dos escenarios:
+
+1. Cliente pidió presupuesto antes por WhatsApp/llamada/Instagram/presencial, luego entrega la bicicleta.
+2. Cliente llega directamente al taller y deja la bicicleta sin presupuesto previo.
+
+En ambos casos, el taller debe poder registrar la recepción, inspeccionar la bicicleta y agregar hallazgos. Si durante la inspección aparecen trabajos adicionales, deben poder agregarse al presupuesto vigente como ítems pendientes de aprobación.
+
+IMPORTANTE:
+No implementar todavía órdenes de trabajo reales. Esta etapa termina con una bicicleta recibida, inspeccionada y con presupuesto actualizado si corresponde.
+
+## Objetivo
+
+Implementar el módulo de recepciones e inspección visual para que el taller pueda:
+
+- Registrar la recepción física de una bicicleta.
+- Asociar la recepción a un cliente.
+- Asociar la recepción a una bicicleta.
+- Asociar opcionalmente la recepción a un presupuesto existente.
+- Registrar problema reportado por el cliente.
+- Registrar estado visual inicial.
+- Registrar accesorios recibidos.
+- Registrar inspección visual.
+- Registrar hallazgos.
+- Crear ítems adicionales en un presupuesto desde hallazgos de inspección.
+- Marcar esos adicionales como pendientes de aprobación.
+- Ver timeline de recepción e inspección.
+- Ver en el presupuesto los adicionales creados desde inspección visual.
+
+## Alcance incluido
+
+### 1. Recepciones
+
+Crear módulo de recepciones.
+
+Rutas frontend:
+
+- `/recepciones`
+- `/recepciones/nueva`
+- `/recepciones/:id`
+
+La recepción debe poder crearse desde:
+
+- Menú principal “Recepciones”.
+- Presupuesto existente, con botón “Registrar recepción”.
+- Cliente/bicicleta existente, si es simple de implementar.
+
+Campos de recepción:
+
+- Código automático tipo `R-0001`, `R-0002`, etc.
+- Cliente obligatorio.
+- Bicicleta obligatoria.
+- Presupuesto asociado opcional.
+- Usuario que recibe.
+- Fecha y hora de recepción.
+- Problema reportado por cliente.
+- Estado visual inicial.
+- Accesorios recibidos.
+- Notas internas.
+- Notas visibles para cliente.
+- Estado de recepción.
+- Activo/inactivo.
+- created_at.
+- updated_at.
+
+Estados de recepción:
+
+- `received` → Recibida
+- `in_inspection` → En inspección
+- `inspection_completed` → Inspección completada
+- `waiting_quote_approval` → Esperando aprobación de presupuesto
+- `ready_for_work_order` → Lista para orden de trabajo
+- `cancelled` → Cancelada
+
+Reglas:
+
+- Una recepción siempre debe tener cliente y bicicleta.
+- Puede tener o no tener presupuesto asociado.
+- Si viene desde un presupuesto, debe quedar vinculada al presupuesto.
+- Si no tiene presupuesto, debe permitir crear uno desde la recepción en base al cliente, bicicleta y problema reportado.
+- No crear OT real todavía.
+
+### 2. Accesorios recibidos
+
+Implementar de forma simple.
+
+No crear un CRUD complejo de accesorios todavía.
+
+Usar una estructura simple, por ejemplo `jsonb` o texto estructurado, para guardar accesorios recibidos.
+
+Accesorios sugeridos:
+
+- Batería
+- Cargador
+- Luces
+- Bolso
+- Rueda adicional
+- Ciclocomputador
+- Porta caramayola
+- Pedales
+- Otro
+
+La UI puede mostrar checkboxes y un campo “Otros accesorios / detalle”.
+
+Ejemplo:
+
+- Batería: sí
+- Cargador: sí
+- Luces: no
+- Otro: “Se recibe bicicleta con pedales Shimano”
+
+### 3. Inspección visual
+
+Implementar inspección visual asociada a una recepción.
+
+La inspección debe permitir registrar múltiples hallazgos.
+
+Campos de inspección / hallazgo:
+
+- Recepción asociada.
+- Presupuesto asociado opcional.
+- Mecánico que inspecciona.
+- Fecha.
+- Área/sistema revisado.
+- Hallazgo.
+- Severidad.
+- Recomendación.
+- Crear ítem adicional en presupuesto: sí/no.
+- Tipo de ítem sugerido.
+- Servicio asociado opcional.
+- Repuesto asociado opcional.
+- Descripción para presupuesto.
+- Cantidad.
+- Precio unitario.
+- Horas hombre estimadas.
+- Estado de aprobación del adicional.
+- Notas internas.
+- created_at.
+- updated_at.
+
+Áreas/sistemas sugeridos:
+
+- Suspensión
+- Frenos
+- Transmisión
+- Ruedas
+- Neumáticos
+- Cuadro
+- Dirección
+- Motor/e-bike
+- Dropper
+- Otro
+
+Severidad:
+
+- `low` → Baja
+- `medium` → Media
+- `high` → Alta
+- `critical` → Crítica
+
+### 4. Adicionales desde inspección
+
+Desde un hallazgo de inspección, el usuario debe poder crear un ítem adicional en el presupuesto asociado.
+
+Reglas:
+
+- Si la recepción tiene presupuesto asociado, el adicional se agrega a ese presupuesto.
+- El ítem creado debe quedar con:
+  - `origin = visual_inspection`
+  - `approval_status = pending`
+  - `item_type` según lo seleccionado
+  - `description` desde la recomendación/hallazgo
+  - `quantity`, `unit_price`, `total`, `estimated_labor_hours`
+  - `service_id` si viene desde un servicio
+  - `part_id` si viene desde un repuesto
+
+- Si el presupuesto ya estaba enviado, aprobado o aprobado parcialmente, al agregar un adicional debe cambiar a estado:
+  - `updated_after_sent`
+
+- No generar nueva versión automáticamente al crear el adicional.
+- La nueva versión debe generarse cuando el presupuesto se vuelva a marcar como “Enviado al cliente”, respetando la lógica ya implementada en Etapa 2.
+- Registrar evento en timeline del presupuesto:
+  - “Se agregó adicional desde inspección visual”.
+
+### 5. Crear presupuesto desde recepción
+
+Cuando una recepción no tenga presupuesto asociado, debe existir una acción:
+
+- “Crear presupuesto desde recepción”
+
+Esta acción debe:
+
+- Crear un presupuesto en estado `draft`.
+- Asociarlo al cliente y bicicleta de la recepción.
+- Usar como `initial_requirement` el problema reportado por el cliente.
+- Asociar el presupuesto creado a la recepción.
+- Redirigir al detalle del presupuesto o permitir volver a la recepción.
+
+No implementar lógica de OT.
+
+### 6. Timeline
+
+Usar la tabla `timeline_events` ya existente si es posible.
+
+Registrar eventos para:
+
+- Recepción creada.
+- Recepción editada.
+- Estado de recepción cambiado.
+- Inspección iniciada.
+- Hallazgo agregado.
+- Hallazgo editado.
+- Hallazgo marcado como adicional de presupuesto.
+- Presupuesto creado desde recepción.
+- Recepción lista para orden de trabajo.
+
+El detalle de recepción debe mostrar un timeline propio.
+
+Si `timeline_events` ya funciona con `entity_type` y `entity_id`, usar:
+
+- `entity_type = reception`
+- `entity_type = inspection`
+- `entity_type = quote`, cuando el evento afecte presupuesto.
+
+### 7. Relación con presupuestos
+
+Actualizar el detalle de presupuesto para mostrar, si existe:
+
+- Recepción asociada.
+- Estado de recepción.
+- Link a la recepción.
+- Hallazgos de inspección asociados al presupuesto, si aplica.
+- Ítems cuyo origen sea inspección visual.
+
+Agregar botón en detalle de presupuesto:
+
+- “Registrar recepción”
+
+Este botón debe crear o llevar a una recepción asociada al presupuesto.
+
+Regla:
+Un presupuesto puede estar asociado a una recepción, pero no todos los presupuestos tienen recepción todavía.
+
+## Fuera de alcance
+
+No implementar:
+
+- Órdenes de trabajo reales.
+- Conversión real de presupuesto a OT.
+- Agenda.
+- Calendario.
+- FullCalendar.
+- Capacidad por mecánico.
+- Pagos.
+- Facturación.
+- Portal cliente.
+- WhatsApp real.
+- Email real.
+- Registro fotográfico.
+- Upload de imágenes.
+- Storage de archivos.
+- Inventario avanzado.
+- Stock de repuestos.
+- Compras.
+- Proveedores.
+- Reportería avanzada.
+- Múltiples sucursales.
+- Roles/permisos complejos.
+
+El botón “Convertir en OT” debe seguir como placeholder o tooltip “Disponible en Etapa 4”.
+
+## Requisitos técnicos
+
+### Schema DB
+
+Agregar tablas nuevas:
+
+#### receptions
+
+Campos sugeridos:
+
+- id
+- reception_number
+- client_id
+- bicycle_id
+- quote_id nullable
+- received_by_user_id nullable
+- received_at
+- customer_reported_problem
+- initial_visual_condition
+- accessories_received jsonb nullable
+- internal_notes nullable
+- customer_notes nullable
+- status
+- active
+- created_at
+- updated_at
+
+#### inspection_findings
+
+Campos sugeridos:
+
+- id
+- reception_id
+- quote_id nullable
+- mechanic_id nullable
+- area
+- severity
+- finding
+- recommendation
+- should_create_quote_item boolean
+- created_quote_item_id nullable
+- item_type nullable
+- service_id nullable
+- part_id nullable
+- quote_item_description nullable
+- quantity nullable
+- unit_price nullable
+- estimated_labor_hours nullable
+- internal_notes nullable
+- active
+- created_at
+- updated_at
+
+Si prefieres crear una tabla `inspections` como cabecera y `inspection_findings` como detalle, hazlo solo si no agrega demasiada complejidad. Para el MVP, una tabla `inspection_findings` asociada a `receptions` es suficiente.
+
+Actualizar relaciones necesarias con:
+
+- clients
+- bicycles
+- quotes
+- quote_items
+- users
+- services
+- parts
+- timeline_events
+
+No agregar columnas de fotos.
+
+### OpenAPI / API
+
+Agregar endpoints:
+
+#### Recepciones
+
+- GET `/receptions`
+- GET `/receptions/:id`
+- POST `/receptions`
+- PATCH `/receptions/:id`
+- DELETE `/receptions/:id` soft-delete
+- POST `/receptions/:id/start-inspection`
+- POST `/receptions/:id/complete-inspection`
+- POST `/receptions/:id/mark-ready-for-work-order`
+- POST `/receptions/:id/create-quote`
+
+Filtros para GET `/receptions`:
+
+- status
+- client_id
+- bicycle_id
+- quote_id
+- date_from
+- date_to
+- search
+- active
+
+Search debe buscar por:
+
+- número de recepción
+- nombre de cliente
+- marca/modelo de bicicleta
+- problema reportado
+
+#### Hallazgos de inspección
+
+- GET `/receptions/:id/findings`
+- POST `/receptions/:id/findings`
+- PATCH `/receptions/:id/findings/:findingId`
+- DELETE `/receptions/:id/findings/:findingId` soft-delete
+- POST `/receptions/:id/findings/:findingId/create-quote-item`
+
+#### Timeline
+
+- GET `/receptions/:id/timeline`
+
+#### Dashboard
+
+Actualizar dashboard summary para incluir:
+
+- Recepciones abiertas.
+- Recepciones en inspección.
+- Recepciones esperando aprobación de presupuesto.
+- Recepciones listas para orden de trabajo.
+
+### Backend
+
+Implementar rutas en archivo nuevo, por ejemplo:
+
+- `artifacts/api-server/src/routes/receptions.ts`
+
+Registrar router en:
+
+- `artifacts/api-server/src/routes/index.ts`
+
+Usar:
+
+- Validación Zod.
+- Manejo de errores consistente.
+- Middleware de sesión ya existente.
+- Soft-delete con `active = false`.
+- Numeración automática `R-0001`, `R-0002`.
+
+Reglas backend importantes:
+
+1. No permitir crear recepción sin cliente.
+2. No permitir crear recepción sin bicicleta.
+3. No permitir asociar una bicicleta que no pertenezca al cliente seleccionado.
+4. Si se asocia presupuesto, validar que el presupuesto pertenezca al mismo cliente.
+5. Si se crea presupuesto desde recepción, asociarlo automáticamente a recepción.
+6. Si se crea ítem desde hallazgo, recalcular totales del presupuesto.
+7. Si se crea ítem desde hallazgo, crear timeline en recepción y presupuesto.
+8. Si el presupuesto estaba enviado/aprobado/parcialmente aprobado, marcarlo como `updated_after_sent`.
+
+### Frontend
+
+Crear pantallas:
+
+## 1. `/recepciones`
+
+Lista de recepciones.
+
+Desktop:
+Tabla con columnas:
+
+- Número recepción.
+- Cliente.
+- Bicicleta.
+- Presupuesto.
+- Estado.
+- Fecha recepción.
+- Problema reportado.
+- Acciones.
+
+Mobile:
+Tarjetas con:
+
+- Número recepción.
+- Cliente.
+- Bicicleta.
+- Estado.
+- Fecha.
+- Acción ver detalle.
+
+Filtros:
+
+- Estado.
+- Cliente.
+- Fecha.
+- Búsqueda texto.
+
+Acciones:
+
+- Ver.
+- Editar.
+- Desactivar/cancelar si aplica.
+
+## 2. `/recepciones/nueva`
+
+Formulario para registrar recepción.
+
+Campos:
+
+- Cliente.
+- Bicicleta del cliente.
+- Presupuesto asociado opcional.
+- Fecha/hora recepción.
+- Usuario que recibe.
+- Problema reportado por cliente.
+- Estado visual inicial.
+- Accesorios recibidos.
+- Notas internas.
+- Notas visibles para cliente.
+
+UX importante:
+
+- Al seleccionar cliente, filtrar bicicletas de ese cliente.
+- Si el cliente no tiene bicicleta, permitir link rápido a crear bicicleta.
+- Si viene desde presupuesto, prellenar cliente, bicicleta si existe y presupuesto asociado.
+
+## 3. `/recepciones/:id`
+
+Detalle de recepción.
+
+Debe mostrar:
+
+- Encabezado con número, estado y fecha.
+- Cliente.
+- Bicicleta.
+- Presupuesto asociado, si existe.
+- Problema reportado.
+- Estado visual inicial.
+- Accesorios recibidos.
+- Notas.
+- Hallazgos de inspección.
+- Timeline.
+
+Acciones:
+
+- Editar recepción.
+- Iniciar inspección.
+- Agregar hallazgo.
+- Completar inspección.
+- Crear presupuesto desde recepción, si no existe.
+- Agregar adicional al presupuesto desde un hallazgo.
+- Marcar lista para orden de trabajo, si tiene presupuesto aprobado o aprobado parcialmente.
+- Ir al presupuesto asociado.
+
+## 4. Componentes de inspección
+
+En el detalle de recepción, crear sección “Inspección visual”.
+
+Debe permitir:
+
+- Agregar hallazgo.
+- Editar hallazgo.
+- Desactivar hallazgo.
+- Seleccionar área/sistema.
+- Seleccionar severidad.
+- Escribir hallazgo.
+- Escribir recomendación.
+- Marcar si debe crear ítem en presupuesto.
+- Seleccionar servicio o repuesto asociado, si aplica.
+- Definir cantidad, precio y horas.
+- Crear ítem adicional en presupuesto.
+
+Si no existe presupuesto asociado:
+
+- Mostrar mensaje: “Esta recepción no tiene presupuesto asociado.”
+- Mostrar botón: “Crear presupuesto desde recepción”.
+
+## 5. Actualizar detalle de presupuesto
+
+En `/presupuestos/:id`, agregar sección simple:
+
+“Recepción e inspección”
+
+Debe mostrar:
+
+- Si no hay recepción asociada:
+  - Botón “Registrar recepción”.
+- Si hay recepción asociada:
+  - Número recepción.
+  - Estado.
+  - Fecha recepción.
+  - Link “Ver recepción”.
+  - Cantidad de hallazgos.
+  - Cantidad de adicionales desde inspección.
+
+También en la tabla/lista de ítems del presupuesto, los ítems con `origin = visual_inspection` deben verse claramente con badge:
+
+- “Inspección visual”
+
+## 6. Dashboard
+
+Actualizar dashboard con cards:
+
+- Recepciones abiertas.
+- En inspección.
+- Esperando aprobación.
+- Listas para OT.
+
+Mantener las cards existentes de presupuestos y datos maestros.
+
+## UX/UI
+
+Mantener mobile-first.
+
+En mobile:
+
+- Lista de recepciones como tarjetas.
+- Formulario de recepción simple y en secciones.
+- Detalle de recepción con secciones claras:
+  - Datos generales.
+  - Bicicleta.
+  - Problema reportado.
+  - Accesorios.
+  - Inspección visual.
+  - Presupuesto asociado.
+  - Historial.
+
+En desktop:
+
+- Usar tablas cómodas.
+- Layout amplio para detalle.
+- Acciones principales visibles.
+
+Usar badges claros para:
+
+- Estado de recepción.
+- Severidad de hallazgo.
+- Hallazgo convertido en adicional.
+- Presupuesto asociado.
+- Ítem pendiente de aprobación.
+
+Confirmar acciones importantes:
+
+- Cancelar recepción.
+- Desactivar hallazgo.
+- Crear ítem adicional en presupuesto.
+- Marcar lista para OT.
+
+## Datos semilla
+
+Agregar recepciones de prueba:
+
+1. R-0001
+Cliente Pedro González
+Bicicleta Trek Slash
+Presupuesto P-0001
+Estado: En inspección
+Problema reportado: “Quiere servicio de suspensión y revisar frenos”
+Accesorios: sin accesorios adicionales
+Hallazgos:
+- Pastillas de freno gastadas, severidad media, recomendación cambiar pastillas.
+
+2. R-0002
+Cliente María Soto
+Bicicleta Specialized Stumpjumper
+Presupuesto P-0002
+Estado: Recibida
+Problema reportado: “Mantención general antes de carrera”
+Accesorios: porta caramayola y pedales
+
+3. R-0003
+Cliente Andrés Rojas
+Bicicleta sin presupuesto previo o crear una bicicleta existente
+Estado: Inspección completada
+Problema reportado: “Ruido en caja motor / transmisión”
+Hallazgos:
+- Juego en transmisión, severidad alta, recomendación diagnóstico completo.
+
+Si el seed actual no tiene suficientes bicicletas, usar las existentes sin crear nuevas innecesariamente.
+
+## Definition of Done
+
+Al terminar esta etapa debo poder:
+
+- Entrar con login.
+- Ir a Recepciones.
+- Ver recepciones semilla.
+- Crear una recepción nueva asociada a cliente y bicicleta.
+- Asociar opcionalmente un presupuesto existente.
+- Registrar problema reportado por cliente.
+- Registrar estado visual inicial.
+- Registrar accesorios recibidos.
+- Ver detalle de recepción.
+- Iniciar inspección.
+- Agregar hallazgos de inspección visual.
+- Editar hallazgos.
+- Completar inspección.
+- Crear presupuesto desde recepción cuando no exista.
+- Crear un ítem adicional en el presupuesto desde un hallazgo.
+- Ver que el ítem adicional aparece en el presupuesto con origen “Inspección visual” y estado “Pendiente de aprobación”.
+- Ver que los totales del presupuesto se recalculan.
+- Ver timeline de recepción.
+- Ver timeline del presupuesto actualizado.
+- Ver en el detalle del presupuesto la recepción asociada.
+- Ver dashboard actualizado con conteos de recepciones.
+- Confirmar que el botón de OT sigue sin crear una orden real.
+
+## Pruebas manuales esperadas
+
+1. Crear recepción desde cero:
+- Ir a `/recepciones/nueva`.
+- Seleccionar cliente.
+- Seleccionar bicicleta.
+- Completar problema reportado.
+- Guardar.
+- Confirmar que aparece en `/recepciones`.
+
+2. Crear recepción desde presupuesto:
+- Ir a un presupuesto existente.
+- Click “Registrar recepción”.
+- Confirmar que cliente, bicicleta y presupuesto quedan asociados.
+- Guardar recepción.
+- Volver al presupuesto y confirmar que muestra la recepción asociada.
+
+3. Inspección con adicional:
+- Abrir una recepción con presupuesto asociado.
+- Iniciar inspección.
+- Agregar hallazgo.
+- Crear ítem adicional desde hallazgo.
+- Ir al presupuesto.
+- Confirmar que aparece el ítem con origen “Inspección visual” y aprobación pendiente.
+- Confirmar que el total se recalculó.
+
+4. Recepción sin presupuesto:
+- Crear recepción sin presupuesto asociado.
+- Agregar hallazgo.
+- Click “Crear presupuesto desde recepción”.
+- Confirmar que se crea presupuesto en borrador con cliente, bicicleta y requerimiento inicial.
+
+5. Responsive:
+- Validar `/recepciones` en mobile como tarjetas.
+- Validar detalle de recepción en mobile sin tablas incómodas.
+- Validar desktop con tabla usable.
+
+## Reglas de implementación
+
+- No refactorizar toda la app.
+- No cambiar el stack.
+- No romper presupuestos ya implementados.
+- No modificar la lógica de versiones salvo lo necesario para adicionales post-inspección.
+- No implementar OT real.
+- No implementar agenda.
+- No implementar pagos.
+- No agregar fotos.
+- No agregar inventario.
+- No agregar integraciones externas.
+- Mantener código simple y legible.
+- Hacer el cambio mínimo necesario para completar Etapa 3.
+- Actualizar `replit.md` con lo implementado, rutas nuevas, endpoints nuevos, tablas nuevas y próximos pasos.
+
+## Relevant files
+
+Probablemente tocar:
+
+- `lib/db/src/schema/index.ts`
+- `lib/db/src/seed.ts`
+- `lib/api-spec/openapi.yaml`
+- `lib/api-client-react/src/generated/api.ts`
+- `artifacts/api-server/src/routes/index.ts`
+- `artifacts/api-server/src/routes/dashboard.ts`
+- `artifacts/api-server/src/routes/quotes.ts`
+- `artifacts/workshop-app/src/App.tsx`
+- `artifacts/workshop-app/src/pages/dashboard.tsx`
+- `artifacts/workshop-app/src/pages/quotes/`
+- `artifacts/workshop-app/src/pages/receptions/`
+- `replit.md`
+
+Antes de empezar, revisar la estructura actual y confirmar brevemente qué archivos se van a crear o modificar.

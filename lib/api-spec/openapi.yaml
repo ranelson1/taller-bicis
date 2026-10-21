@@ -1,0 +1,4020 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification for Taller de Bicicletas
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: Users and mechanics
+  - name: categories
+    description: Service and part categories
+  - name: paymentMethods
+    description: Payment methods
+  - name: clients
+    description: Clients
+  - name: bicycles
+    description: Bicycles
+  - name: services
+    description: Technical services
+  - name: serviceSteps
+    description: Service checklist steps
+  - name: parts
+    description: Parts catalog
+  - name: quotes
+    description: Budget quotes
+  - name: receptions
+    description: Bicycle receptions and visual inspections
+  - name: workOrders
+    description: Work orders for bicycle repair
+  - name: workCases
+    description: Unified client journey (trabajo / TR)
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── AUTH ──────────────────────────────────────────────────────────────────
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current session
+      responses:
+        "200":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+
+  # ── USERS ─────────────────────────────────────────────────────────────────
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/capacity:
+    get:
+      operationId: getUsersCapacity
+      tags: [users]
+      summary: Get mechanics capacity summary (weekly hours)
+      responses:
+        "200":
+          description: Capacity summary per mechanic
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserCapacity"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete or deactivate a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted or deactivated
+
+  # ── CATEGORIES ────────────────────────────────────────────────────────────
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List all categories
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      operationId: createCategory
+      tags: [categories]
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /categories/{id}:
+    get:
+      operationId: getCategory
+      tags: [categories]
+      summary: Get a category by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    patch:
+      operationId: updateCategory
+      tags: [categories]
+      summary: Update a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      summary: Delete or deactivate a category
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted or deactivated
+
+  # ── PAYMENT METHODS ───────────────────────────────────────────────────────
+  /payment-methods:
+    get:
+      operationId: listPaymentMethods
+      tags: [paymentMethods]
+      summary: List all payment methods
+      responses:
+        "200":
+          description: List of payment methods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentMethod"
+    post:
+      operationId: createPaymentMethod
+      tags: [paymentMethods]
+      summary: Create a payment method
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentMethodInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethod"
+
+  /payment-methods/{id}:
+    patch:
+      operationId: updatePaymentMethod
+      tags: [paymentMethods]
+      summary: Update a payment method
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentMethodUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentMethod"
+    delete:
+      operationId: deletePaymentMethod
+      tags: [paymentMethods]
+      summary: Delete or deactivate a payment method
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted or deactivated
+
+  # ── CLIENTS ───────────────────────────────────────────────────────────────
+  /clients:
+    get:
+      operationId: listClients
+      tags: [clients]
+      summary: List all clients (with optional bicycle count)
+      responses:
+        "200":
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientWithCount"
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create a client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
+  /clients/{id}:
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get a client by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Delete or deactivate a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted or deactivated
+
+  # ── BICYCLES ──────────────────────────────────────────────────────────────
+  /bicycles:
+    get:
+      operationId: listBicycles
+      tags: [bicycles]
+      summary: List all bicycles (optionally filtered by client)
+      parameters:
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of bicycles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bicycle"
+    post:
+      operationId: createBicycle
+      tags: [bicycles]
+      summary: Create a bicycle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BicycleInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bicycle"
+
+  /bicycles/{id}:
+    get:
+      operationId: getBicycle
+      tags: [bicycles]
+      summary: Get a bicycle by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bicycle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bicycle"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateBicycle
+      tags: [bicycles]
+      summary: Update a bicycle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BicycleUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bicycle"
+    delete:
+      operationId: deleteBicycle
+      tags: [bicycles]
+      summary: Delete or deactivate a bicycle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted or deactivated
+
+  # ── SERVICES ──────────────────────────────────────────────────────────────
+  /services:
+    get:
+      operationId: listServices
+      tags: [services]
+      summary: List all services (with step count)
+      responses:
+        "200":
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceWithCount"
+    post:
+      operationId: createService
+      tags: [services]
+      summary: Create a service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+
+  /services/{id}:
+    get:
+      operationId: getService
+      tags: [services]
+      summary: Get a service by ID (includes steps)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Service with steps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceWithSteps"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateService
+      tags: [services]
+      summary: Update a service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Service"
+    delete:
+      operationId: deleteService
+      tags: [services]
+      summary: Delete or deactivate a service
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted or deactivated
+
+  # ── SERVICE STEPS ─────────────────────────────────────────────────────────
+  /service-steps:
+    post:
+      operationId: createServiceStep
+      tags: [serviceSteps]
+      summary: Create a step for a service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceStepInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceStep"
+
+  /service-steps/{id}:
+    patch:
+      operationId: updateServiceStep
+      tags: [serviceSteps]
+      summary: Update a service step
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceStepUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceStep"
+    delete:
+      operationId: deleteServiceStep
+      tags: [serviceSteps]
+      summary: Delete a service step
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
+  /service-steps/{id}/move:
+    patch:
+      operationId: moveServiceStep
+      tags: [serviceSteps]
+      summary: Move a step up or down
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceStepMoveInput"
+      responses:
+        "200":
+          description: Moved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceStep"
+
+  # ── PARTS ─────────────────────────────────────────────────────────────────
+  /parts:
+    get:
+      operationId: listParts
+      tags: [parts]
+      summary: List all parts
+      responses:
+        "200":
+          description: List of parts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Part"
+    post:
+      operationId: createPart
+      tags: [parts]
+      summary: Create a part
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Part"
+
+  /parts/{id}:
+    get:
+      operationId: getPart
+      tags: [parts]
+      summary: Get a part by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Part
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Part"
+    patch:
+      operationId: updatePart
+      tags: [parts]
+      summary: Update a part
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Part"
+    delete:
+      operationId: deletePart
+      tags: [parts]
+      summary: Delete or deactivate a part
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted or deactivated
+
+  # ── QUOTES ────────────────────────────────────────────────────────────────
+  /quotes:
+    get:
+      operationId: listQuotes
+      tags: [quotes]
+      summary: List all quotes
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [draft, sent, partially_approved, approved, rejected, updated_after_sent, ready_for_work_order]
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: originChannel
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["true", "false"]
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of quotes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuoteWithClient"
+    post:
+      operationId: createQuote
+      tags: [quotes]
+      summary: Create a quote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteWithClient"
+
+  /quotes/summary:
+    get:
+      operationId: getQuotesSummary
+      tags: [quotes]
+      summary: Get quotes status summary counts
+      responses:
+        "200":
+          description: Quotes counts by status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuotesSummary"
+
+  /quotes/{id}:
+    get:
+      operationId: getQuote
+      tags: [quotes]
+      summary: Get a quote by ID (includes items)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Quote with items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteDetail"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateQuote
+      tags: [quotes]
+      summary: Update a quote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteWithClient"
+    delete:
+      operationId: deleteQuote
+      tags: [quotes]
+      summary: Soft-delete a quote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
+  /quotes/{id}/send:
+    post:
+      operationId: sendQuote
+      tags: [quotes]
+      summary: Mark quote as sent and create version snapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteWithClient"
+
+  /quotes/{id}/approve:
+    post:
+      operationId: approveQuote
+      tags: [quotes]
+      summary: Approve quote (approves all pending items)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteWithClient"
+
+  /quotes/{id}/reject:
+    post:
+      operationId: rejectQuote
+      tags: [quotes]
+      summary: Reject quote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteWithClient"
+
+  /quotes/{id}/mark-ready-for-work-order:
+    post:
+      operationId: markQuoteReadyForWorkOrder
+      tags: [quotes]
+      summary: Mark quote as ready for work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteWithClient"
+
+  /quotes/{id}/items:
+    post:
+      operationId: createQuoteItem
+      tags: [quotes]
+      summary: Add an item to a quote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteItemInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteItem"
+
+  /quotes/{id}/items/reorder:
+    post:
+      operationId: reorderQuoteItems
+      tags: [quotes]
+      summary: Reorder quote items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order]
+              properties:
+                order:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuoteItem"
+
+  /quotes/{id}/items/{itemId}:
+    patch:
+      operationId: updateQuoteItem
+      tags: [quotes]
+      summary: Update a quote item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteItemUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteItem"
+    delete:
+      operationId: deleteQuoteItem
+      tags: [quotes]
+      summary: Soft-delete a quote item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
+  /quotes/{id}/items/{itemId}/approve:
+    post:
+      operationId: approveQuoteItem
+      tags: [quotes]
+      summary: Approve a quote item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteDetail"
+
+  /quotes/{id}/items/{itemId}/reject:
+    post:
+      operationId: rejectQuoteItem
+      tags: [quotes]
+      summary: Reject a quote item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteDetail"
+
+  /quotes/{id}/versions:
+    get:
+      operationId: listQuoteVersions
+      tags: [quotes]
+      summary: Get version history of a quote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/QuoteVersion"
+
+  /quotes/{id}/versions/{versionNumber}:
+    get:
+      operationId: getQuoteVersion
+      tags: [quotes]
+      summary: Get a specific quote version
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: versionNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteVersion"
+
+  /quotes/{id}/timeline:
+    get:
+      operationId: getQuoteTimeline
+      tags: [quotes]
+      summary: Get timeline events of a quote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineEvent"
+
+  /quotes/{id}/summary:
+    get:
+      operationId: getQuoteSummary
+      tags: [quotes]
+      summary: Get a plain-text summary of a quote (for WhatsApp sharing)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Quote summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteSummary"
+        "404":
+          description: Not found
+
+  # ── RECEPTIONS ────────────────────────────────────────────────────────────
+  /receptions:
+    get:
+      operationId: listReceptions
+      tags: [receptions]
+      summary: List receptions with optional filters
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: bicycleId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: quoteId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: dateFrom
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of receptions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReceptionWithDetails"
+    post:
+      operationId: createReception
+      tags: [receptions]
+      summary: Create a new reception
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceptionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+
+  /receptions/{id}:
+    get:
+      operationId: getReception
+      tags: [receptions]
+      summary: Get a reception by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reception
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateReception
+      tags: [receptions]
+      summary: Update a reception
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceptionUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+    delete:
+      operationId: deleteReception
+      tags: [receptions]
+      summary: Soft-delete a reception
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
+  /receptions/{id}/start-inspection:
+    post:
+      operationId: startReceptionInspection
+      tags: [receptions]
+      summary: Transition reception to in_inspection
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+
+  /receptions/{id}/complete-inspection:
+    post:
+      operationId: completeReceptionInspection
+      tags: [receptions]
+      summary: Transition reception to inspection_completed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+
+  /receptions/{id}/mark-ready-for-work-order:
+    post:
+      operationId: markReceptionReadyForWorkOrder
+      tags: [receptions]
+      summary: Transition reception to ready_for_work_order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+
+  /receptions/{id}/create-quote:
+    post:
+      operationId: createQuoteFromReception
+      tags: [receptions]
+      summary: Create a draft quote linked to the reception
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Quote created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+
+  /receptions/{id}/findings:
+    get:
+      operationId: listReceptionFindings
+      tags: [receptions]
+      summary: List findings for a reception
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Findings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InspectionFinding"
+    post:
+      operationId: createReceptionFinding
+      tags: [receptions]
+      summary: Add a finding to a reception
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InspectionFindingInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InspectionFinding"
+
+  /receptions/{id}/findings/{findingId}:
+    patch:
+      operationId: updateReceptionFinding
+      tags: [receptions]
+      summary: Update a finding
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: findingId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InspectionFindingUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InspectionFinding"
+    delete:
+      operationId: deleteReceptionFinding
+      tags: [receptions]
+      summary: Soft-delete a finding
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: findingId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+
+  /receptions/{id}/findings/{findingId}/create-quote-item:
+    post:
+      operationId: createQuoteItemFromFinding
+      tags: [receptions]
+      summary: Create a quote item from an inspection finding
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: findingId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Quote item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InspectionFinding"
+
+  /receptions/{id}/cancel:
+    post:
+      operationId: cancelReception
+      tags: [receptions]
+      summary: Cancel a reception
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cancelled reception
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+        "404":
+          description: Not found
+
+  /receptions/{id}/mark-waiting-quote-approval:
+    post:
+      operationId: markReceptionWaitingQuoteApproval
+      tags: [receptions]
+      summary: Transition reception to waiting_quote_approval status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated reception
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceptionWithDetails"
+        "404":
+          description: Not found
+
+  /receptions/{id}/timeline:
+    get:
+      operationId: getReceptionTimeline
+      tags: [receptions]
+      summary: Get timeline events for a reception
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineEvent"
+
+  # ── WORK ORDERS ───────────────────────────────────────────────────────────
+  /work-orders:
+    get:
+      operationId: listWorkOrders
+      tags: [workOrders]
+      summary: List work orders with optional filters
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ready_to_work, in_progress, quality_control, ready_for_pickup, delivered, cancelled]
+        - name: mechanicId
+          in: query
+          schema:
+            type: integer
+        - name: clientId
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of work orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrder"
+
+  /work-orders/from-quote/{quoteId}:
+    post:
+      operationId: createWorkOrderFromQuote
+      tags: [workOrders]
+      summary: Create a work order from an approved quote
+      parameters:
+        - name: quoteId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderCreateInput"
+      responses:
+        "201":
+          description: Work order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+        "400":
+          description: Invalid request
+        "404":
+          description: Quote not found
+
+  /work-orders/from-reception/{receptionId}:
+    post:
+      operationId: createWorkOrderFromReception
+      tags: [workOrders]
+      summary: Create a work order from a reception with an approved quote
+      parameters:
+        - name: receptionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderCreateInput"
+      responses:
+        "201":
+          description: Work order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+        "400":
+          description: Invalid request
+
+  /work-orders/{id}:
+    get:
+      operationId: getWorkOrder
+      tags: [workOrders]
+      summary: Get a work order by ID with items and checklist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Work order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderWithDetails"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateWorkOrder
+      tags: [workOrders]
+      summary: Update work order fields (mechanic, priority, notes, delivery date)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderUpdateInput"
+      responses:
+        "200":
+          description: Updated work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+    delete:
+      operationId: deleteWorkOrder
+      tags: [workOrders]
+      summary: Soft-delete a work order (sets active=false)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+        "404":
+          description: Not found
+
+  /work-orders/{id}/status:
+    post:
+      operationId: updateWorkOrderStatus
+      tags: [workOrders]
+      summary: Transition work order to a new status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkOrderStatusInput"
+      responses:
+        "200":
+          description: Updated work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+
+  /work-orders/{id}/cancel:
+    post:
+      operationId: cancelWorkOrder
+      tags: [workOrders]
+      summary: Cancel a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+      responses:
+        "200":
+          description: Cancelled work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+
+  /work-orders/{id}/assign-mechanic:
+    post:
+      operationId: assignMechanicToWorkOrder
+      tags: [workOrders]
+      summary: Assign or unassign a mechanic to a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mechanicId]
+              properties:
+                mechanicId:
+                  type: ["integer", "null"]
+      responses:
+        "200":
+          description: Updated work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+
+  /work-orders/{id}/checklist:
+    get:
+      operationId: getWorkOrderChecklist
+      tags: [workOrders]
+      summary: Get checklist items for a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Checklist items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrderChecklistItem"
+
+  /work-orders/{id}/checklist/{checklistItemId}:
+    patch:
+      operationId: updateWorkOrderChecklistItem
+      tags: [workOrders]
+      summary: Update the status of a checklist item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: checklistItemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChecklistItemUpdateInput"
+      responses:
+        "200":
+          description: Updated checklist item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderChecklistItem"
+
+  /work-orders/{id}/items:
+    get:
+      operationId: listWorkOrderItems
+      tags: [workOrders]
+      summary: Get items for a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Work order items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrderItem"
+
+  /work-orders/{id}/items/{itemId}:
+    patch:
+      operationId: updateWorkOrderItem
+      tags: [workOrders]
+      summary: Update a work order item status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [pending, in_progress, completed, cancelled]
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderItem"
+
+  /work-orders/{id}/items/{itemId}/start:
+    post:
+      operationId: startWorkOrderItem
+      tags: [workOrders]
+      summary: Mark a work order item as in_progress
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderItem"
+        "404":
+          description: Not found
+
+  /work-orders/{id}/items/{itemId}/complete:
+    post:
+      operationId: completeWorkOrderItem
+      tags: [workOrders]
+      summary: Mark a work order item as completed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderItem"
+        "404":
+          description: Not found
+
+  /work-orders/{id}/items/{itemId}/cancel:
+    post:
+      operationId: cancelWorkOrderItem
+      tags: [workOrders]
+      summary: Mark a work order item as cancelled
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderItem"
+        "404":
+          description: Not found
+
+  /work-orders/{id}/timeline:
+    get:
+      operationId: getWorkOrderTimeline
+      tags: [workOrders]
+      summary: Get timeline events for a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineEvent"
+
+  # ── DASHBOARD ─────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [health]
+      summary: Get dashboard summary counts
+      responses:
+        "200":
+          description: Summary counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  # ── WORK CASES ────────────────────────────────────────────────────────────
+  /work-cases/summary:
+    get:
+      operationId: getWorkCasesSummary
+      tags: [workCases]
+      summary: Get work cases summary counts
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkCasesSummary"
+
+  /work-cases:
+    get:
+      operationId: listWorkCases
+      tags: [workCases]
+      summary: List work cases
+      parameters:
+        - name: clientId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: active
+          in: query
+          schema:
+            type: string
+        - name: mechanicId
+          in: query
+          schema:
+            type: integer
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of work cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkCaseWithDetails"
+    post:
+      operationId: createWorkCase
+      tags: [workCases]
+      summary: Create a new work case
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkCaseCreateInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkCaseWithDetails"
+
+  /work-cases/quick-create:
+    post:
+      operationId: quickCreateWorkCase
+      tags: [workCases]
+      summary: Create client, bicycle, quote, reception and work order in one atomic call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuickCreateInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuickCreateResult"
+
+  /work-cases/{id}:
+    get:
+      operationId: getWorkCase
+      tags: [workCases]
+      summary: Get a work case by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Work case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkCaseWithDetails"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateWorkCase
+      tags: [workCases]
+      summary: Update a work case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkCaseUpdateInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkCaseWithDetails"
+    delete:
+      operationId: deleteWorkCase
+      tags: [workCases]
+      summary: Soft-delete a work case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+
+  /work-cases/{id}/timeline:
+    get:
+      operationId: getWorkCaseTimeline
+      tags: [workCases]
+      summary: Get timeline events for a work case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineEvent"
+
+  /work-cases/{id}/comment:
+    post:
+      operationId: addWorkCaseComment
+      tags: [workCases]
+      summary: Add a manual comment to the work case timeline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkCaseCommentInput"
+      responses:
+        "201":
+          description: Created timeline event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineEvent"
+
+  /work-cases/{id}/recalculate-status:
+    post:
+      operationId: recalculateWorkCaseStatus
+      tags: [workCases]
+      summary: Recalculate work case status from linked documents
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated work case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkCaseWithDetails"
+
+  /work-cases/{id}/link-quote:
+    post:
+      operationId: linkQuoteToWorkCase
+      tags: [workCases]
+      summary: Link a quote to a work case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quoteId]
+              properties:
+                quoteId:
+                  type: integer
+      responses:
+        "200":
+          description: Updated work case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkCaseWithDetails"
+
+  /work-cases/{id}/link-reception:
+    post:
+      operationId: linkReceptionToWorkCase
+      tags: [workCases]
+      summary: Link a reception to a work case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [receptionId]
+              properties:
+                receptionId:
+                  type: integer
+      responses:
+        "200":
+          description: Updated work case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkCaseWithDetails"
+
+  /work-cases/{id}/link-work-order:
+    post:
+      operationId: linkWorkOrderToWorkCase
+      tags: [workCases]
+      summary: Link a work order to a work case
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workOrderId]
+              properties:
+                workOrderId:
+                  type: integer
+      responses:
+        "200":
+          description: Updated work case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkCaseWithDetails"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    # ── AUTH ────────────────────────────────────────────────────────────────
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthUser:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, mechanic, reception]
+
+    # ── USERS ────────────────────────────────────────────────────────────────
+    User:
+      type: object
+      required: [id, name, email, role, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, mechanic, reception]
+        weeklyHours:
+          type: ["integer", "null"]
+        calendarColor:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserInput:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, mechanic, reception]
+        weeklyHours:
+          type: ["integer", "null"]
+        calendarColor:
+          type: ["string", "null"]
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, mechanic, reception]
+        weeklyHours:
+          type: ["integer", "null"]
+        calendarColor:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    UserCapacity:
+      type: object
+      required: [id, name, weeklyHours]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        weeklyHours:
+          type: integer
+        calendarColor:
+          type: ["string", "null"]
+
+    # ── CATEGORIES ───────────────────────────────────────────────────────────
+    Category:
+      type: object
+      required: [id, name, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    # ── PAYMENT METHODS ──────────────────────────────────────────────────────
+    PaymentMethod:
+      type: object
+      required: [id, name, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        notes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaymentMethodInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        notes:
+          type: ["string", "null"]
+
+    PaymentMethodUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        notes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    # ── CLIENTS ──────────────────────────────────────────────────────────────
+    Client:
+      type: object
+      required: [id, name, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ClientWithCount:
+      type: object
+      required: [id, name, active, createdAt, updatedAt, bicycleCount]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        bicycleCount:
+          type: integer
+
+    ClientInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    ClientUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    # ── BICYCLES ─────────────────────────────────────────────────────────────
+    Bicycle:
+      type: object
+      required: [id, clientId, brand, model, type, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        clientName:
+          type: ["string", "null"]
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: ["integer", "null"]
+        type:
+          type: string
+          enum: [mtb, road, gravel, urban, ebike, kids, other]
+        color:
+          type: ["string", "null"]
+        rimSize:
+          type: ["string", "null"]
+        serialNumber:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BicycleInput:
+      type: object
+      required: [clientId, brand, model, type]
+      properties:
+        clientId:
+          type: integer
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: ["integer", "null"]
+        type:
+          type: string
+          enum: [mtb, road, gravel, urban, ebike, kids, other]
+        color:
+          type: ["string", "null"]
+        rimSize:
+          type: ["string", "null"]
+        serialNumber:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    BicycleUpdate:
+      type: object
+      properties:
+        clientId:
+          type: integer
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: ["integer", "null"]
+        type:
+          type: string
+          enum: [mtb, road, gravel, urban, ebike, kids, other]
+        color:
+          type: ["string", "null"]
+        rimSize:
+          type: ["string", "null"]
+        serialNumber:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    # ── SERVICES ─────────────────────────────────────────────────────────────
+    Service:
+      type: object
+      required: [id, name, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        basePrice:
+          type: ["number", "null"]
+        estimatedHours:
+          type: ["number", "null"]
+        clientDescription:
+          type: ["string", "null"]
+        internalDescription:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ServiceWithCount:
+      type: object
+      required: [id, name, active, createdAt, updatedAt, stepCount]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        basePrice:
+          type: ["number", "null"]
+        estimatedHours:
+          type: ["number", "null"]
+        clientDescription:
+          type: ["string", "null"]
+        internalDescription:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        stepCount:
+          type: integer
+
+    ServiceWithSteps:
+      type: object
+      required: [id, name, active, createdAt, updatedAt, steps]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        basePrice:
+          type: ["number", "null"]
+        estimatedHours:
+          type: ["number", "null"]
+        clientDescription:
+          type: ["string", "null"]
+        internalDescription:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceStep"
+
+    ServiceInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        categoryId:
+          type: ["integer", "null"]
+        basePrice:
+          type: ["number", "null"]
+        estimatedHours:
+          type: ["number", "null"]
+        clientDescription:
+          type: ["string", "null"]
+        internalDescription:
+          type: ["string", "null"]
+
+    ServiceUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        categoryId:
+          type: ["integer", "null"]
+        basePrice:
+          type: ["number", "null"]
+        estimatedHours:
+          type: ["number", "null"]
+        clientDescription:
+          type: ["string", "null"]
+        internalDescription:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    # ── SERVICE STEPS ────────────────────────────────────────────────────────
+    ServiceStep:
+      type: object
+      required: [id, serviceId, description, order, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        serviceId:
+          type: integer
+        description:
+          type: string
+        order:
+          type: integer
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ServiceStepInput:
+      type: object
+      required: [serviceId, description]
+      properties:
+        serviceId:
+          type: integer
+        description:
+          type: string
+        notes:
+          type: ["string", "null"]
+
+    ServiceStepUpdate:
+      type: object
+      properties:
+        description:
+          type: string
+        notes:
+          type: ["string", "null"]
+
+    ServiceStepMoveInput:
+      type: object
+      required: [direction]
+      properties:
+        direction:
+          type: string
+          enum: [up, down]
+
+    # ── PARTS ────────────────────────────────────────────────────────────────
+    Part:
+      type: object
+      required: [id, name, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        categoryId:
+          type: ["integer", "null"]
+        categoryName:
+          type: ["string", "null"]
+        brand:
+          type: ["string", "null"]
+        suggestedPrice:
+          type: ["number", "null"]
+        sku:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PartInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        categoryId:
+          type: ["integer", "null"]
+        brand:
+          type: ["string", "null"]
+        suggestedPrice:
+          type: ["number", "null"]
+        sku:
+          type: ["string", "null"]
+
+    PartUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        categoryId:
+          type: ["integer", "null"]
+        brand:
+          type: ["string", "null"]
+        suggestedPrice:
+          type: ["number", "null"]
+        sku:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    # ── QUOTES ───────────────────────────────────────────────────────────────
+    QuoteWithClient:
+      type: object
+      required: [id, quoteNumber, clientId, originChannel, status, currentVersion, subtotal, discountTotal, total, estimatedLaborHours, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        quoteNumber:
+          type: string
+        clientId:
+          type: integer
+        clientName:
+          type: ["string", "null"]
+        bicycleId:
+          type: ["integer", "null"]
+        bicycleName:
+          type: ["string", "null"]
+        originChannel:
+          type: string
+        initialRequirement:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [draft, sent, partially_approved, approved, rejected, updated_after_sent, ready_for_work_order, converted_to_work_order]
+        currentVersion:
+          type: integer
+        customerNotes:
+          type: ["string", "null"]
+        internalNotes:
+          type: ["string", "null"]
+        subtotal:
+          type: ["number", "string", "null"]
+        discountTotal:
+          type: ["number", "string", "null"]
+        total:
+          type: ["number", "string", "null"]
+        estimatedLaborHours:
+          type: ["number", "string", "null"]
+        sentAt:
+          type: ["string", "null"]
+          format: date-time
+        approvedAt:
+          type: ["string", "null"]
+          format: date-time
+        rejectedAt:
+          type: ["string", "null"]
+          format: date-time
+        workOrderId:
+          type: ["integer", "null"]
+        workCaseId:
+          type: ["integer", "null"]
+        workCaseNumber:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    QuoteDetail:
+      allOf:
+        - $ref: "#/components/schemas/QuoteWithClient"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/QuoteItem"
+
+    QuoteInput:
+      type: object
+      required: [clientId, originChannel]
+      properties:
+        clientId:
+          type: integer
+        bicycleId:
+          type: ["integer", "null"]
+        originChannel:
+          type: string
+        initialRequirement:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+        internalNotes:
+          type: ["string", "null"]
+
+    QuoteUpdate:
+      type: object
+      properties:
+        bicycleId:
+          type: ["integer", "null"]
+        originChannel:
+          type: string
+        initialRequirement:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+        internalNotes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    QuoteItem:
+      type: object
+      required: [id, quoteId, itemType, origin, description, quantity, unitPrice, total, approvalStatus, sortOrder, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        quoteId:
+          type: integer
+        itemType:
+          type: string
+          enum: [service, part, additional_labor, diagnosis, recommendation, discount, other]
+        origin:
+          type: string
+          enum: [customer_request, mechanic_recommendation, visual_inspection, during_work, warranty_correction, manual]
+        description:
+          type: string
+        quantity:
+          type: ["number", "string"]
+        unitPrice:
+          type: ["number", "string"]
+        total:
+          type: ["number", "string"]
+        estimatedLaborHours:
+          type: ["number", "string", "null"]
+        approvalStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        serviceId:
+          type: ["integer", "null"]
+        partId:
+          type: ["integer", "null"]
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    QuoteItemInput:
+      type: object
+      required: [itemType, description, quantity, unitPrice]
+      properties:
+        itemType:
+          type: string
+          enum: [service, part, additional_labor, diagnosis, recommendation, discount, other]
+        origin:
+          type: string
+          enum: [customer_request, mechanic_recommendation, visual_inspection, during_work, warranty_correction, manual]
+        description:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+        estimatedLaborHours:
+          type: ["number", "null"]
+        serviceId:
+          type: ["integer", "null"]
+        partId:
+          type: ["integer", "null"]
+        sortOrder:
+          type: integer
+
+    QuoteItemUpdate:
+      type: object
+      properties:
+        description:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+        estimatedLaborHours:
+          type: ["number", "null"]
+        approvalStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        sortOrder:
+          type: integer
+
+    QuoteVersion:
+      type: object
+      required: [id, quoteId, versionNumber, status, subtotal, discountTotal, total, estimatedLaborHours, createdAt]
+      properties:
+        id:
+          type: integer
+        quoteId:
+          type: integer
+        versionNumber:
+          type: integer
+        status:
+          type: string
+        subtotal:
+          type: ["number", "string"]
+        discountTotal:
+          type: ["number", "string"]
+        total:
+          type: ["number", "string"]
+        estimatedLaborHours:
+          type: ["number", "string"]
+        itemsSnapshot:
+          type: ["object", "null"]
+        customerNotesSnapshot:
+          type: ["string", "null"]
+        internalNotesSnapshot:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: ["string", "null"]
+          format: date-time
+        approvedAt:
+          type: ["string", "null"]
+          format: date-time
+
+    TimelineEvent:
+      type: object
+      required: [id, entityType, entityId, action, createdAt]
+      properties:
+        id:
+          type: integer
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        userId:
+          type: ["integer", "null"]
+        userName:
+          type: ["string", "null"]
+        action:
+          type: string
+        previousStatus:
+          type: ["string", "null"]
+        newStatus:
+          type: ["string", "null"]
+        comment:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    QuotesSummary:
+      type: object
+      required: [draft, sent, approved, partiallyApproved, rejected, readyForWorkOrder, pendingApproval]
+      properties:
+        draft:
+          type: integer
+        sent:
+          type: integer
+        approved:
+          type: integer
+        partiallyApproved:
+          type: integer
+        rejected:
+          type: integer
+        readyForWorkOrder:
+          type: integer
+        pendingApproval:
+          type: integer
+
+    QuoteSummary:
+      type: object
+      required: [quoteId, quoteNumber, text, items]
+      properties:
+        quoteId:
+          type: integer
+        quoteNumber:
+          type: string
+        text:
+          type: string
+          description: Plain-text formatted summary suitable for WhatsApp sharing
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuoteItem"
+
+    # ── RECEPTIONS ──────────────────────────────────────────────────────────
+    ReceptionWithDetails:
+      type: object
+      required: [id, receptionNumber, clientId, bicycleId, status, receivedAt, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        receptionNumber:
+          type: string
+        clientId:
+          type: integer
+        bicycleId:
+          type: integer
+        quoteId:
+          type: ["integer", "null"]
+        receivedByUserId:
+          type: ["integer", "null"]
+        receivedAt:
+          type: string
+          format: date-time
+        customerReportedProblem:
+          type: ["string", "null"]
+        initialVisualCondition:
+          type: ["string", "null"]
+        accessoriesReceived:
+          nullable: true
+        internalNotes:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [received, in_inspection, inspection_completed, waiting_quote_approval, ready_for_work_order, cancelled]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        clientName:
+          type: ["string", "null"]
+        bicycleName:
+          type: ["string", "null"]
+        quoteNumber:
+          type: ["string", "null"]
+        receivedByName:
+          type: ["string", "null"]
+        workCaseId:
+          type: ["integer", "null"]
+        workCaseNumber:
+          type: ["string", "null"]
+
+    ReceptionInput:
+      type: object
+      required: [clientId, bicycleId]
+      properties:
+        clientId:
+          type: integer
+        bicycleId:
+          type: integer
+        quoteId:
+          type: ["integer", "null"]
+        receivedByUserId:
+          type: ["integer", "null"]
+        receivedAt:
+          type: string
+        customerReportedProblem:
+          type: ["string", "null"]
+        initialVisualCondition:
+          type: ["string", "null"]
+        accessoriesReceived:
+          nullable: true
+        internalNotes:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+
+    ReceptionUpdate:
+      type: object
+      properties:
+        quoteId:
+          type: ["integer", "null"]
+        receivedByUserId:
+          type: ["integer", "null"]
+        receivedAt:
+          type: string
+        customerReportedProblem:
+          type: ["string", "null"]
+        initialVisualCondition:
+          type: ["string", "null"]
+        accessoriesReceived:
+          nullable: true
+        internalNotes:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+
+    InspectionFinding:
+      type: object
+      required: [id, receptionId, area, severity, finding, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        receptionId:
+          type: integer
+        quoteId:
+          type: ["integer", "null"]
+        mechanicId:
+          type: ["integer", "null"]
+        area:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        finding:
+          type: string
+        recommendation:
+          type: ["string", "null"]
+        shouldCreateQuoteItem:
+          type: boolean
+        createdQuoteItemId:
+          type: ["integer", "null"]
+        itemType:
+          type: ["string", "null"]
+        serviceId:
+          type: ["integer", "null"]
+        partId:
+          type: ["integer", "null"]
+        quoteItemDescription:
+          type: ["string", "null"]
+        quantity:
+          type: ["number", "null"]
+        unitPrice:
+          type: ["number", "null"]
+        estimatedLaborHours:
+          type: ["number", "null"]
+        internalNotes:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    InspectionFindingInput:
+      type: object
+      required: [area, severity, finding]
+      properties:
+        area:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        finding:
+          type: string
+        recommendation:
+          type: ["string", "null"]
+        shouldCreateQuoteItem:
+          type: boolean
+        mechanicId:
+          type: ["integer", "null"]
+        itemType:
+          type: ["string", "null"]
+        serviceId:
+          type: ["integer", "null"]
+        partId:
+          type: ["integer", "null"]
+        quoteItemDescription:
+          type: ["string", "null"]
+        quantity:
+          type: ["number", "null"]
+        unitPrice:
+          type: ["number", "null"]
+        estimatedLaborHours:
+          type: ["number", "null"]
+        internalNotes:
+          type: ["string", "null"]
+
+    InspectionFindingUpdate:
+      type: object
+      properties:
+        area:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        finding:
+          type: string
+        recommendation:
+          type: ["string", "null"]
+        shouldCreateQuoteItem:
+          type: boolean
+        itemType:
+          type: ["string", "null"]
+        serviceId:
+          type: ["integer", "null"]
+        partId:
+          type: ["integer", "null"]
+        quoteItemDescription:
+          type: ["string", "null"]
+        quantity:
+          type: ["number", "null"]
+        unitPrice:
+          type: ["number", "null"]
+        estimatedLaborHours:
+          type: ["number", "null"]
+        internalNotes:
+          type: ["string", "null"]
+
+    # ── DASHBOARD ────────────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      required: [activeClients, totalBicycles, activeServices, activeMechanics, quotesDraft, quotesSent, quotesApproved, quotesPendingApproval, receptionsReceived, receptionsInInspection, receptionsInspectionCompleted, receptionsTotalActive, receptionsEsperandoAprobacion, receptionsListasParaOT, workOrdersTotalActive, workOrdersReadyToWork, workOrdersInProgress, workOrdersQualityControl, workOrdersReadyForPickup, workOrdersNoMechanic]
+      properties:
+        activeClients:
+          type: integer
+        totalBicycles:
+          type: integer
+        activeServices:
+          type: integer
+        activeMechanics:
+          type: integer
+        quotesDraft:
+          type: integer
+        quotesSent:
+          type: integer
+        quotesApproved:
+          type: integer
+        quotesPendingApproval:
+          type: integer
+        receptionsReceived:
+          type: integer
+        receptionsInInspection:
+          type: integer
+        receptionsInspectionCompleted:
+          type: integer
+        receptionsTotalActive:
+          type: integer
+        receptionsEsperandoAprobacion:
+          type: integer
+        receptionsListasParaOT:
+          type: integer
+        workOrdersTotalActive:
+          type: integer
+        workOrdersReadyToWork:
+          type: integer
+        workOrdersInProgress:
+          type: integer
+        workOrdersQualityControl:
+          type: integer
+        workOrdersReadyForPickup:
+          type: integer
+        workOrdersNoMechanic:
+          type: integer
+
+    # ── WORK ORDERS ───────────────────────────────────────────────────────────
+    WorkOrder:
+      type: object
+      required: [id, workOrderNumber, clientId, bicycleId, status, priority, total, estimatedLaborHours, progressPercentage, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        workOrderNumber:
+          type: string
+        quoteId:
+          type: ["integer", "null"]
+        receptionId:
+          type: ["integer", "null"]
+        clientId:
+          type: integer
+        bicycleId:
+          type: integer
+        mechanicId:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [ready_to_work, in_progress, quality_control, ready_for_pickup, delivered, cancelled]
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+        internalNotes:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+        estimatedDeliveryDate:
+          type: ["string", "null"]
+        startedAt:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        deliveredAt:
+          type: ["string", "null"]
+        total:
+          type: number
+        estimatedLaborHours:
+          type: number
+        progressPercentage:
+          type: number
+        active:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        clientName:
+          type: ["string", "null"]
+        bicycleName:
+          type: ["string", "null"]
+        mechanicName:
+          type: ["string", "null"]
+        quoteNumber:
+          type: ["string", "null"]
+        receptionNumber:
+          type: ["string", "null"]
+        workCaseId:
+          type: ["integer", "null"]
+        workCaseNumber:
+          type: ["string", "null"]
+
+    WorkOrderItem:
+      type: object
+      required: [id, workOrderId, itemType, description, quantity, unitPrice, total, status, sortOrder, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        workOrderId:
+          type: integer
+        quoteItemId:
+          type: ["integer", "null"]
+        itemType:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+        total:
+          type: number
+        estimatedLaborHours:
+          type: ["number", "null"]
+        status:
+          type: string
+          enum: [pending, in_progress, completed, cancelled]
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    WorkOrderChecklistItem:
+      type: object
+      required: [id, workOrderId, description, sortOrder, status, active, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        workOrderId:
+          type: integer
+        workOrderItemId:
+          type: ["integer", "null"]
+        serviceStepId:
+          type: ["integer", "null"]
+        description:
+          type: string
+        sortOrder:
+          type: integer
+        status:
+          type: string
+          enum: [pending, in_progress, completed, not_applicable, with_observation]
+        completedByUserId:
+          type: ["integer", "null"]
+        completedAt:
+          type: ["string", "null"]
+        mechanicNote:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        completedByName:
+          type: ["string", "null"]
+
+    WorkOrderWithDetails:
+      allOf:
+        - $ref: "#/components/schemas/WorkOrder"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/WorkOrderItem"
+            checklist:
+              type: array
+              items:
+                $ref: "#/components/schemas/WorkOrderChecklistItem"
+
+    WorkOrderCreateInput:
+      type: object
+      properties:
+        mechanicId:
+          type: ["integer", "null"]
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+        estimatedDeliveryDate:
+          type: ["string", "null"]
+        internalNotes:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+
+    WorkOrderUpdateInput:
+      type: object
+      properties:
+        mechanicId:
+          type: ["integer", "null"]
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+        estimatedDeliveryDate:
+          type: ["string", "null"]
+        internalNotes:
+          type: ["string", "null"]
+        customerNotes:
+          type: ["string", "null"]
+
+    WorkOrderStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ready_to_work, in_progress, quality_control, ready_for_pickup, delivered, cancelled]
+        comment:
+          type: string
+
+    ChecklistItemUpdateInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, in_progress, completed, not_applicable, with_observation]
+        mechanicNote:
+          type: ["string", "null"]
+
+    WorkCasesSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+        byStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+
+    WorkCaseLinkedQuote:
+      type: object
+      properties:
+        id:
+          type: integer
+        quoteNumber:
+          type: string
+        status:
+          type: string
+        total:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    WorkCaseLinkedReception:
+      type: object
+      properties:
+        id:
+          type: integer
+        receptionNumber:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+
+    WorkCaseLinkedWorkOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        workOrderNumber:
+          type: string
+        status:
+          type: string
+        total:
+          type: ["string", "null"]
+        progressPercentage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    WorkCaseWithDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        workCaseNumber:
+          type: string
+        clientId:
+          type: integer
+        clientName:
+          type: ["string", "null"]
+        bicycleId:
+          type: ["integer", "null"]
+        bicycleName:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [lead, quoted, quote_sent, quote_approved, bike_received, in_inspection, ready_for_work_order, in_work_order, in_progress, quality_control, ready_for_pickup, delivered, cancelled, closed]
+        originChannel:
+          type: ["string", "null"]
+        initialRequirement:
+          type: ["string", "null"]
+        assignedMechanicId:
+          type: ["integer", "null"]
+        mechanicName:
+          type: ["string", "null"]
+        totalEstimatedAmount:
+          type: ["number", "null"]
+        totalEstimatedLaborHours:
+          type: ["number", "null"]
+        progressPercentage:
+          type: ["number", "null"]
+        active:
+          type: boolean
+        quoteCount:
+          type: ["integer", "null"]
+        receptionCount:
+          type: ["integer", "null"]
+        workOrderCount:
+          type: ["integer", "null"]
+        linkedQuotes:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkCaseLinkedQuote"
+        linkedReceptions:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkCaseLinkedReception"
+        linkedWorkOrders:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkCaseLinkedWorkOrder"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    WorkCaseCreateInput:
+      type: object
+      required: [clientId]
+      properties:
+        clientId:
+          type: integer
+        bicycleId:
+          type: ["integer", "null"]
+        originChannel:
+          type: ["string", "null"]
+        initialRequirement:
+          type: ["string", "null"]
+        assignedMechanicId:
+          type: ["integer", "null"]
+
+    WorkCaseUpdateInput:
+      type: object
+      properties:
+        status:
+          type: string
+        originChannel:
+          type: ["string", "null"]
+        initialRequirement:
+          type: ["string", "null"]
+        assignedMechanicId:
+          type: ["integer", "null"]
+        bicycleId:
+          type: ["integer", "null"]
+        active:
+          type: boolean
+
+    QuickCreateClientInput:
+      type: object
+      required: [name]
+      properties:
+        id:
+          type: ["integer", "null"]
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    QuickCreateBicycleInput:
+      type: object
+      required: [brand, model, type]
+      properties:
+        id:
+          type: ["integer", "null"]
+        brand:
+          type: string
+        model:
+          type: string
+        year:
+          type: ["integer", "null"]
+        type:
+          type: string
+          enum: [mtb, road, gravel, urban, ebike, kids, other]
+        color:
+          type: ["string", "null"]
+        serialNumber:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    QuickCreateItemInput:
+      type: object
+      required: [itemType, description, quantity, unitPrice]
+      properties:
+        itemType:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: number
+        unitPrice:
+          type: number
+
+    QuickCreateInput:
+      type: object
+      required: [client, bicycle, items]
+      properties:
+        client:
+          $ref: "#/components/schemas/QuickCreateClientInput"
+        bicycle:
+          $ref: "#/components/schemas/QuickCreateBicycleInput"
+        originChannel:
+          type: ["string", "null"]
+        assignedMechanicId:
+          type: ["integer", "null"]
+        customerComment:
+          type: ["string", "null"]
+        mechanicComment:
+          type: ["string", "null"]
+        initialVisualCondition:
+          type: ["string", "null"]
+        accessoriesReceived:
+          type: ["array", "null"]
+          items:
+            type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/QuickCreateItemInput"
+
+    QuickCreateResult:
+      type: object
+      required: [workCaseId, workCaseNumber, quoteId, receptionId, workOrderId, workOrderNumber]
+      properties:
+        workCaseId:
+          type: integer
+        workCaseNumber:
+          type: string
+        quoteId:
+          type: integer
+        receptionId:
+          type: integer
+        workOrderId:
+          type: integer
+        workOrderNumber:
+          type: string
+
+    WorkCaseCommentInput:
+      type: object
+      required: [commentType, comment]
+      properties:
+        commentType:
+          type: string
+          enum: [recepcion, durante_trabajo, aprobacion_cliente, observacion_tecnica, entrega, interno]
+        comment:
+          type: string

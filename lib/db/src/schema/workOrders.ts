@@ -1,0 +1,103 @@
+import {
+  pgTable, serial, text, integer, boolean, timestamp, numeric, pgEnum
+} from "drizzle-orm/pg-core";
+import { clientsTable } from "./clients";
+import { bicyclesTable } from "./bicycles";
+import { usersTable } from "./users";
+import { quotesTable } from "./quotes";
+import { receptionsTable } from "./receptions";
+import { quoteItemsTable } from "./quotes";
+import { serviceStepsTable } from "./serviceSteps";
+
+export const workOrderStatusEnum = pgEnum("work_order_status", [
+  "ready_to_work",
+  "in_progress",
+  "quality_control",
+  "ready_for_pickup",
+  "delivered",
+  "cancelled",
+]);
+
+export const workOrderItemStatusEnum = pgEnum("work_order_item_status", [
+  "pending",
+  "in_progress",
+  "completed",
+  "cancelled",
+]);
+
+export const checklistItemStatusEnum = pgEnum("checklist_item_status", [
+  "pending",
+  "in_progress",
+  "completed",
+  "not_applicable",
+  "with_observation",
+]);
+
+export const workOrderPriorityEnum = pgEnum("work_order_priority", [
+  "low",
+  "normal",
+  "high",
+  "urgent",
+]);
+
+export const workOrdersTable = pgTable("work_orders", {
+  id: serial("id").primaryKey(),
+  workOrderNumber: text("work_order_number").notNull().unique(),
+  quoteId: integer("quote_id").references(() => quotesTable.id),
+  receptionId: integer("reception_id").references(() => receptionsTable.id),
+  clientId: integer("client_id").notNull().references(() => clientsTable.id),
+  bicycleId: integer("bicycle_id").notNull().references(() => bicyclesTable.id),
+  mechanicId: integer("mechanic_id").references(() => usersTable.id),
+  status: workOrderStatusEnum("status").notNull().default("ready_to_work"),
+  priority: workOrderPriorityEnum("priority").notNull().default("normal"),
+  internalNotes: text("internal_notes"),
+  customerNotes: text("customer_notes"),
+  estimatedDeliveryDate: timestamp("estimated_delivery_date"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  deliveredAt: timestamp("delivered_at"),
+  total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
+  estimatedLaborHours: numeric("estimated_labor_hours", { precision: 8, scale: 2 }).notNull().default("0"),
+  progressPercentage: numeric("progress_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
+  workCaseId: integer("work_case_id"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const workOrderItemsTable = pgTable("work_order_items", {
+  id: serial("id").primaryKey(),
+  workOrderId: integer("work_order_id").notNull().references(() => workOrdersTable.id),
+  quoteItemId: integer("quote_item_id").references(() => quoteItemsTable.id),
+  itemType: text("item_type").notNull(),
+  description: text("description").notNull(),
+  quantity: numeric("quantity", { precision: 10, scale: 3 }).notNull().default("1"),
+  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull().default("0"),
+  total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
+  estimatedLaborHours: numeric("estimated_labor_hours", { precision: 8, scale: 2 }),
+  status: workOrderItemStatusEnum("status").notNull().default("pending"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const workOrderChecklistItemsTable = pgTable("work_order_checklist_items", {
+  id: serial("id").primaryKey(),
+  workOrderId: integer("work_order_id").notNull().references(() => workOrdersTable.id),
+  workOrderItemId: integer("work_order_item_id").references(() => workOrderItemsTable.id),
+  serviceStepId: integer("service_step_id").references(() => serviceStepsTable.id),
+  description: text("description").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  status: checklistItemStatusEnum("status").notNull().default("pending"),
+  completedByUserId: integer("completed_by_user_id").references(() => usersTable.id),
+  completedAt: timestamp("completed_at"),
+  mechanicNote: text("mechanic_note"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type WorkOrder = typeof workOrdersTable.$inferSelect;
+export type WorkOrderItem = typeof workOrderItemsTable.$inferSelect;
+export type WorkOrderChecklistItem = typeof workOrderChecklistItemsTable.$inferSelect;
