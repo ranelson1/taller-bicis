@@ -11,6 +11,8 @@ import {
   timelineEventsTable,
 } from "@workspace/db";
 import { eq, and, asc, count } from "drizzle-orm";
+import { estimateCompletionDate } from "./completionEstimate";
+import { nextDocumentNumber } from "./numbering";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -39,9 +41,7 @@ export function computeWorkOrderTotal(items: Array<{
 }
 
 export async function nextWorkCaseNumber(): Promise<string> {
-  const [row] = await db.select({ n: count() }).from(workCasesTable);
-  const seq = Number(row?.n ?? 0) + 1;
-  return `TR-${String(seq).padStart(4, "0")}`;
+  return nextDocumentNumber(db, "TR");
 }
 
 export async function logWorkCaseEvent(
@@ -199,7 +199,7 @@ export async function createWorkOrderFromQuoteInternal(
     customerNotes?: string | null;
   },
   userId: number | null,
-): Promise<{ id: number; workOrderNumber: string; workCaseId: number | null }> {
+): Promise<{ id: number; workOrderNumber: string; workCaseId: number | null; estimatedDeliveryDate: Date | null }> {
   const [quote] = await tx.select().from(quotesTable).where(eq(quotesTable.id, quoteId));
   if (!quote) throw new Error("Presupuesto no encontrado");
   if (!quote.bicycleId) throw new Error("El presupuesto debe tener una bicicleta asociada");
@@ -216,11 +216,15 @@ export async function createWorkOrderFromQuoteInternal(
     eq(receptionsTable.active, true),
   ));
 
-  const [{ n }] = await tx.select({ n: count() }).from(workOrdersTable);
-  const workOrderNumber = `OT-${String(Number(n ?? 0) + 1).padStart(4, "0")}`;
+  const workOrderNumber = await nextDocumentNumber(tx, "OT");
 
   const totalValue = computeWorkOrderTotal(approvedItems);
   const laborHours = approvedItems.reduce((sum, i) => sum + (i.estimatedLaborHours ? Number(i.estimatedLaborHours) : 0), 0);
+
+  // Sin fecha indicada, se estima según la carga actual del taller.
+  const estimatedDeliveryDate = opts.estimatedDeliveryDate
+    ? new Date(opts.estimatedDeliveryDate)
+    : (await estimateCompletionDate(tx, { laborHours, mechanicId: opts.mechanicId })).date;
 
   const [wo] = await tx.insert(workOrdersTable).values({
     workOrderNumber,
@@ -232,7 +236,7 @@ export async function createWorkOrderFromQuoteInternal(
     priority: opts.priority ?? "normal",
     internalNotes: opts.internalNotes ?? null,
     customerNotes: opts.customerNotes ?? null,
-    estimatedDeliveryDate: opts.estimatedDeliveryDate ? new Date(opts.estimatedDeliveryDate) : null,
+    estimatedDeliveryDate,
     total: String(totalValue),
     estimatedLaborHours: String(laborHours),
     workCaseId: quote.workCaseId ?? null,
@@ -305,7 +309,7 @@ export async function createWorkOrderFromQuoteInternal(
     });
   }
 
-  return { id: wo.id, workOrderNumber: wo.workOrderNumber, workCaseId: quote.workCaseId ?? null };
+  return { id: wo.id, workOrderNumber: wo.workOrderNumber, workCaseId: quote.workCaseId ?? null, estimatedDeliveryDate };
 }
 
 export async function recalcOTTotal(workOrderId: number, userId: number | null = null): Promise<void> {

@@ -13,4 +13,9 @@ export interface QuickCreateResult {
   receptionId: number;
   workOrderId: number;
   workOrderNumber: string;
+  /**
+     * Término estimado según la carga del taller
+     * @nullable
+     */
+  estimatedDeliveryDate?: string | null;
 }

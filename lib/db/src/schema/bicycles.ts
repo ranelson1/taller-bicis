@@ -1,3 +1,4 @@
+import { workshopIdColumn } from "./workshops";
 import { pgTable, serial, text, integer, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -7,6 +8,7 @@ export const bicycleTypeEnum = pgEnum("bicycle_type", ["mtb", "road", "gravel", 
 
 export const bicyclesTable = pgTable("bicycles", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   clientId: integer("client_id").notNull().references(() => clientsTable.id),
   brand: text("brand").notNull(),
   model: text("model").notNull(),

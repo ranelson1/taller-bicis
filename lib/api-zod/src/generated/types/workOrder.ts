@@ -33,6 +33,18 @@ export interface WorkOrder {
   completedAt?: string | null;
   /** @nullable */
   deliveredAt?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  paymentMethodId?: number | null;
+  /** @nullable */
+  paymentMethodName?: string | null;
+  /** @nullable */
+  paidAmount?: number | null;
+  /** @nullable */
+  clientPhone?: string | null;
+  /** Adicionales que esperan la decisión del cliente */
+  pendingApprovalCount?: number;
   total: number;
   estimatedLaborHours: number;
   progressPercentage: number;

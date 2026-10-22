@@ -39,6 +39,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkers } from "@/hooks/use-workers";
 import {
   ArrowLeft, Send, CheckCircle, XCircle, Wrench, Plus, Pencil, Trash2,
   ThumbsUp, ThumbsDown, Clock, User, ChevronDown, ChevronUp, Copy, History, Bike, ExternalLink, ClipboardList,
@@ -136,7 +137,7 @@ export default function PresupuestoDetail() {
   const linkedWorkOrder = (linkedWorkOrders ?? []).find((wo: any) => wo.quoteId === quoteId) ?? null;
 
   const { data: users } = useListUsers();
-  const mechanics = (users ?? []).filter((u: any) => u.role === "mechanic" && u.active);
+  const { workers: mechanics, solo } = useWorkers();
 
   const [showTimeline, setShowTimeline] = useState(false);
   const [showVersions, setShowVersions] = useState(false);

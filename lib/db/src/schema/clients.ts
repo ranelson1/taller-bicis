@@ -1,9 +1,11 @@
+import { workshopIdColumn } from "./workshops";
 import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const clientsTable = pgTable("clients", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   name: text("name").notNull(),
   phone: text("phone"),
   email: text("email"),

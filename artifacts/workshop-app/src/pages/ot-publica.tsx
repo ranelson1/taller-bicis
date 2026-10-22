@@ -15,7 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Bike, Check, CheckCircle2, CircleDashed, Clock, FileText, MessageCircle,
+  Bike, Camera, Check, CheckCircle2, CircleDashed, Clock, FileText, MessageCircle,
   PackageCheck, Phone, Plus, Wrench, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -260,27 +260,37 @@ export default function OtPublica() {
               <p className="font-semibold text-stone-900">{formatDate(ot.receivedAt)}</p>
             </div>
             <div className="p-3">
-              <p className="text-[11px] uppercase tracking-wide text-stone-500">{ot.deliveredAt ? "Entregada" : "Entrega estimada"}</p>
-              <p className="font-semibold text-stone-900">{formatDate(ot.deliveredAt ?? ot.estimatedDeliveryDate) ?? "Por definir"}</p>
+              <p className="text-[11px] uppercase tracking-wide text-stone-500">
+                {ot.deliveredAt ? "Entregada" : ot.completedAt ? "Lista desde" : "Lista aprox."}
+              </p>
+              <p className="font-semibold text-stone-900">
+                {formatDate(ot.deliveredAt ?? ot.completedAt)
+                  ?? (ot.estimatedDeliveryDate && new Date(ot.estimatedDeliveryDate) >= new Date(new Date().setHours(0, 0, 0, 0))
+                    ? formatDate(ot.estimatedDeliveryDate)
+                    : "Por confirmar")}
+              </p>
             </div>
           </div>
         </section>
 
+        {/* Mensaje del taller: va arriba porque es lo que el taller quiere que lea */}
+        {ot.customerNotes && (
+          <Section icon={FileText} title="Mensaje del taller">
+            <p className="text-sm text-stone-700 whitespace-pre-line">{ot.customerNotes}</p>
+          </Section>
+        )}
+
         {/* Bicicleta */}
         {ot.bicycle && (
           <Section icon={Bike} title={`${ot.bicycle.brand} ${ot.bicycle.model}`}>
-            <dl className="grid grid-cols-2 gap-2 text-sm">
-              {[
-                ["Marca", ot.bicycle.brand], ["Modelo", ot.bicycle.model],
-                ["Color", ot.bicycle.color], ["Tipo", ot.bicycle.type ? (BIKE_TYPES[ot.bicycle.type] ?? ot.bicycle.type) : null],
-                ["Aro", ot.bicycle.rimSize], ["Año", ot.bicycle.year ? String(ot.bicycle.year) : null],
-              ].filter(([, v]) => v).map(([label, value]) => (
-                <div key={label} className="rounded-xl bg-stone-50 px-3 py-2">
-                  <dt className="text-[11px] uppercase tracking-wide text-stone-500">{label}</dt>
-                  <dd className="font-semibold text-stone-900">{value}</dd>
-                </div>
-              ))}
-            </dl>
+            {(() => {
+              const details = [
+                ot.bicycle.type ? (BIKE_TYPES[ot.bicycle.type] ?? ot.bicycle.type) : null,
+                ot.bicycle.color, ot.bicycle.rimSize ? `Aro ${ot.bicycle.rimSize}` : null,
+                ot.bicycle.year ? String(ot.bicycle.year) : null,
+              ].filter(Boolean);
+              return details.length > 0 ? <p className="text-sm text-stone-600">{details.join(" · ")}</p> : null;
+            })()}
             {ot.reportedProblem && (
               <div className="mt-3 rounded-xl bg-stone-50 px-3 py-2 text-sm">
                 <p className="text-[11px] uppercase tracking-wide text-stone-500">Problema reportado</p>
@@ -302,6 +312,22 @@ export default function OtPublica() {
           </Section>
         )}
 
+        {/* Fotos que el taller compartió */}
+        {(ot.photos ?? []).length > 0 && (
+          <Section icon={Camera} title="Fotos">
+            <div className="grid grid-cols-2 gap-2">
+              {ot.photos!.map(p => (
+                <figure key={p.id} className="rounded-xl overflow-hidden bg-stone-100">
+                  <a href={p.url} target="_blank" rel="noreferrer">
+                    <img src={p.url} alt={p.note ?? "Foto de tu bicicleta"} loading="lazy" className="w-full aspect-square object-cover" />
+                  </a>
+                  {p.note && <figcaption className="px-2 py-1.5 text-xs text-stone-700">{p.note}</figcaption>}
+                </figure>
+              ))}
+            </div>
+          </Section>
+        )}
+
         {/* Totales */}
         <section className="rounded-2xl bg-white shadow-sm border border-stone-100 overflow-hidden">
           <div className="p-4 space-y-1.5 text-sm">
@@ -316,7 +342,17 @@ export default function OtPublica() {
             <span className="font-bold tracking-wide">TOTAL</span>
             <span className="text-2xl font-extrabold">{formatCLP(ot.total)}</span>
           </div>
-          {pending.length > 0 && (
+          {ot.paidAt && ot.paidAmount != null && ot.paidAmount < ot.total ? (
+            <div className="px-4 py-2 text-sm space-y-0.5">
+              <div className="flex justify-between text-stone-600"><span>Abonado el {formatDate(ot.paidAt)}</span><span>{formatCLP(ot.paidAmount)}</span></div>
+              <div className="flex justify-between font-semibold text-stone-900"><span>Saldo por pagar</span><span>{formatCLP(ot.total - ot.paidAmount)}</span></div>
+            </div>
+          ) : ot.paidAt ? (
+            <p className="px-4 py-2 text-sm text-green-700 font-medium flex items-center gap-1"><Check className="h-4 w-4" />Pagado el {formatDate(ot.paidAt)}</p>
+          ) : ot.status === "ready_for_pickup" ? (
+            <p className="px-4 py-2 text-sm text-stone-600">A pagar al retirar.</p>
+          ) : null}
+          {pending.length > 0 && isOpen && (
             <p className="px-4 py-2 text-xs text-stone-500">No incluye los trabajos que aún esperan tu aprobación.</p>
           )}
         </section>
@@ -328,6 +364,12 @@ export default function OtPublica() {
             <div>
               <p className="font-bold text-green-900">Lista para retirar</p>
               <p className="text-sm text-green-800">Tu bicicleta está lista. Puedes pasar a retirarla cuando quieras.</p>
+              {ot.workshopAddress && (
+                <a className="text-sm font-medium text-green-900 underline mt-1 inline-block" target="_blank" rel="noreferrer"
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ot.workshopAddress)}`}>
+                  {ot.workshopAddress}
+                </a>
+              )}
             </div>
           </section>
         )}
@@ -345,12 +387,6 @@ export default function OtPublica() {
                 </li>
               ))}
             </ol>
-          </Section>
-        )}
-
-        {ot.customerNotes && (
-          <Section icon={FileText} title="Notas del taller">
-            <p className="text-sm text-stone-700 whitespace-pre-line">{ot.customerNotes}</p>
           </Section>
         )}
 

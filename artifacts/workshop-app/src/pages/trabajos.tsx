@@ -1,292 +1,214 @@
 import { useState } from "react";
-import { Link } from "wouter";
-import {
-  useListWorkCases,
-  useListClients,
-  useListUsers,
-} from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link, useLocation } from "wouter";
+import { useListUsers, useListWorkCases, useListWorkOrders, type WorkOrder } from "@workspace/api-client-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
-import {
-  Briefcase, Search, Plus, ExternalLink, FileText, Inbox, ClipboardList,
-} from "lucide-react";
+import { Briefcase, Clock, Plus, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useWorkers } from "@/hooks/use-workers";
+import { OPEN_WO_STATUSES, WO_STATUS_COLORS, WO_STATUS_LABELS, formatCLP, hasBalanceDue } from "@/lib/work-status";
+import { EtaBadge } from "@/components/trabajo/eta-badge";
+import { formatDay } from "@/components/trabajo/dates-card";
 
-const STATUS_LABELS: Record<string, string> = {
-  lead: "Lead",
-  quoted: "Presupuestado",
-  quote_sent: "Presupuesto enviado",
-  quote_approved: "Presupuesto aprobado",
-  bike_received: "Bici recibida",
-  in_inspection: "En inspección",
-  ready_for_work_order: "Listo para OT",
-  in_work_order: "En OT",
-  in_progress: "En trabajo",
-  quality_control: "Control calidad",
-  ready_for_pickup: "Listo para retiro",
-  delivered: "Entregado",
-  cancelled: "Cancelado",
-  closed: "Cerrado",
-};
+// Lista de trabajos: uno por OT, con el mismo estado que se ve en la ficha.
 
-const STATUS_COLORS: Record<string, string> = {
-  lead: "bg-gray-100 text-gray-700 border-gray-200",
-  quoted: "bg-blue-50 text-blue-700 border-blue-200",
-  quote_sent: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  quote_approved: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  bike_received: "bg-sky-50 text-sky-700 border-sky-200",
-  in_inspection: "bg-amber-50 text-amber-700 border-amber-200",
-  ready_for_work_order: "bg-teal-50 text-teal-700 border-teal-200",
-  in_work_order: "bg-orange-50 text-orange-700 border-orange-200",
-  in_progress: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  quality_control: "bg-purple-50 text-purple-700 border-purple-200",
-  ready_for_pickup: "bg-green-50 text-green-700 border-green-200",
-  delivered: "bg-gray-50 text-gray-500 border-gray-200",
-  cancelled: "bg-red-50 text-red-600 border-red-200",
-  closed: "bg-gray-100 text-gray-500 border-gray-200",
-};
+const FILTERS = [
+  { value: "open", label: "Abiertos", match: (wo: WorkOrder) => OPEN_WO_STATUSES.includes(wo.status) },
+  { value: "ready_to_work", label: "Recibidos", match: (wo: WorkOrder) => wo.status === "ready_to_work" },
+  { value: "in_progress", label: "En reparación", match: (wo: WorkOrder) => wo.status === "in_progress" || wo.status === "quality_control" },
+  { value: "ready_for_pickup", label: "Para retiro", match: (wo: WorkOrder) => wo.status === "ready_for_pickup" },
+  { value: "delivered", label: "Entregados", match: (wo: WorkOrder) => wo.status === "delivered" },
+  { value: "cancelled", label: "Cancelados", match: (wo: WorkOrder) => wo.status === "cancelled" },
+  { value: "all", label: "Todos", match: () => true },
+] as const;
 
-function formatCLP(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
-  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
-}
+const workHref = (wo: WorkOrder) => (wo.workCaseId ? `/trabajos/${wo.workCaseId}` : "/trabajos");
 
-function StatusBadge({ status }: { status: string }) {
+function StatusPill({ status }: { status: string }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[status] ?? "bg-gray-100 text-gray-700"}`}>
-      {STATUS_LABELS[status] ?? status}
+    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap", WO_STATUS_COLORS[status])}>
+      {WO_STATUS_LABELS[status] ?? status}
     </span>
   );
 }
 
 export default function Trabajos() {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [clientFilter, setClientFilter] = useState("all");
-  const [mechanicFilter, setMechanicFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-
-  const apiParams: Record<string, string> = { active: "true" };
-  if (statusFilter !== "all") apiParams.status = statusFilter;
-  if (clientFilter !== "all") apiParams.clientId = clientFilter;
-  if (mechanicFilter !== "all") apiParams.mechanicId = mechanicFilter;
-  if (dateFrom) apiParams.dateFrom = dateFrom;
-  if (dateTo) apiParams.dateTo = dateTo;
-  if (search) apiParams.search = search;
-
-  const { data: workCases, isLoading } = useListWorkCases(apiParams as any);
-  const { data: clients } = useListClients({});
+  const [, navigate] = useLocation();
+  const { data: workOrders, isLoading } = useListWorkOrders();
+  const { data: workCases } = useListWorkCases();
   const { data: users } = useListUsers();
+  const { workers: mechanics, solo } = useWorkers();
 
-  const activeClients = (clients ?? []).filter((c: any) => c.active !== false);
-  const mechanics = (users ?? []).filter((u: any) => u.role === "mechanic" && u.active !== false);
+  const [filter, setFilter] = useState<string>("open");
+  const [search, setSearch] = useState("");
+  const [mechanicId, setMechanicId] = useState("all");
 
-  const WorkCaseCard = ({ wc }: { wc: any }) => (
-    <Card className="hover:shadow-sm transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start gap-2">
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-sm font-bold text-primary">{wc.workOrderNumber ?? wc.workCaseNumber}</span>
-              <StatusBadge status={wc.status ?? ""} />
-            </div>
-            <span className="font-medium truncate">{wc.clientName ?? "—"}</span>
-          </div>
-          <Link href={`/trabajos/${wc.id}`}>
-            <Button size="icon" variant="ghost" className="shrink-0">
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2 text-sm">
-        {wc.bicycleName && (
-          <p className="text-muted-foreground truncate">🚲 {wc.bicycleName}</p>
-        )}
-        {wc.mechanicName && (
-          <p className="text-muted-foreground text-xs">🔧 {wc.mechanicName}</p>
-        )}
-        {wc.progressPercentage !== null && wc.progressPercentage !== undefined && (
-          <div className="space-y-1">
-            <Progress value={wc.progressPercentage} className="h-1.5" />
-            <span className="text-xs text-muted-foreground">{Number(wc.progressPercentage).toFixed(0)}% completado</span>
-          </div>
-        )}
-        <div className="flex justify-between pt-1 border-t items-center">
-          <span className="text-muted-foreground text-xs">{new Date(wc.createdAt ?? "").toLocaleDateString("es-CL")}</span>
-          {wc.totalEstimatedAmount !== null && wc.totalEstimatedAmount !== undefined && (
-            <span className="font-semibold">{formatCLP(wc.totalEstimatedAmount)}</span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+  const all = workOrders ?? [];
+  const q = search.toLowerCase().trim();
+  const qDigits = q.replace(/\D/g, "");
+  const matchesSearch = (wo: WorkOrder) => !q
+    || wo.workOrderNumber.toLowerCase().includes(q)
+    || (wo.clientName ?? "").toLowerCase().includes(q)
+    || (wo.bicycleName ?? "").toLowerCase().includes(q)
+    || (qDigits.length >= 3 && (wo.clientPhone ?? "").replace(/\D/g, "").includes(qDigits));
+  const matchesMechanic = (wo: WorkOrder) => mechanicId === "all"
+    || (mechanicId === "none" ? !wo.mechanicId : wo.mechanicId === Number(mechanicId));
+
+  const base = all.filter(wo => matchesSearch(wo) && matchesMechanic(wo));
+  const active = FILTERS.find(f => f.value === filter) ?? FILTERS[0];
+  const visible = base.filter(active.match);
+  const countFor = (f: typeof FILTERS[number]) => base.filter(f.match).length;
+
+  // Trabajos antiguos que nunca llegaron a OT (presupuesto o recepción sueltos).
+  const withoutOt = (workCases ?? []).filter(wc => (wc.workOrderCount ?? 0) === 0 && wc.active !== false
+    && !["cancelled", "closed", "delivered"].includes(wc.status ?? ""));
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Briefcase className="h-8 w-8" /> Trabajos
-          </h1>
-          <p className="text-muted-foreground mt-1">Ficha unificada del recorrido de cada bicicleta.</p>
-        </div>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2"><Briefcase className="h-7 w-7" />Trabajos</h1>
         <Link href="/trabajos/nuevo">
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" /> Nuevo Trabajo
-          </Button>
+          <Button className="h-10" data-testid="button-new-work"><Plus className="h-4 w-4 mr-1" />Nuevo</Button>
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        <div className="relative xl:col-span-2">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar TR, P, R, OT, cliente..."
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <Input className="pl-9 h-10" placeholder="Buscar por OT, cliente, teléfono o bicicleta" value={search} onChange={e => setSearch(e.target.value)} data-testid="input-search" />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([v, l]) => (
-              <SelectItem key={v} value={v}>{l}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="Cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los clientes</SelectItem>
-            {activeClients.map((c: any) => (
-              <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={mechanicFilter} onValueChange={setMechanicFilter}>
-          <SelectTrigger>
-            <SelectValue placeholder="Mecánico" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los mecánicos</SelectItem>
-            {mechanics.map((m: any) => (
-              <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex gap-2 xl:col-span-1">
-          <Input
-            type="date"
-            className="text-sm"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            title="Desde"
-          />
-          <Input
-            type="date"
-            className="text-sm"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            title="Hasta"
-          />
-        </div>
+        {!solo && (
+          <Select value={mechanicId} onValueChange={setMechanicId}>
+            <SelectTrigger className="sm:w-48 h-10" data-testid="select-mechanic-filter"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los mecánicos</SelectItem>
+              <SelectItem value="none">Sin mecánico</SelectItem>
+              {mechanics.map((m: any) => <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap [scrollbar-width:none]">
+        {FILTERS.map(f => (
+          <button key={f.value} type="button" onClick={() => setFilter(f.value)} data-testid={`chip-${f.value}`}
+            className={cn("shrink-0 rounded-full border px-3 py-1.5 text-sm transition-colors",
+              filter === f.value ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted")}>
+            {f.label} <span className={cn("ml-1 text-xs", filter === f.value ? "opacity-80" : "text-muted-foreground")}>{countFor(f)}</span>
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
+        <div className="space-y-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+      ) : visible.length === 0 ? (
+        <Card><CardContent className="py-10 text-center text-muted-foreground">
+          {q || mechanicId !== "all" ? "Ningún trabajo coincide con la búsqueda." : `No hay trabajos ${active.label.toLowerCase()}.`}
+        </CardContent></Card>
       ) : (
         <>
-          {/* Desktop table */}
+          {/* Escritorio */}
           <div className="hidden md:block rounded-md border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>N° Trabajo</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Bicicleta</TableHead>
-                  <TableHead>Mecánico</TableHead>
+                  <TableHead>OT</TableHead>
+                  <TableHead>Cliente / bicicleta</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Documentos</TableHead>
-                  <TableHead>Progreso</TableHead>
-                  <TableHead className="text-right">Monto est.</TableHead>
-                  <TableHead className="text-right">Creado</TableHead>
-                  <TableHead />
+                  {!solo && <TableHead>Mecánico</TableHead>}
+                  <TableHead>Término</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(workCases ?? []).map((wc) => (
-                  <TableRow key={wc.id}>
-                    <TableCell className="font-mono font-bold text-primary">{wc.workOrderNumber ?? wc.workCaseNumber}</TableCell>
-                    <TableCell>{wc.clientName ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{wc.bicycleName ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{wc.mechanicName ?? "—"}</TableCell>
-                    <TableCell><StatusBadge status={wc.status ?? ""} /></TableCell>
+                {visible.map(wo => (
+                  <TableRow key={wo.id} className="cursor-pointer" data-testid={`row-wo-${wo.id}`}
+                    onClick={() => navigate(workHref(wo))}>
+                    <TableCell className="font-mono text-primary font-medium">{wo.workOrderNumber}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2 text-xs text-muted-foreground">
-                        {(wc.quoteCount ?? 0) > 0 && <span className="flex items-center gap-0.5"><FileText className="h-3 w-3" />{wc.quoteCount}</span>}
-                        {(wc.receptionCount ?? 0) > 0 && <span className="flex items-center gap-0.5"><Inbox className="h-3 w-3" />{wc.receptionCount}</span>}
-                        {(wc.workOrderCount ?? 0) > 0 && <span className="flex items-center gap-0.5"><ClipboardList className="h-3 w-3" />{wc.workOrderCount}</span>}
+                      <div className="font-medium">{wo.clientName}</div>
+                      <div className="text-xs text-muted-foreground">{wo.bicycleName}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <StatusPill status={wo.status} />
+                        {(wo.pendingApprovalCount ?? 0) > 0 && OPEN_WO_STATUSES.includes(wo.status) && (
+                          <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-800"><Clock className="h-3 w-3" />{wo.pendingApprovalCount} por aprobar</span>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {wc.progressPercentage !== null && wc.progressPercentage !== undefined ? (
-                        <div className="flex items-center gap-2 min-w-[80px]">
-                          <Progress value={wc.progressPercentage} className="h-1.5 flex-1" />
-                          <span className="text-xs text-muted-foreground w-8">{Number(wc.progressPercentage).toFixed(0)}%</span>
-                        </div>
-                      ) : "—"}
+                    {!solo && (
+                      <TableCell className={cn("text-sm", !wo.mechanicName && OPEN_WO_STATUSES.includes(wo.status) ? "text-amber-700" : "text-muted-foreground")}>
+                        {wo.mechanicName ?? (OPEN_WO_STATUSES.includes(wo.status) ? "Sin asignar" : "—")}
+                      </TableCell>
+                    )}
+                    <TableCell className="text-sm">
+                      <div className="flex flex-col gap-0.5 items-start">
+                        <span className="text-muted-foreground">{formatDay(wo.completedAt ?? wo.estimatedDeliveryDate) ?? "—"}</span>
+                        <EtaBadge wo={wo} />
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {wc.totalEstimatedAmount !== null && wc.totalEstimatedAmount !== undefined ? formatCLP(wc.totalEstimatedAmount) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right text-muted-foreground text-sm">
-                      {new Date(wc.createdAt ?? "").toLocaleDateString("es-CL")}
-                    </TableCell>
-                    <TableCell>
-                      <Link href={`/trabajos/${wc.id}`}>
-                        <Button size="icon" variant="ghost">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </Link>
+                    <TableCell className="text-right font-medium whitespace-nowrap">
+                      {formatCLP(wo.total)}
+                      {wo.status === "delivered" && hasBalanceDue(wo) && <div className="text-[11px] text-sky-700 font-normal">{wo.paidAt ? "con saldo" : "sin pagar"}</div>}
                     </TableCell>
                   </TableRow>
                 ))}
-                {(workCases ?? []).length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
-                      <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                      No hay trabajos.
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
           </div>
 
-          {/* Mobile cards */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
-            {(workCases ?? []).map((wc) => <WorkCaseCard key={wc.id} wc={wc} />)}
-            {(workCases ?? []).length === 0 && (
-              <div className="text-center py-12 text-muted-foreground bg-card rounded-lg border">
-                <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                No hay trabajos.
-              </div>
-            )}
+          {/* Móvil */}
+          <div className="md:hidden space-y-2">
+            {visible.map(wo => (
+              <Link key={wo.id} href={workHref(wo)}>
+                <Card className="cursor-pointer active:bg-muted/50" data-testid={`card-wo-${wo.id}`}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-sm text-primary font-medium">{wo.workOrderNumber}</span>
+                      <StatusPill status={wo.status} />
+                    </div>
+                    <p className="font-medium mt-1">{wo.clientName}</p>
+                    <p className="text-sm text-muted-foreground">{wo.bicycleName}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs">
+                      <span className={cn(!wo.mechanicName && OPEN_WO_STATUSES.includes(wo.status) ? "text-amber-700" : "text-muted-foreground")}>
+                        {solo ? "" : wo.mechanicName ?? (OPEN_WO_STATUSES.includes(wo.status) ? "Sin mecánico" : "")}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {(wo.pendingApprovalCount ?? 0) > 0 && OPEN_WO_STATUSES.includes(wo.status) && <span className="text-amber-800">{wo.pendingApprovalCount} por aprobar</span>}
+                        <EtaBadge wo={wo} />
+                        <span className="font-semibold text-sm">{formatCLP(wo.total)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         </>
+      )}
+
+      {withoutOt.length > 0 && (filter === "open" || filter === "all") && !q && (
+        <Card className="border-dashed">
+          <CardContent className="p-4 space-y-2">
+            <p className="text-sm font-medium">Trabajos antiguos sin orden de trabajo ({withoutOt.length})</p>
+            <p className="text-xs text-muted-foreground">Quedaron como presupuesto o recepción antes de la OT única. Ábrelos para continuarlos o cancelarlos.</p>
+            <div className="divide-y">
+              {withoutOt.map(wc => (
+                <Link key={wc.id} href={`/trabajos/${wc.id}`}>
+                  <div className="flex justify-between gap-2 py-2 text-sm cursor-pointer hover:bg-muted/40 px-1 -mx-1 rounded">
+                    <span><span className="font-mono text-muted-foreground mr-2">{wc.workCaseNumber}</span>{wc.clientName} · {wc.bicycleName ?? "sin bicicleta"}</span>
+                    <span className="text-muted-foreground">{formatCLP(wc.totalEstimatedAmount)}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

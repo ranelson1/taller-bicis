@@ -117,7 +117,8 @@ router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
-    await db.update(bicyclesTable).set({ active: false, updatedAt: new Date() }).where(eq(bicyclesTable.id, id));
+    const deleted = await db.update(bicyclesTable).set({ active: false, updatedAt: new Date() }).where(eq(bicyclesTable.id, id)).returning({ id: bicyclesTable.id });
+    if (deleted.length === 0) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ ok: true });
   } catch { res.status(500).json({ error: "Internal server error" }); }
 });

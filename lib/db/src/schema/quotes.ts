@@ -1,3 +1,4 @@
+import { workshopIdColumn } from "./workshops";
 import {
   pgTable, serial, text, integer, boolean, timestamp, numeric, jsonb, pgEnum
 } from "drizzle-orm/pg-core";
@@ -45,7 +46,8 @@ export const quoteItemApprovalEnum = pgEnum("quote_item_approval", [
 
 export const quotesTable = pgTable("quotes", {
   id: serial("id").primaryKey(),
-  quoteNumber: text("quote_number").notNull().unique(),
+  workshopId: workshopIdColumn(),
+  quoteNumber: text("quote_number").notNull(),
   clientId: integer("client_id").notNull().references(() => clientsTable.id),
   bicycleId: integer("bicycle_id").references(() => bicyclesTable.id),
   originChannel: text("origin_channel").notNull(),
@@ -70,6 +72,7 @@ export const quotesTable = pgTable("quotes", {
 
 export const quoteItemsTable = pgTable("quote_items", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   quoteId: integer("quote_id").notNull().references(() => quotesTable.id),
   itemType: quoteItemTypeEnum("item_type").notNull(),
   origin: quoteItemOriginEnum("origin").notNull().default("manual"),
@@ -89,6 +92,7 @@ export const quoteItemsTable = pgTable("quote_items", {
 
 export const quoteVersionsTable = pgTable("quote_versions", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   quoteId: integer("quote_id").notNull().references(() => quotesTable.id),
   versionNumber: integer("version_number").notNull(),
   status: text("status").notNull(),
@@ -106,6 +110,7 @@ export const quoteVersionsTable = pgTable("quote_versions", {
 
 export const timelineEventsTable = pgTable("timeline_events", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   entityType: text("entity_type").notNull(),
   entityId: integer("entity_id").notNull(),
   userId: integer("user_id").references(() => usersTable.id),

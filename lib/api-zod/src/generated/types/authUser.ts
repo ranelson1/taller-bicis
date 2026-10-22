@@ -12,4 +12,11 @@ export interface AuthUser {
   name: string;
   email: string;
   role: AuthUserRole;
+  /**
+     * Taller de la sesión (null = superadmin sin taller elegido)
+     * @nullable
+     */
+  workshopId?: number | null;
+  /** @nullable */
+  workshopName?: string | null;
 }

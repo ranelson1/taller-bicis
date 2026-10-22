@@ -8,6 +8,7 @@ import {
 import { eq, and, or, ilike, gte, lte, desc, asc, sql, count, inArray } from "drizzle-orm";
 import { z } from "zod/v4";
 import { requireAuth } from "../middlewares/auth";
+import { nextDocumentNumber } from "../helpers/numbering";
 import { autoCreateWorkCase, triggerWorkCaseRecalc, logWorkCaseEvent, recalcOTTotal } from "../helpers/workCase";
 
 const router = Router();
@@ -63,9 +64,7 @@ async function determineQuoteStatus(quoteId: number, currentStatus: string): Pro
 }
 
 async function nextQuoteNumber(): Promise<string> {
-  const [row] = await db.select({ n: count() }).from(quotesTable);
-  const seq = (Number(row?.n ?? 0) + 1);
-  return `P-${String(seq).padStart(4, "0")}`;
+  return nextDocumentNumber(db, "P");
 }
 
 async function enrichQuote(q: typeof quotesTable.$inferSelect) {
@@ -302,7 +301,8 @@ router.patch("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    await db.update(quotesTable).set({ active: false, updatedAt: new Date() }).where(eq(quotesTable.id, id));
+    const deleted = await db.update(quotesTable).set({ active: false, updatedAt: new Date() }).where(eq(quotesTable.id, id)).returning({ id: quotesTable.id });
+    if (deleted.length === 0) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ ok: true });
   } catch { res.status(500).json({ error: "Internal server error" }); }
 });

@@ -8,19 +8,21 @@ import {
   clientsTable,
   bicyclesTable,
   timelineEventsTable,
+  workOrderPhotosTable,
 } from "@workspace/db";
 import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { recalcOTTotal, computeWorkOrderTotal } from "./workCase";
+import { getWorkshopSettings } from "./settings";
 
 type WorkOrder = typeof workOrdersTable.$inferSelect;
 
 // Precios en Chile incluyen IVA; el desglose neto/IVA es solo informativo.
 const TAX_RATE = 0.19;
 
-export const workshopInfo = () => ({
-  workshopName: process.env.WORKSHOP_NAME || "TallerBicis",
-  workshopPhone: process.env.WORKSHOP_PHONE || null,
-});
+export const workshopInfo = async () => {
+  const s = await getWorkshopSettings();
+  return { workshopName: s.name, workshopPhone: s.phone, workshopAddress: s.address };
+};
 
 export class ItemDecisionError extends Error {}
 
@@ -160,18 +162,27 @@ export async function buildPublicWorkOrder(wo: WorkOrder) {
       eq(timelineEventsTable.visibleToClient, true),
     ));
   }
+  const photos = await db.select().from(workOrderPhotosTable).where(and(
+    eq(workOrderPhotosTable.workOrderId, wo.id),
+    eq(workOrderPhotosTable.active, true),
+    eq(workOrderPhotosTable.visibleToClient, true),
+  )).orderBy(asc(workOrderPhotosTable.createdAt));
+
   const events = await db.select().from(timelineEventsTable)
     .where(or(...conditions))
     .orderBy(asc(timelineEventsTable.createdAt), asc(timelineEventsTable.id));
 
   return {
-    ...workshopInfo(),
+    ...(await workshopInfo()),
     workOrderNumber: wo.workOrderNumber,
     status: wo.status,
     progressPercentage: Number(wo.progressPercentage ?? 0),
     receivedAt: (reception?.receivedAt ?? wo.createdAt).toISOString(),
     estimatedDeliveryDate: wo.estimatedDeliveryDate?.toISOString() ?? null,
     deliveredAt: wo.deliveredAt?.toISOString() ?? null,
+    completedAt: wo.completedAt?.toISOString() ?? null,
+    paidAt: wo.paidAt?.toISOString() ?? null,
+    paidAmount: wo.paidAt && wo.paidAmount != null ? Number(wo.paidAmount) : null,
     clientName: client?.name ?? "",
     bicycle: bike ? {
       brand: bike.brand, model: bike.model, year: bike.year, type: bike.type,
@@ -196,15 +207,37 @@ export async function buildPublicWorkOrder(wo: WorkOrder) {
     net,
     tax: total - net,
     pendingApprovalCount: visibleItems.filter(i => i.approvalStatus === "pending").length,
+    photos: wo.publicToken ? photos.map(p => ({
+      id: p.id,
+      note: p.note,
+      createdAt: p.createdAt.toISOString(),
+      url: `/api/public/ot/${wo.publicToken}/photos/${p.id}`,
+    })) : [],
     timeline: events.map(publicTimelineEntry).filter((e): e is NonNullable<typeof e> => e !== null),
   };
 }
 
-export function shareMessage(wo: WorkOrder, clientName: string, pendingCount: number) {
-  const { workshopName } = workshopInfo();
+// Mensaje de WhatsApp según el momento del trabajo: lo que el cliente tiene que saber o hacer.
+export function shareMessage(wo: WorkOrder, clientName: string, pendingCount: number, workshopName: string) {
   const firstName = clientName.split(" ")[0] ?? "";
-  const ask = pendingCount > 0
-    ? `Tienes ${pendingCount} trabajo(s) esperando tu aprobación.`
-    : "Ahí puedes ver el estado de tu bicicleta.";
-  return `Hola ${firstName}, te escribimos de ${workshopName}. Sigue tu orden ${wo.workOrderNumber} aquí. ${ask}`;
+  const hello = `Hola ${firstName}, te escribimos de ${workshopName}.`;
+  // Una fecha estimada que ya pasó no se le promete al cliente.
+  const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+  const eta = wo.estimatedDeliveryDate && wo.estimatedDeliveryDate >= startOfToday
+    ? wo.estimatedDeliveryDate.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" }).replace(",", "")
+    : null;
+
+  if (pendingCount > 0 && wo.status !== "delivered" && wo.status !== "cancelled") {
+    return `${hello} Encontramos ${pendingCount === 1 ? "un trabajo adicional" : `${pendingCount} trabajos adicionales`} para tu bicicleta. Revísalo y apruébalo o recházalo aquí (orden ${wo.workOrderNumber}):`;
+  }
+  switch (wo.status) {
+    case "ready_for_pickup":
+      return `${hello} ¡Tu bicicleta está lista para retirar! Total: ${formatCLP(Number(wo.total))}. Detalle de la orden ${wo.workOrderNumber}:`;
+    case "delivered":
+      return `${hello} Gracias por confiar en nosotros. Aquí queda el detalle de la orden ${wo.workOrderNumber}:`;
+    case "ready_to_work":
+      return `${hello} Recibimos tu bicicleta${eta ? ` y estimamos tenerla lista el ${eta}` : ""}. Sigue su estado aquí (orden ${wo.workOrderNumber}):`;
+    default:
+      return `${hello} Estamos trabajando en tu bicicleta${eta ? `; estimamos tenerla lista el ${eta}` : ""}. Sigue su estado aquí (orden ${wo.workOrderNumber}):`;
+  }
 }

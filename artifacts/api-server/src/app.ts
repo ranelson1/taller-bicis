@@ -2,6 +2,9 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { pool, runWithTenantConnection } from "@workspace/db";
+import "./lib/session";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -38,8 +41,13 @@ app.use(express.urlencoded({ extended: true }));
 
 const sessionSecret = process.env.SESSION_SECRET || "taller-bicicleta-dev-secret-change-in-prod";
 
+// Sesiones en Postgres: reiniciar la API no cierra la sesión de nadie.
+// La tabla la crea lib/db/migrations/004-sesiones.sql.
+const PgSession = connectPgSimple(session);
+
 app.use(
   session({
+    store: new PgSession({ pool, tableName: "session" }),
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
@@ -51,6 +59,16 @@ app.use(
     },
   }),
 );
+
+// Cada request usa su propia conexión fijada al taller de la sesión (Row Level Security).
+// La conexión se devuelve al pool cuando termina la respuesta.
+app.use("/api", (req, res, next) => {
+  const done = new Promise<void>((resolve) => {
+    res.once("finish", resolve);
+    res.once("close", resolve);
+  });
+  runWithTenantConnection(req.session.workshopId ?? null, done, () => next()).catch(next);
+});
 
 app.use("/api", router);
 

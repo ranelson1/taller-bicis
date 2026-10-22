@@ -1,3 +1,4 @@
+import { workshopIdColumn } from "./workshops";
 import {
   pgTable, serial, text, integer, boolean, timestamp, numeric, pgEnum
 } from "drizzle-orm/pg-core";
@@ -24,7 +25,8 @@ export const workCaseStatusEnum = pgEnum("work_case_status", [
 
 export const workCasesTable = pgTable("work_cases", {
   id: serial("id").primaryKey(),
-  workCaseNumber: text("work_case_number").notNull().unique(),
+  workshopId: workshopIdColumn(),
+  workCaseNumber: text("work_case_number").notNull(),
   clientId: integer("client_id").notNull().references(() => clientsTable.id),
   bicycleId: integer("bicycle_id").references(() => bicyclesTable.id),
   status: workCaseStatusEnum("status").notNull().default("lead"),

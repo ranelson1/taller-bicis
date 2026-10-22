@@ -9,11 +9,13 @@ import {
   clientsTable,
   bicyclesTable,
   usersTable,
+  servicesTable,
   timelineEventsTable,
 } from "@workspace/db";
 import { eq, and, desc, count, isNull, isNotNull, or, inArray, gte, lte, ilike } from "drizzle-orm";
 import { z } from "zod/v4";
 import { requireAuth } from "../middlewares/auth";
+import { nextDocumentNumber } from "../helpers/numbering";
 import {
   logWorkCaseEvent,
   recalcWorkCaseStatus as recalcHelper,
@@ -27,9 +29,7 @@ router.use(requireAuth);
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function nextWorkCaseNumber(): Promise<string> {
-  const [row] = await db.select({ n: count() }).from(workCasesTable);
-  const seq = Number(row?.n ?? 0) + 1;
-  return `TR-${String(seq).padStart(4, "0")}`;
+  return nextDocumentNumber(db, "TR");
 }
 
 async function enrichWorkCase(wc: typeof workCasesTable.$inferSelect) {
@@ -446,8 +446,7 @@ router.post("/quick-create", async (req, res) => {
       }
 
       // 3. Work case (TR)
-      const [{ n: wcCount }] = await tx.select({ n: count() }).from(workCasesTable);
-      const workCaseNumber = `TR-${String(Number(wcCount ?? 0) + 1).padStart(4, "0")}`;
+      const workCaseNumber = await nextDocumentNumber(tx, "TR");
       const [wc] = await tx.insert(workCasesTable).values({
         workCaseNumber,
         clientId,
@@ -462,13 +461,24 @@ router.post("/quick-create", async (req, res) => {
         action: "work_case_created", previousStatus: null, newStatus: "lead", comment: null,
       });
 
-      // 4. Quote with approved items
-      const [{ n: qCount }] = await tx.select({ n: count() }).from(quotesTable);
-      const quoteNumber = `P-${String(Number(qCount ?? 0) + 1).padStart(4, "0")}`;
+      // 4. Quote with approved items. Items without hours take them from the catalog service
+      // (needed to estimate the completion date).
+      const serviceIds = body.items.filter(i => i.estimatedLaborHours == null && i.serviceId).map(i => i.serviceId!);
+      const serviceHours = new Map((serviceIds.length === 0 ? [] : await tx
+        .select({ id: servicesTable.id, estimatedHours: servicesTable.estimatedHours })
+        .from(servicesTable).where(inArray(servicesTable.id, serviceIds)))
+        .map(s => [s.id, s.estimatedHours != null ? Number(s.estimatedHours) : null]));
+      const items = body.items.map(i => ({
+        ...i,
+        estimatedLaborHours: i.estimatedLaborHours ?? (i.serviceId && serviceHours.get(i.serviceId) != null
+          ? serviceHours.get(i.serviceId)! * i.quantity : null),
+      }));
+
+      const quoteNumber = await nextDocumentNumber(tx, "P");
       const lineTotal = (i: { quantity: number; unitPrice: number }) => i.quantity * i.unitPrice;
-      const subtotal = body.items.filter(i => i.itemType !== "discount").reduce((s, i) => s + lineTotal(i), 0);
-      const discountTotal = body.items.filter(i => i.itemType === "discount").reduce((s, i) => s + Math.abs(lineTotal(i)), 0);
-      const laborHours = body.items.reduce((s, i) => s + (i.estimatedLaborHours ?? 0), 0);
+      const subtotal = items.filter(i => i.itemType !== "discount").reduce((s, i) => s + lineTotal(i), 0);
+      const discountTotal = items.filter(i => i.itemType === "discount").reduce((s, i) => s + Math.abs(lineTotal(i)), 0);
+      const laborHours = items.reduce((s, i) => s + (i.estimatedLaborHours ?? 0), 0);
       const [quote] = await tx.insert(quotesTable).values({
         quoteNumber,
         clientId,
@@ -488,8 +498,8 @@ router.post("/quick-create", async (req, res) => {
         action: "quote_created", previousStatus: null, newStatus: "approved",
         comment: "Creado desde Nuevo Trabajo Rápido",
       });
-      for (let i = 0; i < body.items.length; i++) {
-        const it = body.items[i];
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
         await tx.insert(quoteItemsTable).values({
           quoteId: quote.id,
           itemType: it.itemType,
@@ -507,8 +517,7 @@ router.post("/quick-create", async (req, res) => {
       }
 
       // 5. Reception (already ready for OT)
-      const [{ n: rCount }] = await tx.select({ n: count() }).from(receptionsTable);
-      const receptionNumber = `R-${String(Number(rCount ?? 0) + 1).padStart(4, "0")}`;
+      const receptionNumber = await nextDocumentNumber(tx, "R");
       const [reception] = await tx.insert(receptionsTable).values({
         receptionNumber,
         clientId,
@@ -540,6 +549,7 @@ router.post("/quick-create", async (req, res) => {
         receptionId: reception.id,
         workOrderId: created.id,
         workOrderNumber: created.workOrderNumber,
+        estimatedDeliveryDate: created.estimatedDeliveryDate?.toISOString() ?? null,
       };
     });
 

@@ -14,6 +14,7 @@ import {
 import { eq, and, or, ilike, gte, lte, desc, asc, count } from "drizzle-orm";
 import { z } from "zod/v4";
 import { requireAuth } from "../middlewares/auth";
+import { nextDocumentNumber } from "../helpers/numbering";
 import { autoCreateWorkCase, triggerWorkCaseRecalc, logWorkCaseEvent } from "../helpers/workCase";
 
 const router = Router();
@@ -22,9 +23,7 @@ router.use(requireAuth);
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function nextReceptionNumber(): Promise<string> {
-  const [row] = await db.select({ n: count() }).from(receptionsTable);
-  const seq = Number(row?.n ?? 0) + 1;
-  return `R-${String(seq).padStart(4, "0")}`;
+  return nextDocumentNumber(db, "R");
 }
 
 async function enrichReception(r: typeof receptionsTable.$inferSelect) {
@@ -284,7 +283,8 @@ router.patch("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    await db.update(receptionsTable).set({ active: false, updatedAt: new Date() }).where(eq(receptionsTable.id, id));
+    const deleted = await db.update(receptionsTable).set({ active: false, updatedAt: new Date() }).where(eq(receptionsTable.id, id)).returning({ id: receptionsTable.id });
+    if (deleted.length === 0) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ ok: true });
   } catch { res.status(500).json({ error: "Internal server error" }); }
 });
@@ -353,9 +353,7 @@ router.post("/:id/create-quote", async (req, res) => {
     if (reception.quoteId) { res.status(400).json({ error: "Esta recepción ya tiene presupuesto asociado." }); return; }
 
     // Get next quote number
-    const [countRow] = await db.select({ n: count() }).from(quotesTable);
-    const seq = Number(countRow?.n ?? 0) + 1;
-    const quoteNumber = `P-${String(seq).padStart(4, "0")}`;
+    const quoteNumber = await nextDocumentNumber(db, "P");
 
     // Inherit workCaseId from reception
     const quoteWorkCaseId = reception.workCaseId ?? null;

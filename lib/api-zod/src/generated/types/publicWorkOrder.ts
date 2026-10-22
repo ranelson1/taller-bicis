@@ -8,6 +8,7 @@
 import type { PublicTimelineEntry } from './publicTimelineEntry';
 import type { PublicWorkOrderBicycle } from './publicWorkOrderBicycle';
 import type { PublicWorkOrderItem } from './publicWorkOrderItem';
+import type { PublicWorkOrderPhoto } from './publicWorkOrderPhoto';
 import type { PublicWorkOrderStatus } from './publicWorkOrderStatus';
 
 export interface PublicWorkOrder {
@@ -22,6 +23,14 @@ export interface PublicWorkOrder {
   estimatedDeliveryDate?: string | null;
   /** @nullable */
   deliveredAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  paidAmount?: number | null;
+  /** @nullable */
+  workshopAddress?: string | null;
   clientName: string;
   /** @nullable */
   bicycle?: PublicWorkOrderBicycle;
@@ -36,5 +45,6 @@ export interface PublicWorkOrder {
   net: number;
   tax: number;
   pendingApprovalCount: number;
+  photos?: PublicWorkOrderPhoto[];
   timeline: PublicTimelineEntry[];
 }

@@ -3,10 +3,10 @@ import { z } from "zod/v4";
 import { db } from "@workspace/db";
 import { serviceStepsTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, adminOnlyWrites } from "../middlewares/auth";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, adminOnlyWrites);
 
 const createStepSchema = z.object({
   serviceId: z.number().int().positive(),

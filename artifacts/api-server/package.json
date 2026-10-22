@@ -8,7 +8,10 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/scripts/load-demo.ts seed/demo-sendero.json",
+    "create-superadmin": "tsx src/scripts/create-superadmin.ts",
+    "load-demo": "tsx src/scripts/load-demo.ts",
+    "check-isolation": "tsx src/scripts/check-isolation.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",
@@ -16,16 +19,18 @@
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "bcryptjs": "^3.0.3",
-    "zod": "catalog:",
+    "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "drizzle-orm": "catalog:",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "pino": "^9.14.0",
-    "pino-http": "^10.5.0"
+    "pino-http": "^10.5.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/connect-pg-simple": "^7.0.3",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

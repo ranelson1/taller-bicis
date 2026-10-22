@@ -1,3 +1,4 @@
+import { workshopIdColumn } from "./workshops";
 import { pgTable, serial, text, integer, boolean, timestamp, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -5,6 +6,7 @@ import { categoriesTable } from "./categories";
 
 export const partsTable = pgTable("parts", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   name: text("name").notNull(),
   categoryId: integer("category_id").references(() => categoriesTable.id),
   brand: text("brand"),

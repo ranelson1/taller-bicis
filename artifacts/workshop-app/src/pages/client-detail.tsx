@@ -1,15 +1,40 @@
+import { useState } from "react";
 import { useParams } from "wouter";
-import { useGetClient, getGetClientQueryKey, useListBicycles, getListBicyclesQueryKey } from "@workspace/api-client-react";
+import {
+  useGetClient, getGetClientQueryKey, useListBicycles, getListBicyclesQueryKey,
+  useUpdateClient, getListClientsQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, Mail, FileText, Bike } from "lucide-react";
+import { Phone, Mail, FileText, Bike, Pencil } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import { ClientFormDialog, type ClientFormData } from "@/components/client-form-dialog";
+import { WhatsAppButton } from "@/components/whatsapp-button";
 
 export default function ClientDetail() {
   const params = useParams();
   const id = Number(params.id);
-  
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [editOpen, setEditOpen] = useState(false);
+  const updateMutation = useUpdateClient();
+
+  const onSubmit = (data: ClientFormData) => {
+    updateMutation.mutate({ id, data }, {
+      onSuccess: () => {
+        toast({ title: "Cliente actualizado" });
+        setEditOpen(false);
+        qc.invalidateQueries({ queryKey: getGetClientQueryKey(id) });
+        qc.invalidateQueries({ queryKey: getListClientsQueryKey() });
+      },
+      onError: () => toast({ variant: "destructive", title: "Error al actualizar" }),
+    });
+  };
+
   const { data: client, isLoading: isClientLoading } = useGetClient(id, {
     query: { enabled: !!id, queryKey: getGetClientQueryKey(id) }
   });
@@ -32,12 +57,17 @@ export default function ClientDetail() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
-      <div>
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold text-foreground">{client.name}</h1>
-          {!client.active && <Badge variant="destructive">Inactivo</Badge>}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-foreground">{client.name}</h1>
+            {!client.active && <Badge variant="destructive">Inactivo</Badge>}
+          </div>
+          <p className="text-muted-foreground mt-1">Detalles del cliente e historial de bicicletas.</p>
         </div>
-        <p className="text-muted-foreground mt-1">Detalles del cliente e historial de bicicletas.</p>
+        <Button variant="outline" onClick={() => setEditOpen(true)} className="flex items-center gap-2 w-fit" data-testid="button-edit-client">
+          <Pencil className="h-4 w-4" /> Editar
+        </Button>
       </div>
 
       <Card>
@@ -49,7 +79,8 @@ export default function ClientDetail() {
             {client.phone && (
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{client.phone}</span>
+                <a href={`tel:${client.phone.replace(/[^\d+]/g, "")}`} className="hover:underline">{client.phone}</a>
+                <WhatsAppButton phone={client.phone} text={`Hola ${client.name.split(" ")[0]}, te escribo del taller.`} label="WhatsApp" className="h-7" />
               </div>
             )}
             {client.email && (
@@ -121,6 +152,14 @@ export default function ClientDetail() {
           </div>
         )}
       </div>
+
+      <ClientFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        client={client}
+        pending={updateMutation.isPending}
+        onSubmit={onSubmit}
+      />
     </div>
   );
 }

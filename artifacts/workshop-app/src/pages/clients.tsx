@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   useListClients, useCreateClient, useUpdateClient, useDeleteClient,
   getListClientsQueryKey,
@@ -14,20 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Phone, Mail, Bike, Plus, Pencil, Ban, RotateCcw, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-
-const clientSchema = z.object({
-  name: z.string().min(1, "El nombre es requerido"),
-  phone: z.string().optional().nullable(),
-  email: z.string().email("Email inválido").optional().or(z.literal("")).nullable(),
-  notes: z.string().optional().nullable(),
-});
-type ClientForm = z.infer<typeof clientSchema>;
+import { ClientFormDialog, type ClientFormData } from "@/components/client-form-dialog";
+import { WhatsAppButton } from "@/components/whatsapp-button";
 
 type ClientRow = { id: number; name: string; phone?: string | null; email?: string | null; notes?: string | null; active: boolean; bicycleCount: number };
 
@@ -45,27 +32,19 @@ export default function Clients() {
   const updateMutation = useUpdateClient();
   const deleteMutation = useDeleteClient();
 
-  const form = useForm<ClientForm>({
-    resolver: zodResolver(clientSchema),
-    defaultValues: { name: "", phone: "", email: "", notes: "" },
-  });
-
   const openCreate = () => {
     setEditing(null);
-    form.reset({ name: "", phone: "", email: "", notes: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (client: ClientRow) => {
     setEditing(client);
-    form.reset({ name: client.name, phone: client.phone ?? "", email: client.email ?? "", notes: client.notes ?? "" });
     setDialogOpen(true);
   };
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListClientsQueryKey() });
 
-  const onSubmit = (values: ClientForm) => {
-    const data = { name: values.name, phone: values.phone || null, email: values.email || null, notes: values.notes || null };
+  const onSubmit = (data: ClientFormData) => {
     if (editing) {
       updateMutation.mutate({ id: editing.id, data }, {
         onSuccess: () => { toast({ title: "Cliente actualizado" }); setDialogOpen(false); invalidate(); },
@@ -143,7 +122,12 @@ export default function Clients() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                        {c.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{c.phone}</span>}
+                        {c.phone && (
+                          <span className="flex items-center gap-1.5">
+                            <Phone className="h-3 w-3" />{c.phone}
+                            <WhatsAppButton phone={c.phone} text={`Hola ${c.name.split(" ")[0]}, te escribo del taller.`} className="h-6 px-1.5" />
+                          </span>
+                        )}
                         {c.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{c.email}</span>}
                         {!c.phone && !c.email && <span>—</span>}
                       </div>
@@ -187,7 +171,12 @@ export default function Clients() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="space-y-1 text-sm text-muted-foreground">
-                    {c.phone && <p className="flex items-center gap-2"><Phone className="h-4 w-4" />{c.phone}</p>}
+                    {c.phone && (
+                      <p className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />{c.phone}
+                        <WhatsAppButton phone={c.phone} text={`Hola ${c.name.split(" ")[0]}, te escribo del taller.`} label="WhatsApp" className="h-7 ml-auto" />
+                      </p>
+                    )}
                     {c.email && <p className="flex items-center gap-2"><Mail className="h-4 w-4" />{c.email}</p>}
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t">
@@ -210,51 +199,13 @@ export default function Clients() {
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar Cliente" : "Nuevo Cliente"}</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField control={form.control} name="name" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre *</FormLabel>
-                  <FormControl><Input placeholder="Nombre del cliente" {...field} data-testid="input-client-name" /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="phone" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Teléfono</FormLabel>
-                  <FormControl><Input placeholder="+56 9 XXXX XXXX" {...field} value={field.value ?? ""} data-testid="input-client-phone" /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="email" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl><Input type="email" placeholder="cliente@ejemplo.com" {...field} value={field.value ?? ""} data-testid="input-client-email" /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="notes" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notas</FormLabel>
-                  <FormControl><Textarea placeholder="Notas internas..." {...field} value={field.value ?? ""} data-testid="input-client-notes" /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-submit-client">
-                  {editing ? "Guardar cambios" : "Crear cliente"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <ClientFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        client={editing}
+        pending={createMutation.isPending || updateMutation.isPending}
+        onSubmit={onSubmit}
+      />
 
       {/* Deactivate Alert */}
       <AlertDialog open={!!deactivateTarget} onOpenChange={(o) => !o && setDeactivateTarget(null)}>

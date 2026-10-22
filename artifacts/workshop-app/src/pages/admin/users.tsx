@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Clock, Pencil, Ban, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,10 +31,11 @@ const userSchema = z.object({
   role: z.enum(["admin", "mechanic", "reception"]),
   weeklyHours: z.coerce.number().int().min(0).max(168).optional().nullable(),
   calendarColor: z.string().optional().nullable(),
+  doesJobs: z.boolean().default(false),
 });
 type UserForm = z.infer<typeof userSchema>;
 
-type UserRow = { id: number; name: string; email: string; role: string; weeklyHours?: number | null; calendarColor?: string | null; active: boolean };
+type UserRow = { id: number; name: string; email: string; role: string; weeklyHours?: number | null; calendarColor?: string | null; doesJobs?: boolean; active: boolean };
 
 export default function Users() {
   const qc = useQueryClient();
@@ -50,20 +52,20 @@ export default function Users() {
 
   const form = useForm<UserForm>({
     resolver: zodResolver(userSchema),
-    defaultValues: { name: "", email: "", password: "", role: "mechanic", weeklyHours: undefined, calendarColor: "" },
+    defaultValues: { name: "", email: "", password: "", role: "mechanic", weeklyHours: undefined, calendarColor: "", doesJobs: true },
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListUsersQueryKey() });
 
   const openCreate = () => {
     setEditing(null);
-    form.reset({ name: "", email: "", password: "", role: "mechanic", weeklyHours: undefined, calendarColor: "" });
+    form.reset({ name: "", email: "", password: "", role: "mechanic", weeklyHours: undefined, calendarColor: "", doesJobs: true });
     setDialogOpen(true);
   };
 
   const openEdit = (u: UserRow) => {
     setEditing(u);
-    form.reset({ name: u.name, email: u.email, password: "", role: u.role as "admin" | "mechanic" | "reception", weeklyHours: u.weeklyHours, calendarColor: u.calendarColor ?? "" });
+    form.reset({ name: u.name, email: u.email, password: "", role: u.role as "admin" | "mechanic" | "reception", weeklyHours: u.weeklyHours, calendarColor: u.calendarColor ?? "", doesJobs: !!u.doesJobs });
     setDialogOpen(true);
   };
 
@@ -72,6 +74,7 @@ export default function Users() {
       name: values.name, email: values.email, role: values.role,
       weeklyHours: values.weeklyHours ?? null,
       calendarColor: values.calendarColor || null,
+      doesJobs: values.doesJobs,
     };
     if (values.password) data.password = values.password;
 
@@ -154,9 +157,9 @@ export default function Users() {
                   <TableCell className="text-muted-foreground text-sm">{u.email}</TableCell>
                   <TableCell><Badge variant="outline">{ROLE_LABELS[u.role] ?? u.role}</Badge></TableCell>
                   <TableCell>
-                    {u.weeklyHours ? (
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-3 w-3" />{u.weeklyHours}h/sem</span>
-                    ) : <span className="text-muted-foreground text-sm">—</span>}
+                    {u.doesJobs ? (
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-3 w-3" />Repara{u.weeklyHours ? ` · ${u.weeklyHours} h/sem` : " · jornada completa"}</span>
+                    ) : <span className="text-muted-foreground text-sm">No repara</span>}
                   </TableCell>
                   <TableCell>
                     {u.active ? <Badge className="bg-green-500/10 text-green-700">Activo</Badge> : <Badge variant="destructive">Inactivo</Badge>}
@@ -208,14 +211,25 @@ export default function Users() {
                   <FormMessage />
                 </FormItem>
               )} />
-              <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="doesJobs" render={({ field }) => (
+                <FormItem className="flex items-center justify-between gap-3 rounded-md border p-3 space-y-0">
+                  <div>
+                    <FormLabel>Hace trabajos</FormLabel>
+                    <p className="text-xs text-muted-foreground">Se le asignan bicis y cuenta para calcular cuándo quedan listas. Actívalo también si eres el dueño y reparas.</p>
+                  </div>
+                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-user-does-jobs" /></FormControl>
+                </FormItem>
+              )} />
+              {form.watch("doesJobs") && (
                 <FormField control={form.control} name="weeklyHours" render={({ field }) => (
-                  <FormItem><FormLabel>Horas/semana</FormLabel><FormControl><Input type="number" min={0} max={168} {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? null : Number(e.target.value))} data-testid="input-user-hours" /></FormControl><FormMessage /></FormItem>
+                  <FormItem>
+                    <FormLabel>Horas a la semana que repara</FormLabel>
+                    <FormControl><Input type="number" min={0} max={168} placeholder="Todo el horario del taller" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? null : Number(e.target.value))} data-testid="input-user-hours" /></FormControl>
+                    <p className="text-xs text-muted-foreground">Vacío = todo el horario del taller.</p>
+                    <FormMessage />
+                  </FormItem>
                 )} />
-                <FormField control={form.control} name="calendarColor" render={({ field }) => (
-                  <FormItem><FormLabel>Color agenda</FormLabel><FormControl><Input type="color" {...field} value={field.value ?? "#3b82f6"} data-testid="input-user-color" /></FormControl><FormMessage /></FormItem>
-                )} />
-              </div>
+              )}
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-submit-user">

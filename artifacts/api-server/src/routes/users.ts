@@ -4,10 +4,10 @@ import { z } from "zod/v4";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, adminOnlyWrites } from "../middlewares/auth";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, adminOnlyWrites);
 
 const userRoleEnum = z.enum(["admin", "mechanic", "reception"]);
 
@@ -18,6 +18,7 @@ const createUserSchema = z.object({
   role: userRoleEnum,
   weeklyHours: z.number().int().min(0).max(168).optional().nullable(),
   calendarColor: z.string().optional().nullable(),
+  doesJobs: z.boolean().optional(),
 });
 
 const updateUserSchema = z.object({
@@ -27,6 +28,7 @@ const updateUserSchema = z.object({
   role: userRoleEnum.optional(),
   weeklyHours: z.number().int().min(0).max(168).optional().nullable(),
   calendarColor: z.string().optional().nullable(),
+  doesJobs: z.boolean().optional(),
   active: z.boolean().optional(),
 });
 
@@ -37,6 +39,7 @@ const USER_FIELDS = {
   role: usersTable.role,
   weeklyHours: usersTable.weeklyHours,
   calendarColor: usersTable.calendarColor,
+  doesJobs: usersTable.doesJobs,
   active: usersTable.active,
   createdAt: usersTable.createdAt,
   updatedAt: usersTable.updatedAt,
@@ -52,7 +55,7 @@ router.get("/", async (_req, res) => {
   }
 });
 
-// GET /users/capacity — active mechanics only
+// GET /users/capacity — quienes hacen trabajos
 router.get("/capacity", async (_req, res) => {
   try {
     const mechanics = await db.select({
@@ -61,7 +64,7 @@ router.get("/capacity", async (_req, res) => {
       weeklyHours: usersTable.weeklyHours,
       calendarColor: usersTable.calendarColor,
     }).from(usersTable)
-      .where(and(eq(usersTable.active, true), eq(usersTable.role, "mechanic")))
+      .where(and(eq(usersTable.active, true), eq(usersTable.doesJobs, true)))
       .orderBy(usersTable.name);
     res.json(mechanics.map(m => ({ ...m, weeklyHours: m.weeklyHours ?? 0 })));
   } catch {
@@ -89,13 +92,15 @@ router.post("/", async (req, res) => {
     res.status(400).json({ error: "Validation error", details: parsed.error.issues });
     return;
   }
-  const { name, email, password, role, weeklyHours, calendarColor } = parsed.data;
+  const { name, email, password, role, weeklyHours, calendarColor, doesJobs } = parsed.data;
   try {
     const passwordHash = await bcrypt.hash(password, 10);
     const [user] = await db.insert(usersTable).values({
       name, email, passwordHash, role,
       weeklyHours: weeklyHours ?? null,
       calendarColor: calendarColor ?? null,
+      // Por defecto los mecánicos hacen trabajos; el admin solo si lo marca.
+      doesJobs: doesJobs ?? role === "mechanic",
     }).returning(USER_FIELDS);
     res.status(201).json(user);
   } catch (err: unknown) {
@@ -125,6 +130,7 @@ router.patch("/:id", async (req, res) => {
     if (data.role !== undefined) updates.role = data.role;
     if (data.weeklyHours !== undefined) updates.weeklyHours = data.weeklyHours;
     if (data.calendarColor !== undefined) updates.calendarColor = data.calendarColor;
+    if (data.doesJobs !== undefined) updates.doesJobs = data.doesJobs;
     if (data.active !== undefined) updates.active = data.active;
 
     const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, id)).returning(USER_FIELDS);
@@ -140,7 +146,8 @@ router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
-    await db.update(usersTable).set({ active: false, updatedAt: new Date() }).where(eq(usersTable.id, id));
+    const deleted = await db.update(usersTable).set({ active: false, updatedAt: new Date() }).where(eq(usersTable.id, id)).returning({ id: usersTable.id });
+    if (deleted.length === 0) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: "Internal server error" });

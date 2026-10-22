@@ -21,6 +21,7 @@ export const AuthUserRole = {
   admin: 'admin',
   mechanic: 'mechanic',
   reception: 'reception',
+  superadmin: 'superadmin',
 } as const;
 
 export interface AuthUser {
@@ -28,6 +29,13 @@ export interface AuthUser {
   name: string;
   email: string;
   role: AuthUserRole;
+  /**
+     * Taller de la sesión (null = superadmin sin taller elegido)
+     * @nullable
+     */
+  workshopId?: number | null;
+  /** @nullable */
+  workshopName?: string | null;
 }
 
 export type UserRole = typeof UserRole[keyof typeof UserRole];
@@ -48,6 +56,8 @@ export interface User {
   weeklyHours?: number | null;
   /** @nullable */
   calendarColor?: string | null;
+  /** Hace trabajos (se le asignan OT y cuenta para la capacidad) */
+  doesJobs?: boolean;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -71,6 +81,8 @@ export interface UserInput {
   weeklyHours?: number | null;
   /** @nullable */
   calendarColor?: string | null;
+  /** Hace trabajos (se le asignan OT y cuenta para la capacidad) */
+  doesJobs?: boolean;
 }
 
 export type UserUpdateRole = typeof UserUpdateRole[keyof typeof UserUpdateRole];
@@ -91,6 +103,8 @@ export interface UserUpdate {
   weeklyHours?: number | null;
   /** @nullable */
   calendarColor?: string | null;
+  /** Hace trabajos (se le asignan OT y cuenta para la capacidad) */
+  doesJobs?: boolean;
   active?: boolean;
 }
 
@@ -1006,6 +1020,18 @@ export interface WorkOrder {
   completedAt?: string | null;
   /** @nullable */
   deliveredAt?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  paymentMethodId?: number | null;
+  /** @nullable */
+  paymentMethodName?: string | null;
+  /** @nullable */
+  paidAmount?: number | null;
+  /** @nullable */
+  clientPhone?: string | null;
+  /** Adicionales que esperan la decisión del cliente */
+  pendingApprovalCount?: number;
   total: number;
   estimatedLaborHours: number;
   progressPercentage: number;
@@ -1180,6 +1206,14 @@ export type PublicWorkOrderBicycle = {
   rimSize?: string | null;
 } | null;
 
+export interface PublicWorkOrderPhoto {
+  id: number;
+  /** @nullable */
+  note?: string | null;
+  createdAt: string;
+  url: string;
+}
+
 export interface PublicWorkOrder {
   workshopName: string;
   /** @nullable */
@@ -1192,6 +1226,14 @@ export interface PublicWorkOrder {
   estimatedDeliveryDate?: string | null;
   /** @nullable */
   deliveredAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  paidAmount?: number | null;
+  /** @nullable */
+  workshopAddress?: string | null;
   clientName: string;
   /** @nullable */
   bicycle?: PublicWorkOrderBicycle;
@@ -1206,6 +1248,7 @@ export interface PublicWorkOrder {
   net: number;
   tax: number;
   pendingApprovalCount: number;
+  photos?: PublicWorkOrderPhoto[];
   timeline: PublicTimelineEntry[];
 }
 
@@ -1286,6 +1329,12 @@ export interface WorkOrderUpdateInput {
   priority?: WorkOrderUpdateInputPriority;
   /** @nullable */
   estimatedDeliveryDate?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  paymentMethodId?: number | null;
+  /** @nullable */
+  paidAmount?: number | null;
   /** @nullable */
   internalNotes?: string | null;
   /** @nullable */
@@ -1519,6 +1568,72 @@ export interface QuickCreateInput {
   items: QuickCreateItemInput[];
 }
 
+export interface WorkshopScheduleDay {
+  /** 0 = domingo … 6 = sábado */
+  day: number;
+  /** HH:MM */
+  open: string;
+  /** HH:MM */
+  close: string;
+}
+
+export type WorkshopSettingsScheduleItem = WorkshopScheduleDay & {
+  /** Horas de trabajo del día sin la colación */
+  netHours: number;
+};
+
+export interface WorkshopSettings {
+  name: string;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  address?: string | null;
+  schedule: WorkshopSettingsScheduleItem[];
+  /** @nullable */
+  lunchStart?: string | null;
+  /** @nullable */
+  lunchEnd?: string | null;
+  workdays: number[];
+  weeklyNetHours: number;
+}
+
+export interface WorkshopSettingsInput {
+  name: string;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  address?: string | null;
+  schedule: WorkshopScheduleDay[];
+  /** @nullable */
+  lunchStart?: string | null;
+  /** @nullable */
+  lunchEnd?: string | null;
+}
+
+export interface WorkOrderPhoto {
+  id: number;
+  workOrderId: number;
+  /** @nullable */
+  note?: string | null;
+  visibleToClient: boolean;
+  sizeBytes: number;
+  createdAt: string;
+  url: string;
+}
+
+export interface PlatformWorkshop {
+  id: number;
+  name: string;
+  active: boolean;
+  createdAt: string;
+  userCount: number;
+  workOrderCount: number;
+  openWorkOrderCount: number;
+  /** @nullable */
+  lastActivityAt?: string | null;
+  adminEmails: string[];
+}
+
 export interface QuickCreateResult {
   workCaseId: number;
   workCaseNumber: string;
@@ -1526,6 +1641,11 @@ export interface QuickCreateResult {
   receptionId: number;
   workOrderId: number;
   workOrderNumber: string;
+  /**
+     * Término estimado según la carga del taller
+     * @nullable
+     */
+  estimatedDeliveryDate?: string | null;
 }
 
 export type WorkCaseCommentInputCommentType = typeof WorkCaseCommentInputCommentType[keyof typeof WorkCaseCommentInputCommentType];
@@ -1621,6 +1741,45 @@ export const ListWorkOrdersStatus = {
   delivered: 'delivered',
   cancelled: 'cancelled',
 } as const;
+
+export type UpdateWorkOrderPhotoBody = {
+  /** @nullable */
+  note?: string | null;
+  visibleToClient?: boolean;
+};
+
+export type CreatePlatformWorkshopBody = {
+  name: string;
+  /** @nullable */
+  phone?: string | null;
+  adminName: string;
+  adminEmail: string;
+  adminPassword: string;
+};
+
+export type CreatePlatformWorkshop201 = {
+  id: number;
+  name: string;
+};
+
+export type UpdatePlatformWorkshopBody = {
+  name?: string;
+  active?: boolean;
+};
+
+export type PreviewWorkOrderEstimateBody = {
+  laborHours: number;
+  /** @nullable */
+  mechanicId?: number | null;
+};
+
+export type PreviewWorkOrderEstimate200 = {
+  date: string;
+  backlogHours: number;
+  jobHours: number;
+  dailyCapacityHours: number;
+  workdays: number;
+};
 
 export type CancelWorkOrderBody = {
   comment?: string;

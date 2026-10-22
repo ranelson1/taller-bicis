@@ -1,4 +1,4 @@
-import { Router } from "express";
+import express, { Router } from "express";
 import { db } from "@workspace/db";
 import {
   workOrdersTable,
@@ -10,6 +10,10 @@ import {
   clientsTable,
   bicyclesTable,
   usersTable,
+  servicesTable,
+  paymentMethodsTable,
+  workCasesTable,
+  workOrderPhotosTable,
   timelineEventsTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, gte, lte, desc, asc, count, inArray, isNull, not } from "drizzle-orm";
@@ -19,6 +23,8 @@ import { triggerWorkCaseRecalc, createWorkOrderFromQuoteInternal, recalcOTTotal,
 import {
   buildPublicWorkOrder, decideWorkOrderItem, ensurePublicToken, formatCLP, ItemDecisionError, logWorkOrderEvent, shareMessage,
 } from "../helpers/workOrderPublic";
+import { estimateCompletionDate } from "../helpers/completionEstimate";
+import { ALLOWED_TYPES, MAX_PHOTO_BYTES, deletePhotoFile, photoPath, savePhoto, sniffImageType } from "../helpers/photoStorage";
 
 const router = Router();
 router.use(requireAuth);
@@ -36,43 +42,54 @@ const WO_TRANSITIONS: Record<string, string[]> = {
   cancelled: [],
 };
 
+// Datos relacionados de varias OT con una consulta por tabla (no una por OT): la lista de un
+// taller con historial trae cientos de OT y todas sus consultas comparten la conexión del request.
+async function enrichWorkOrders(rows: (typeof workOrdersTable.$inferSelect)[]) {
+  if (rows.length === 0) return [];
+  const ids = (pick: (wo: typeof rows[number]) => number | null) =>
+    [...new Set(rows.map(pick).filter((x): x is number => x != null))];
+  const byId = async <T extends { id: number }>(list: number[], load: (ids: number[]) => Promise<T[]>) =>
+    new Map((list.length ? await load(list) : []).map(r => [r.id, r]));
+
+  const clients = await byId(ids(w => w.clientId), l => db.select({ id: clientsTable.id, name: clientsTable.name, phone: clientsTable.phone }).from(clientsTable).where(inArray(clientsTable.id, l)));
+  const bikes = await byId(ids(w => w.bicycleId), l => db.select({ id: bicyclesTable.id, brand: bicyclesTable.brand, model: bicyclesTable.model }).from(bicyclesTable).where(inArray(bicyclesTable.id, l)));
+  const mechanics = await byId(ids(w => w.mechanicId), l => db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable).where(inArray(usersTable.id, l)));
+  const quotes = await byId(ids(w => w.quoteId), l => db.select({ id: quotesTable.id, number: quotesTable.quoteNumber }).from(quotesTable).where(inArray(quotesTable.id, l)));
+  const receptions = await byId(ids(w => w.receptionId), l => db.select({ id: receptionsTable.id, number: receptionsTable.receptionNumber }).from(receptionsTable).where(inArray(receptionsTable.id, l)));
+  const methods = await byId(ids(w => w.paymentMethodId), l => db.select({ id: paymentMethodsTable.id, name: paymentMethodsTable.name }).from(paymentMethodsTable).where(inArray(paymentMethodsTable.id, l)));
+  const cases = await byId(ids(w => w.workCaseId), l => db.select({ id: workCasesTable.id, number: workCasesTable.workCaseNumber }).from(workCasesTable).where(inArray(workCasesTable.id, l)));
+  // Adicionales que esperan la decisión del cliente.
+  const pending = new Map((await db.select({ id: workOrderItemsTable.workOrderId, n: count() }).from(workOrderItemsTable).where(and(
+    inArray(workOrderItemsTable.workOrderId, rows.map(w => w.id)),
+    eq(workOrderItemsTable.active, true),
+    eq(workOrderItemsTable.approvalStatus, "pending"),
+    not(eq(workOrderItemsTable.status, "cancelled")),
+  )).groupBy(workOrderItemsTable.workOrderId)).map(r => [r.id, Number(r.n)]));
+
+  return rows.map(wo => {
+    const client = clients.get(wo.clientId);
+    const bike = bikes.get(wo.bicycleId);
+    return {
+      ...wo,
+      clientName: client?.name ?? null,
+      clientPhone: client?.phone ?? null,
+      paymentMethodName: wo.paymentMethodId ? methods.get(wo.paymentMethodId)?.name ?? null : null,
+      paidAmount: wo.paidAmount != null ? Number(wo.paidAmount) : null,
+      pendingApprovalCount: pending.get(wo.id) ?? 0,
+      bicycleName: bike ? `${bike.brand} ${bike.model}` : null,
+      mechanicName: wo.mechanicId ? mechanics.get(wo.mechanicId)?.name ?? null : null,
+      quoteNumber: wo.quoteId ? quotes.get(wo.quoteId)?.number ?? null : null,
+      receptionNumber: wo.receptionId ? receptions.get(wo.receptionId)?.number ?? null : null,
+      workCaseNumber: wo.workCaseId ? cases.get(wo.workCaseId)?.number ?? null : null,
+      total: wo.total ? Number(wo.total) : 0,
+      estimatedLaborHours: wo.estimatedLaborHours ? Number(wo.estimatedLaborHours) : 0,
+      progressPercentage: wo.progressPercentage ? Number(wo.progressPercentage) : 0,
+    };
+  });
+}
+
 async function enrichWorkOrder(wo: typeof workOrdersTable.$inferSelect) {
-  const [client] = await db.select({ name: clientsTable.name }).from(clientsTable).where(eq(clientsTable.id, wo.clientId));
-  const [bike] = await db.select({ brand: bicyclesTable.brand, model: bicyclesTable.model })
-    .from(bicyclesTable).where(eq(bicyclesTable.id, wo.bicycleId));
-  let mechanicName: string | null = null;
-  if (wo.mechanicId) {
-    const [mech] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, wo.mechanicId));
-    mechanicName = mech?.name ?? null;
-  }
-  let quoteNumber: string | null = null;
-  if (wo.quoteId) {
-    const [q] = await db.select({ quoteNumber: quotesTable.quoteNumber }).from(quotesTable).where(eq(quotesTable.id, wo.quoteId));
-    quoteNumber = q?.quoteNumber ?? null;
-  }
-  let receptionNumber: string | null = null;
-  if (wo.receptionId) {
-    const [r] = await db.select({ receptionNumber: receptionsTable.receptionNumber }).from(receptionsTable).where(eq(receptionsTable.id, wo.receptionId));
-    receptionNumber = r?.receptionNumber ?? null;
-  }
-  let workCaseNumber: string | null = null;
-  if (wo.workCaseId) {
-    const { workCasesTable: wct } = await import("@workspace/db");
-    const [wc] = await db.select({ workCaseNumber: wct.workCaseNumber }).from(wct).where(eq(wct.id, wo.workCaseId));
-    workCaseNumber = wc?.workCaseNumber ?? null;
-  }
-  return {
-    ...wo,
-    clientName: client?.name ?? null,
-    bicycleName: bike ? `${bike.brand} ${bike.model}` : null,
-    mechanicName,
-    quoteNumber,
-    receptionNumber,
-    workCaseNumber,
-    total: wo.total ? Number(wo.total) : 0,
-    estimatedLaborHours: wo.estimatedLaborHours ? Number(wo.estimatedLaborHours) : 0,
-    progressPercentage: wo.progressPercentage ? Number(wo.progressPercentage) : 0,
-  };
+  return (await enrichWorkOrders([wo]))[0];
 }
 
 async function logEvent(entityId: number, action: string, userId: number | null, previousStatus?: string, newStatus?: string, comment?: string) {
@@ -349,14 +366,17 @@ router.get("/", async (req, res) => {
       )
       .orderBy(desc(workOrdersTable.createdAt));
 
-    const enriched = await Promise.all(rows.map(enrichWorkOrder));
+    const enriched = await enrichWorkOrders(rows);
 
-    // Filter by search (client name, bicycle name, work order number)
-    const filtered = search
+    // Filter by search (work order number, client name or phone, bicycle name)
+    const q = search?.toLowerCase().trim() ?? "";
+    const qDigits = q.replace(/\D/g, "");
+    const filtered = q
       ? enriched.filter(wo =>
-          wo.workOrderNumber.toLowerCase().includes(search.toLowerCase()) ||
-          (wo.clientName ?? "").toLowerCase().includes(search.toLowerCase()) ||
-          (wo.bicycleName ?? "").toLowerCase().includes(search.toLowerCase())
+          wo.workOrderNumber.toLowerCase().includes(q) ||
+          (wo.clientName ?? "").toLowerCase().includes(q) ||
+          (wo.bicycleName ?? "").toLowerCase().includes(q) ||
+          (qDigits.length >= 3 && (wo.clientPhone ?? "").replace(/\D/g, "").includes(qDigits))
         )
       : enriched;
 
@@ -414,6 +434,9 @@ router.patch("/:id", async (req, res) => {
     mechanicId: z.number().int().nullable().optional(),
     priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
     estimatedDeliveryDate: z.string().nullable().optional(),
+    paidAt: z.string().nullable().optional(),
+    paymentMethodId: z.number().int().positive().nullable().optional(),
+    paidAmount: z.number().min(0).nullable().optional(),
     internalNotes: z.string().nullable().optional(),
     customerNotes: z.string().nullable().optional(),
   });
@@ -423,6 +446,7 @@ router.patch("/:id", async (req, res) => {
     res.status(400).json({ error: "Invalid input" });
     return;
   }
+  const userId = (req.session as any)?.userId ?? null;
 
   try {
     const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, id));
@@ -437,10 +461,220 @@ router.patch("/:id", async (req, res) => {
     if (parsed.data.estimatedDeliveryDate !== undefined) {
       updates.estimatedDeliveryDate = parsed.data.estimatedDeliveryDate ? new Date(parsed.data.estimatedDeliveryDate) : null;
     }
+    if (parsed.data.paidAt !== undefined) {
+      updates.paidAt = parsed.data.paidAt ? new Date(parsed.data.paidAt) : null;
+      // Anular el pago borra también su método y monto.
+      if (!parsed.data.paidAt) { updates.paymentMethodId = null; updates.paidAmount = null; }
+    }
+    if (parsed.data.paidAt && parsed.data.paymentMethodId !== undefined) updates.paymentMethodId = parsed.data.paymentMethodId;
+    if (parsed.data.paidAt && parsed.data.paidAmount !== undefined) {
+      updates.paidAmount = parsed.data.paidAmount != null ? String(parsed.data.paidAmount) : null;
+    }
     if (parsed.data.internalNotes !== undefined) updates.internalNotes = parsed.data.internalNotes;
     if (parsed.data.customerNotes !== undefined) updates.customerNotes = parsed.data.customerNotes;
 
     const [updated] = await db.update(workOrdersTable).set(updates).where(eq(workOrdersTable.id, id)).returning();
+    if (parsed.data.paidAt !== undefined && Boolean(wo.paidAt) !== Boolean(updated.paidAt)) {
+      const enrichedPaid = await enrichWorkOrder(updated);
+      const detail = updated.paidAt
+        ? [enrichedPaid.paymentMethodName, updated.paidAmount != null ? formatCLP(Number(updated.paidAmount)) : null].filter(Boolean).join(" · ") || undefined
+        : undefined;
+      await logEvent(id, updated.paidAt ? "payment_registered" : "payment_removed", userId, undefined, undefined, detail);
+    }
+    res.json(await enrichWorkOrder(updated));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── Fotos de la OT ────────────────────────────────────────────────────────────
+// El celular sube cada foto ya reducida como cuerpo binario (image/jpeg|png|webp).
+
+const photoView = (p: typeof workOrderPhotosTable.$inferSelect) => ({
+  id: p.id,
+  workOrderId: p.workOrderId,
+  note: p.note,
+  visibleToClient: p.visibleToClient,
+  sizeBytes: p.sizeBytes,
+  createdAt: p.createdAt.toISOString(),
+  url: `/api/work-orders/${p.workOrderId}/photos/${p.id}/file`,
+});
+
+router.get("/:id/photos", async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const photos = await db.select().from(workOrderPhotosTable)
+      .where(and(eq(workOrderPhotosTable.workOrderId, id), eq(workOrderPhotosTable.active, true)))
+      .orderBy(asc(workOrderPhotosTable.createdAt));
+    res.json(photos.map(photoView));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/photos",
+  express.raw({ type: Object.keys(ALLOWED_TYPES), limit: MAX_PHOTO_BYTES }),
+  async (req, res) => {
+    const id = parseInt(req.params.id);
+    const userId = (req.session as any)?.userId ?? null;
+    const body = req.body as Buffer;
+    if (!Buffer.isBuffer(body) || body.length === 0) {
+      res.status(400).json({ error: "Envía una imagen JPG, PNG o WebP" });
+      return;
+    }
+    const mimeType = sniffImageType(body);
+    if (!mimeType) {
+      res.status(400).json({ error: "El archivo no es una imagen válida" });
+      return;
+    }
+    const note = typeof req.query.note === "string" ? req.query.note.trim().slice(0, 500) || null : null;
+    try {
+      const [wo] = await db.select({ id: workOrdersTable.id, workshopId: workOrdersTable.workshopId }).from(workOrdersTable).where(eq(workOrdersTable.id, id));
+      if (!wo) { res.status(404).json({ error: "Orden de trabajo no encontrada" }); return; }
+      const storageKey = await savePhoto(wo.workshopId, id, body, mimeType);
+      const [photo] = await db.insert(workOrderPhotosTable).values({
+        workOrderId: id, storageKey, mimeType, sizeBytes: body.length, note, uploadedByUserId: userId,
+      }).returning();
+      await logEvent(id, "photo_added", userId, undefined, undefined, note ?? undefined);
+      res.status(201).json(photoView(photo));
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+router.patch("/:id/photos/:photoId", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const photoId = parseInt(req.params.photoId);
+  const parsed = z.object({
+    note: z.string().max(500).nullable().optional(),
+    visibleToClient: z.boolean().optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  try {
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (parsed.data.note !== undefined) updates.note = parsed.data.note?.trim() || null;
+    if (parsed.data.visibleToClient !== undefined) updates.visibleToClient = parsed.data.visibleToClient;
+    const [photo] = await db.update(workOrderPhotosTable).set(updates)
+      .where(and(eq(workOrderPhotosTable.id, photoId), eq(workOrderPhotosTable.workOrderId, id), eq(workOrderPhotosTable.active, true)))
+      .returning();
+    if (!photo) { res.status(404).json({ error: "Foto no encontrada" }); return; }
+    res.json(photoView(photo));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:id/photos/:photoId", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const photoId = parseInt(req.params.photoId);
+  const userId = (req.session as any)?.userId ?? null;
+  try {
+    const [photo] = await db.update(workOrderPhotosTable).set({ active: false, updatedAt: new Date() })
+      .where(and(eq(workOrderPhotosTable.id, photoId), eq(workOrderPhotosTable.workOrderId, id), eq(workOrderPhotosTable.active, true)))
+      .returning();
+    if (!photo) { res.status(404).json({ error: "Foto no encontrada" }); return; }
+    await deletePhotoFile(photo.storageKey);
+    await logEvent(id, "photo_deleted", userId, undefined, undefined, photo.note ?? undefined);
+    res.json(photoView(photo));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/photos/:photoId/file", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const photoId = parseInt(req.params.photoId);
+  try {
+    const [photo] = await db.select().from(workOrderPhotosTable)
+      .where(and(eq(workOrderPhotosTable.id, photoId), eq(workOrderPhotosTable.workOrderId, id), eq(workOrderPhotosTable.active, true)));
+    if (!photo) { res.status(404).end(); return; }
+    res.type(photo.mimeType).set("Cache-Control", "private, no-cache").sendFile(photoPath(photo.storageKey));
+  } catch (e) {
+    console.error(e);
+    res.status(500).end();
+  }
+});
+
+// ── POST /work-orders/estimate-preview ────────────────────────────────────────
+// Término estimado de un trabajo que aún no se crea (Nuevo trabajo). No guarda nada.
+router.post("/estimate-preview", async (req, res) => {
+  const parsed = z.object({
+    laborHours: z.number().min(0),
+    mechanicId: z.number().int().positive().nullable().optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid input" });
+    return;
+  }
+  try {
+    const e = await estimateCompletionDate(db, parsed.data);
+    res.json({
+      date: e.date.toISOString(),
+      backlogHours: Math.round(e.backlogHours * 10) / 10,
+      jobHours: e.jobHours,
+      dailyCapacityHours: Math.round(e.dailyCapacityHours * 10) / 10,
+      workdays: e.workdays,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ── POST /work-orders/:id/estimate ────────────────────────────────────────────
+// Recalcula el término estimado según la carga actual del taller (excluyendo esta OT).
+router.post("/:id/estimate", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const userId = (req.session as any)?.userId ?? null;
+  try {
+    const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, id));
+    if (!wo) {
+      res.status(404).json({ error: "Orden de trabajo no encontrada" });
+      return;
+    }
+    if (wo.status === "delivered" || wo.status === "cancelled" || wo.completedAt) {
+      res.status(400).json({ error: "La orden ya está terminada" });
+      return;
+    }
+
+    // Horas de lo que falta: ítems aprobados no cancelados ni descuentos, descontando el avance.
+    const items = await db.select().from(workOrderItemsTable)
+      .where(and(eq(workOrderItemsTable.workOrderId, id), eq(workOrderItemsTable.active, true)));
+    const billable = items.filter(i => i.approvalStatus === "approved" && i.status !== "cancelled" && i.itemType !== "discount");
+    // Ítems sin horas (OT antiguas): se usan las del servicio de catálogo del que vienen o,
+    // si no quedó el vínculo, las del servicio con el mismo nombre.
+    const missing = billable.filter(i => i.estimatedLaborHours == null && i.quoteItemId).map(i => i.quoteItemId!);
+    const hoursByQuoteItem = new Map((missing.length === 0 ? [] : await db
+      .select({ quoteItemId: quoteItemsTable.id, hours: servicesTable.estimatedHours })
+      .from(quoteItemsTable)
+      .innerJoin(servicesTable, eq(servicesTable.id, quoteItemsTable.serviceId))
+      .where(inArray(quoteItemsTable.id, missing)))
+      .map(r => [r.quoteItemId, Number(r.hours ?? 0)]));
+    const hoursByName = new Map((await db
+      .select({ name: servicesTable.name, hours: servicesTable.estimatedHours })
+      .from(servicesTable).where(eq(servicesTable.active, true)))
+      .map(s => [s.name.trim().toLowerCase(), Number(s.hours ?? 0)]));
+    const itemHours = (i: typeof billable[number]) => {
+      if (i.estimatedLaborHours != null) return Number(i.estimatedLaborHours);
+      const perUnit = hoursByQuoteItem.get(i.quoteItemId ?? -1)
+        ?? (i.itemType === "service" ? hoursByName.get(i.description.trim().toLowerCase()) : undefined) ?? 0;
+      return perUnit * Number(i.quantity);
+    };
+    const hours = billable.reduce((s, i) => s + itemHours(i), 0);
+    const remaining = hours * (1 - Number(wo.progressPercentage ?? 0) / 100);
+
+    const estimate = await estimateCompletionDate(db, { laborHours: remaining, mechanicId: wo.mechanicId, excludeWorkOrderId: id });
+    const [updated] = await db.update(workOrdersTable)
+      .set({ estimatedDeliveryDate: estimate.date, updatedAt: new Date() })
+      .where(eq(workOrdersTable.id, id))
+      .returning();
+    await logEvent(id, "estimate_recalculated", userId, undefined, undefined,
+      `${estimate.date.toLocaleDateString("es-CL")} · ${estimate.backlogHours.toFixed(1)} h en cola + ${estimate.jobHours.toFixed(1)} h de este trabajo`);
     res.json(await enrichWorkOrder(updated));
   } catch (e) {
     console.error(e);
@@ -476,9 +710,17 @@ router.post("/:id/status", async (req, res) => {
       res.status(400).json({ error: `No se puede pasar de "${wo.status}" a "${target}"` });
       return;
     }
+    // Iniciar sin mecánico: lo toma quien aprieta el botón si hace trabajos, o el único que los hace
+    // (taller de una persona). Solo se pide elegir cuando hay varios.
+    let assignedMechanicId: number | null = null;
     if (target === "in_progress" && !wo.mechanicId) {
-      res.status(400).json({ error: "Debes asignar un mecánico antes de iniciar el trabajo." });
-      return;
+      const workers = await db.select({ id: usersTable.id }).from(usersTable)
+        .where(and(eq(usersTable.active, true), eq(usersTable.doesJobs, true)));
+      assignedMechanicId = workers.find(w => w.id === userId)?.id ?? (workers.length === 1 ? workers[0].id : null);
+      if (!assignedMechanicId) {
+        res.status(400).json({ error: "Debes asignar un mecánico antes de iniciar el trabajo." });
+        return;
+      }
     }
 
     const now = new Date();
@@ -504,7 +746,10 @@ router.post("/:id/status", async (req, res) => {
 
     const updates: any = { status: parsed.data.status, updatedAt: now };
     if (parsed.data.status === "in_progress" && !wo.startedAt) updates.startedAt = now;
+    if (assignedMechanicId) updates.mechanicId = assignedMechanicId;
     if (parsed.data.status === "ready_for_pickup") updates.completedAt = now;
+    // Volver a trabajar una OT terminada: el término real será cuando vuelva a quedar lista.
+    if (["ready_to_work", "in_progress", "quality_control"].includes(parsed.data.status)) updates.completedAt = null;
     if (parsed.data.status === "delivered") updates.deliveredAt = now;
 
     await db.update(workOrdersTable).set(updates).where(eq(workOrdersTable.id, id));
@@ -816,7 +1061,7 @@ router.post("/:id/share", async (req, res) => {
     res.json({
       token,
       path: `/ot/${token}`,
-      message: shareMessage(wo, view.clientName, view.pendingApprovalCount),
+      message: shareMessage(wo, view.clientName, view.pendingApprovalCount, view.workshopName),
       clientPhone: client?.phone ?? null,
     });
   } catch (e) {
@@ -882,7 +1127,14 @@ router.post("/:id/items/:itemId/cancel", async (req, res) => {
       .set({ status: "cancelled", updatedAt: new Date() })
       .where(eq(workOrderItemsTable.id, itemId))
       .returning();
-    await logEvent(workOrderId, "item_cancelled", userId, item.status, "cancelled");
+    // Sus pasos del checklist ya no se harán: no deben frenar el avance.
+    await db.update(workOrderChecklistItemsTable)
+      .set({ status: "not_applicable", updatedAt: new Date() })
+      .where(and(
+        eq(workOrderChecklistItemsTable.workOrderItemId, itemId),
+        not(inArray(workOrderChecklistItemsTable.status, ["completed", "with_observation", "not_applicable"] as const)),
+      ));
+    await logEvent(workOrderId, "item_cancelled", userId, item.status, "cancelled", item.description);
     await recalcProgress(workOrderId);
     await recalcOTTotal(workOrderId, userId);
     res.json({ ...updated, quantity: Number(updated.quantity), unitPrice: Number(updated.unitPrice), total: Number(updated.total) });

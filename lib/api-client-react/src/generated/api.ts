@@ -34,6 +34,8 @@ import type {
   ClientInput,
   ClientUpdate,
   ClientWithCount,
+  CreatePlatformWorkshop201,
+  CreatePlatformWorkshopBody,
   DashboardSummary,
   DeleteWorkCase200,
   HealthStatus,
@@ -56,6 +58,9 @@ import type {
   PaymentMethod,
   PaymentMethodInput,
   PaymentMethodUpdate,
+  PlatformWorkshop,
+  PreviewWorkOrderEstimate200,
+  PreviewWorkOrderEstimateBody,
   PublicWorkOrder,
   QuickCreateInput,
   QuickCreateResult,
@@ -84,7 +89,9 @@ import type {
   ServiceWithCount,
   ServiceWithSteps,
   TimelineEvent,
+  UpdatePlatformWorkshopBody,
   UpdateWorkOrderItemBody,
+  UpdateWorkOrderPhotoBody,
   User,
   UserCapacity,
   UserInput,
@@ -99,10 +106,13 @@ import type {
   WorkOrderCreateInput,
   WorkOrderItem,
   WorkOrderItemInput,
+  WorkOrderPhoto,
   WorkOrderShare,
   WorkOrderStatusInput,
   WorkOrderUpdateInput,
-  WorkOrderWithDetails
+  WorkOrderWithDetails,
+  WorkshopSettings,
+  WorkshopSettingsInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -6491,6 +6501,873 @@ export const useUpdateWorkOrderStatus = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateWorkOrderStatusMutationOptions(options));
+    }
+
+export const getGetWorkshopSettingsUrl = () => {
+
+
+
+
+  return `/api/settings`
+}
+
+/**
+ * @summary Datos del taller
+ */
+export const getWorkshopSettings = async ( options?: RequestInit): Promise<WorkshopSettings> => {
+
+  return customFetch<WorkshopSettings>(getGetWorkshopSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkshopSettingsQueryKey = () => {
+    return [
+    `/api/settings`
+    ] as const;
+    }
+
+
+export const getGetWorkshopSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getWorkshopSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkshopSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkshopSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkshopSettings>>> = ({ signal }) => getWorkshopSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkshopSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkshopSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkshopSettings>>>
+export type GetWorkshopSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Datos del taller
+ */
+
+export function useGetWorkshopSettings<TData = Awaited<ReturnType<typeof getWorkshopSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkshopSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkshopSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateWorkshopSettingsUrl = () => {
+
+
+
+
+  return `/api/settings`
+}
+
+/**
+ * @summary Guarda los datos del taller (solo admin)
+ */
+export const updateWorkshopSettings = async (workshopSettingsInput: WorkshopSettingsInput, options?: RequestInit): Promise<WorkshopSettings> => {
+
+  return customFetch<WorkshopSettings>(getUpdateWorkshopSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(workshopSettingsInput)
+  }
+);}
+
+
+
+
+export const getUpdateWorkshopSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopSettings>>, TError,{data: BodyType<WorkshopSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopSettings>>, TError,{data: BodyType<WorkshopSettingsInput>}, TContext> => {
+
+const mutationKey = ['updateWorkshopSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWorkshopSettings>>, {data: BodyType<WorkshopSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateWorkshopSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWorkshopSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateWorkshopSettings>>>
+    export type UpdateWorkshopSettingsMutationBody = BodyType<WorkshopSettingsInput>
+    export type UpdateWorkshopSettingsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Guarda los datos del taller (solo admin)
+ */
+export const useUpdateWorkshopSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopSettings>>, TError,{data: BodyType<WorkshopSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWorkshopSettings>>,
+        TError,
+        {data: BodyType<WorkshopSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateWorkshopSettingsMutationOptions(options));
+    }
+
+export const getListWorkOrderPhotosUrl = (id: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/photos`
+}
+
+/**
+ * @summary Fotos de la OT
+ */
+export const listWorkOrderPhotos = async (id: number, options?: RequestInit): Promise<WorkOrderPhoto[]> => {
+
+  return customFetch<WorkOrderPhoto[]>(getListWorkOrderPhotosUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWorkOrderPhotosQueryKey = (id: number,) => {
+    return [
+    `/api/work-orders/${id}/photos`
+    ] as const;
+    }
+
+
+export const getListWorkOrderPhotosQueryOptions = <TData = Awaited<ReturnType<typeof listWorkOrderPhotos>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWorkOrderPhotos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWorkOrderPhotosQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkOrderPhotos>>> = ({ signal }) => listWorkOrderPhotos(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWorkOrderPhotos>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWorkOrderPhotosQueryResult = NonNullable<Awaited<ReturnType<typeof listWorkOrderPhotos>>>
+export type ListWorkOrderPhotosQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Fotos de la OT
+ */
+
+export function useListWorkOrderPhotos<TData = Awaited<ReturnType<typeof listWorkOrderPhotos>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWorkOrderPhotos>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWorkOrderPhotosQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateWorkOrderPhotoUrl = (id: number,
+    photoId: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/photos/${photoId}`
+}
+
+/**
+ * @summary Cambia la nota o la visibilidad de una foto
+ */
+export const updateWorkOrderPhoto = async (id: number,
+    photoId: number,
+    updateWorkOrderPhotoBody: UpdateWorkOrderPhotoBody, options?: RequestInit): Promise<WorkOrderPhoto> => {
+
+  return customFetch<WorkOrderPhoto>(getUpdateWorkOrderPhotoUrl(id,photoId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateWorkOrderPhotoBody)
+  }
+);}
+
+
+
+
+export const getUpdateWorkOrderPhotoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkOrderPhoto>>, TError,{id: number;photoId: number;data: BodyType<UpdateWorkOrderPhotoBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWorkOrderPhoto>>, TError,{id: number;photoId: number;data: BodyType<UpdateWorkOrderPhotoBody>}, TContext> => {
+
+const mutationKey = ['updateWorkOrderPhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWorkOrderPhoto>>, {id: number;photoId: number;data: BodyType<UpdateWorkOrderPhotoBody>}> = (props) => {
+          const {id,photoId,data} = props ?? {};
+
+          return  updateWorkOrderPhoto(id,photoId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWorkOrderPhotoMutationResult = NonNullable<Awaited<ReturnType<typeof updateWorkOrderPhoto>>>
+    export type UpdateWorkOrderPhotoMutationBody = BodyType<UpdateWorkOrderPhotoBody>
+    export type UpdateWorkOrderPhotoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Cambia la nota o la visibilidad de una foto
+ */
+export const useUpdateWorkOrderPhoto = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkOrderPhoto>>, TError,{id: number;photoId: number;data: BodyType<UpdateWorkOrderPhotoBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWorkOrderPhoto>>,
+        TError,
+        {id: number;photoId: number;data: BodyType<UpdateWorkOrderPhotoBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateWorkOrderPhotoMutationOptions(options));
+    }
+
+export const getDeleteWorkOrderPhotoUrl = (id: number,
+    photoId: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/photos/${photoId}`
+}
+
+/**
+ * @summary Elimina una foto
+ */
+export const deleteWorkOrderPhoto = async (id: number,
+    photoId: number, options?: RequestInit): Promise<WorkOrderPhoto> => {
+
+  return customFetch<WorkOrderPhoto>(getDeleteWorkOrderPhotoUrl(id,photoId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteWorkOrderPhotoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWorkOrderPhoto>>, TError,{id: number;photoId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteWorkOrderPhoto>>, TError,{id: number;photoId: number}, TContext> => {
+
+const mutationKey = ['deleteWorkOrderPhoto'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWorkOrderPhoto>>, {id: number;photoId: number}> = (props) => {
+          const {id,photoId} = props ?? {};
+
+          return  deleteWorkOrderPhoto(id,photoId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteWorkOrderPhotoMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWorkOrderPhoto>>>
+
+    export type DeleteWorkOrderPhotoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Elimina una foto
+ */
+export const useDeleteWorkOrderPhoto = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWorkOrderPhoto>>, TError,{id: number;photoId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteWorkOrderPhoto>>,
+        TError,
+        {id: number;photoId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteWorkOrderPhotoMutationOptions(options));
+    }
+
+export const getListPlatformWorkshopsUrl = () => {
+
+
+
+
+  return `/api/platform/workshops`
+}
+
+/**
+ * @summary Talleres de la plataforma (solo superadmin)
+ */
+export const listPlatformWorkshops = async ( options?: RequestInit): Promise<PlatformWorkshop[]> => {
+
+  return customFetch<PlatformWorkshop[]>(getListPlatformWorkshopsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlatformWorkshopsQueryKey = () => {
+    return [
+    `/api/platform/workshops`
+    ] as const;
+    }
+
+
+export const getListPlatformWorkshopsQueryOptions = <TData = Awaited<ReturnType<typeof listPlatformWorkshops>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformWorkshops>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlatformWorkshopsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlatformWorkshops>>> = ({ signal }) => listPlatformWorkshops({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlatformWorkshops>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlatformWorkshopsQueryResult = NonNullable<Awaited<ReturnType<typeof listPlatformWorkshops>>>
+export type ListPlatformWorkshopsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Talleres de la plataforma (solo superadmin)
+ */
+
+export function useListPlatformWorkshops<TData = Awaited<ReturnType<typeof listPlatformWorkshops>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformWorkshops>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlatformWorkshopsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePlatformWorkshopUrl = () => {
+
+
+
+
+  return `/api/platform/workshops`
+}
+
+/**
+ * @summary Crea un taller con su primer administrador (solo superadmin)
+ */
+export const createPlatformWorkshop = async (createPlatformWorkshopBody: CreatePlatformWorkshopBody, options?: RequestInit): Promise<CreatePlatformWorkshop201> => {
+
+  return customFetch<CreatePlatformWorkshop201>(getCreatePlatformWorkshopUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createPlatformWorkshopBody)
+  }
+);}
+
+
+
+
+export const getCreatePlatformWorkshopMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformWorkshop>>, TError,{data: BodyType<CreatePlatformWorkshopBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPlatformWorkshop>>, TError,{data: BodyType<CreatePlatformWorkshopBody>}, TContext> => {
+
+const mutationKey = ['createPlatformWorkshop'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPlatformWorkshop>>, {data: BodyType<CreatePlatformWorkshopBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPlatformWorkshop(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePlatformWorkshopMutationResult = NonNullable<Awaited<ReturnType<typeof createPlatformWorkshop>>>
+    export type CreatePlatformWorkshopMutationBody = BodyType<CreatePlatformWorkshopBody>
+    export type CreatePlatformWorkshopMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Crea un taller con su primer administrador (solo superadmin)
+ */
+export const useCreatePlatformWorkshop = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformWorkshop>>, TError,{data: BodyType<CreatePlatformWorkshopBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPlatformWorkshop>>,
+        TError,
+        {data: BodyType<CreatePlatformWorkshopBody>},
+        TContext
+      > => {
+      return useMutation(getCreatePlatformWorkshopMutationOptions(options));
+    }
+
+export const getUpdatePlatformWorkshopUrl = (id: number,) => {
+
+
+
+
+  return `/api/platform/workshops/${id}`
+}
+
+/**
+ * @summary Renombra o activa/desactiva un taller (solo superadmin)
+ */
+export const updatePlatformWorkshop = async (id: number,
+    updatePlatformWorkshopBody: UpdatePlatformWorkshopBody, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getUpdatePlatformWorkshopUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updatePlatformWorkshopBody)
+  }
+);}
+
+
+
+
+export const getUpdatePlatformWorkshopMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformWorkshop>>, TError,{id: number;data: BodyType<UpdatePlatformWorkshopBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlatformWorkshop>>, TError,{id: number;data: BodyType<UpdatePlatformWorkshopBody>}, TContext> => {
+
+const mutationKey = ['updatePlatformWorkshop'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlatformWorkshop>>, {id: number;data: BodyType<UpdatePlatformWorkshopBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePlatformWorkshop(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlatformWorkshopMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlatformWorkshop>>>
+    export type UpdatePlatformWorkshopMutationBody = BodyType<UpdatePlatformWorkshopBody>
+    export type UpdatePlatformWorkshopMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Renombra o activa/desactiva un taller (solo superadmin)
+ */
+export const useUpdatePlatformWorkshop = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformWorkshop>>, TError,{id: number;data: BodyType<UpdatePlatformWorkshopBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlatformWorkshop>>,
+        TError,
+        {id: number;data: BodyType<UpdatePlatformWorkshopBody>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlatformWorkshopMutationOptions(options));
+    }
+
+export const getEnterPlatformWorkshopUrl = (id: number,) => {
+
+
+
+
+  return `/api/platform/workshops/${id}/enter`
+}
+
+/**
+ * @summary El superadmin entra a un taller para dar soporte
+ */
+export const enterPlatformWorkshop = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getEnterPlatformWorkshopUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getEnterPlatformWorkshopMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enterPlatformWorkshop>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof enterPlatformWorkshop>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['enterPlatformWorkshop'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof enterPlatformWorkshop>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  enterPlatformWorkshop(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EnterPlatformWorkshopMutationResult = NonNullable<Awaited<ReturnType<typeof enterPlatformWorkshop>>>
+
+    export type EnterPlatformWorkshopMutationError = ErrorType<unknown>
+
+    /**
+ * @summary El superadmin entra a un taller para dar soporte
+ */
+export const useEnterPlatformWorkshop = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof enterPlatformWorkshop>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof enterPlatformWorkshop>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getEnterPlatformWorkshopMutationOptions(options));
+    }
+
+export const getExitPlatformWorkshopUrl = () => {
+
+
+
+
+  return `/api/platform/exit`
+}
+
+/**
+ * @summary El superadmin sale del taller en que estaba
+ */
+export const exitPlatformWorkshop = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getExitPlatformWorkshopUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getExitPlatformWorkshopMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exitPlatformWorkshop>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof exitPlatformWorkshop>>, TError,void, TContext> => {
+
+const mutationKey = ['exitPlatformWorkshop'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof exitPlatformWorkshop>>, void> = () => {
+
+
+          return  exitPlatformWorkshop(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExitPlatformWorkshopMutationResult = NonNullable<Awaited<ReturnType<typeof exitPlatformWorkshop>>>
+
+    export type ExitPlatformWorkshopMutationError = ErrorType<unknown>
+
+    /**
+ * @summary El superadmin sale del taller en que estaba
+ */
+export const useExitPlatformWorkshop = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exitPlatformWorkshop>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof exitPlatformWorkshop>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getExitPlatformWorkshopMutationOptions(options));
+    }
+
+export const getPreviewWorkOrderEstimateUrl = () => {
+
+
+
+
+  return `/api/work-orders/estimate-preview`
+}
+
+/**
+ * @summary Término estimado de un trabajo aún no creado (no guarda nada)
+ */
+export const previewWorkOrderEstimate = async (previewWorkOrderEstimateBody: PreviewWorkOrderEstimateBody, options?: RequestInit): Promise<PreviewWorkOrderEstimate200> => {
+
+  return customFetch<PreviewWorkOrderEstimate200>(getPreviewWorkOrderEstimateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(previewWorkOrderEstimateBody)
+  }
+);}
+
+
+
+
+export const getPreviewWorkOrderEstimateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewWorkOrderEstimate>>, TError,{data: BodyType<PreviewWorkOrderEstimateBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewWorkOrderEstimate>>, TError,{data: BodyType<PreviewWorkOrderEstimateBody>}, TContext> => {
+
+const mutationKey = ['previewWorkOrderEstimate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewWorkOrderEstimate>>, {data: BodyType<PreviewWorkOrderEstimateBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewWorkOrderEstimate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewWorkOrderEstimateMutationResult = NonNullable<Awaited<ReturnType<typeof previewWorkOrderEstimate>>>
+    export type PreviewWorkOrderEstimateMutationBody = BodyType<PreviewWorkOrderEstimateBody>
+    export type PreviewWorkOrderEstimateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Término estimado de un trabajo aún no creado (no guarda nada)
+ */
+export const usePreviewWorkOrderEstimate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewWorkOrderEstimate>>, TError,{data: BodyType<PreviewWorkOrderEstimateBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewWorkOrderEstimate>>,
+        TError,
+        {data: BodyType<PreviewWorkOrderEstimateBody>},
+        TContext
+      > => {
+      return useMutation(getPreviewWorkOrderEstimateMutationOptions(options));
+    }
+
+export const getEstimateWorkOrderCompletionUrl = (id: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/estimate`
+}
+
+/**
+ * @summary Recalcula el término estimado según la carga actual del taller
+ */
+export const estimateWorkOrderCompletion = async (id: number, options?: RequestInit): Promise<WorkOrder> => {
+
+  return customFetch<WorkOrder>(getEstimateWorkOrderCompletionUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getEstimateWorkOrderCompletionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof estimateWorkOrderCompletion>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof estimateWorkOrderCompletion>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['estimateWorkOrderCompletion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof estimateWorkOrderCompletion>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  estimateWorkOrderCompletion(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EstimateWorkOrderCompletionMutationResult = NonNullable<Awaited<ReturnType<typeof estimateWorkOrderCompletion>>>
+
+    export type EstimateWorkOrderCompletionMutationError = ErrorType<void>
+
+    /**
+ * @summary Recalcula el término estimado según la carga actual del taller
+ */
+export const useEstimateWorkOrderCompletion = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof estimateWorkOrderCompletion>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof estimateWorkOrderCompletion>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getEstimateWorkOrderCompletionMutationOptions(options));
     }
 
 export const getCancelWorkOrderUrl = (id: number,) => {

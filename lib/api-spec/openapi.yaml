@@ -1851,6 +1851,272 @@ paths:
               schema:
                 $ref: "#/components/schemas/WorkOrder"
 
+  /settings:
+    get:
+      operationId: getWorkshopSettings
+      tags: [settings]
+      summary: Datos del taller
+      responses:
+        "200":
+          description: Configuración
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkshopSettings"
+    put:
+      operationId: updateWorkshopSettings
+      tags: [settings]
+      summary: Guarda los datos del taller (solo admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkshopSettingsInput"
+      responses:
+        "200":
+          description: Configuración guardada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkshopSettings"
+
+  /work-orders/{id}/photos:
+    get:
+      operationId: listWorkOrderPhotos
+      tags: [workOrders]
+      summary: Fotos de la OT
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Fotos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrderPhoto"
+
+  /work-orders/{id}/photos/{photoId}:
+    patch:
+      operationId: updateWorkOrderPhoto
+      tags: [workOrders]
+      summary: Cambia la nota o la visibilidad de una foto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: ["string", "null"]
+                visibleToClient:
+                  type: boolean
+      responses:
+        "200":
+          description: Foto actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderPhoto"
+    delete:
+      operationId: deleteWorkOrderPhoto
+      tags: [workOrders]
+      summary: Elimina una foto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Foto eliminada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderPhoto"
+
+  /platform/workshops:
+    get:
+      operationId: listPlatformWorkshops
+      tags: [platform]
+      summary: Talleres de la plataforma (solo superadmin)
+      responses:
+        "200":
+          description: Talleres
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlatformWorkshop"
+    post:
+      operationId: createPlatformWorkshop
+      tags: [platform]
+      summary: Crea un taller con su primer administrador (solo superadmin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, adminName, adminEmail, adminPassword]
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: ["string", "null"]
+                adminName:
+                  type: string
+                adminEmail:
+                  type: string
+                adminPassword:
+                  type: string
+      responses:
+        "201":
+          description: Taller creado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name]
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+
+  /platform/workshops/{id}:
+    patch:
+      operationId: updatePlatformWorkshop
+      tags: [platform]
+      summary: Renombra o activa/desactiva un taller (solo superadmin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Taller actualizado
+
+  /platform/workshops/{id}/enter:
+    post:
+      operationId: enterPlatformWorkshop
+      tags: [platform]
+      summary: El superadmin entra a un taller para dar soporte
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Sesión dentro del taller
+
+  /platform/exit:
+    post:
+      operationId: exitPlatformWorkshop
+      tags: [platform]
+      summary: El superadmin sale del taller en que estaba
+      responses:
+        "200":
+          description: Sesión sin taller
+
+  /work-orders/estimate-preview:
+    post:
+      operationId: previewWorkOrderEstimate
+      tags: [workOrders]
+      summary: Término estimado de un trabajo aún no creado (no guarda nada)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [laborHours]
+              properties:
+                laborHours:
+                  type: number
+                mechanicId:
+                  type: ["integer", "null"]
+      responses:
+        "200":
+          description: Estimación
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [date, backlogHours, jobHours, dailyCapacityHours, workdays]
+                properties:
+                  date:
+                    type: string
+                  backlogHours:
+                    type: number
+                  jobHours:
+                    type: number
+                  dailyCapacityHours:
+                    type: number
+                  workdays:
+                    type: integer
+
+  /work-orders/{id}/estimate:
+    post:
+      operationId: estimateWorkOrderCompletion
+      tags: [workOrders]
+      summary: Recalcula el término estimado según la carga actual del taller
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+        "400":
+          description: La orden ya está terminada
+
   /work-orders/{id}/cancel:
     post:
       operationId: cancelWorkOrder
@@ -2604,7 +2870,12 @@ components:
           type: string
         role:
           type: string
-          enum: [admin, mechanic, reception]
+          enum: [admin, mechanic, reception, superadmin]
+        workshopId:
+          type: ["integer", "null"]
+          description: Taller de la sesión (null = superadmin sin taller elegido)
+        workshopName:
+          type: ["string", "null"]
 
     # ── USERS ────────────────────────────────────────────────────────────────
     User:
@@ -2624,6 +2895,9 @@ components:
           type: ["integer", "null"]
         calendarColor:
           type: ["string", "null"]
+        doesJobs:
+          type: boolean
+          description: Hace trabajos (se le asignan OT y cuenta para la capacidad)
         active:
           type: boolean
         createdAt:
@@ -2650,6 +2924,9 @@ components:
           type: ["integer", "null"]
         calendarColor:
           type: ["string", "null"]
+        doesJobs:
+          type: boolean
+          description: Hace trabajos (se le asignan OT y cuenta para la capacidad)
 
     UserUpdate:
       type: object
@@ -2667,6 +2944,9 @@ components:
           type: ["integer", "null"]
         calendarColor:
           type: ["string", "null"]
+        doesJobs:
+          type: boolean
+          description: Hace trabajos (se le asignan OT y cuenta para la capacidad)
         active:
           type: boolean
 
@@ -3747,6 +4027,19 @@ components:
           type: ["string", "null"]
         deliveredAt:
           type: ["string", "null"]
+        paidAt:
+          type: ["string", "null"]
+        paymentMethodId:
+          type: ["integer", "null"]
+        paymentMethodName:
+          type: ["string", "null"]
+        paidAmount:
+          type: ["number", "null"]
+        clientPhone:
+          type: ["string", "null"]
+        pendingApprovalCount:
+          type: integer
+          description: Adicionales que esperan la decisión del cliente
         total:
           type: number
         estimatedLaborHours:
@@ -3922,6 +4215,14 @@ components:
           type: ["string", "null"]
         deliveredAt:
           type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        paidAt:
+          type: ["string", "null"]
+        paidAmount:
+          type: ["number", "null"]
+        workshopAddress:
+          type: ["string", "null"]
         clientName:
           type: string
         bicycle:
@@ -3959,6 +4260,10 @@ components:
           type: number
         pendingApprovalCount:
           type: integer
+        photos:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicWorkOrderPhoto"
         timeline:
           type: array
           items:
@@ -4037,6 +4342,12 @@ components:
           enum: [low, normal, high, urgent]
         estimatedDeliveryDate:
           type: ["string", "null"]
+        paidAt:
+          type: ["string", "null"]
+        paymentMethodId:
+          type: ["integer", "null"]
+        paidAmount:
+          type: ["number", "null"]
         internalNotes:
           type: ["string", "null"]
         customerNotes:
@@ -4288,6 +4599,128 @@ components:
           items:
             $ref: "#/components/schemas/QuickCreateItemInput"
 
+    WorkshopScheduleDay:
+      type: object
+      required: [day, open, close]
+      properties:
+        day:
+          type: integer
+          description: 0 = domingo … 6 = sábado
+        open:
+          type: string
+          description: HH:MM
+        close:
+          type: string
+          description: HH:MM
+
+    WorkshopSettings:
+      type: object
+      required: [name, schedule, workdays, weeklyNetHours]
+      properties:
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        schedule:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/WorkshopScheduleDay"
+              - type: object
+                required: [netHours]
+                properties:
+                  netHours:
+                    type: number
+                    description: Horas de trabajo del día sin la colación
+        lunchStart:
+          type: ["string", "null"]
+        lunchEnd:
+          type: ["string", "null"]
+        workdays:
+          type: array
+          items:
+            type: integer
+        weeklyNetHours:
+          type: number
+
+    WorkshopSettingsInput:
+      type: object
+      required: [name, schedule]
+      properties:
+        name:
+          type: string
+        phone:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        schedule:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkshopScheduleDay"
+        lunchStart:
+          type: ["string", "null"]
+        lunchEnd:
+          type: ["string", "null"]
+
+    WorkOrderPhoto:
+      type: object
+      required: [id, workOrderId, visibleToClient, sizeBytes, createdAt, url]
+      properties:
+        id:
+          type: integer
+        workOrderId:
+          type: integer
+        note:
+          type: ["string", "null"]
+        visibleToClient:
+          type: boolean
+        sizeBytes:
+          type: integer
+        createdAt:
+          type: string
+        url:
+          type: string
+
+    PublicWorkOrderPhoto:
+      type: object
+      required: [id, createdAt, url]
+      properties:
+        id:
+          type: integer
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        url:
+          type: string
+
+    PlatformWorkshop:
+      type: object
+      required: [id, name, active, createdAt, userCount, workOrderCount, openWorkOrderCount, adminEmails]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+        userCount:
+          type: integer
+        workOrderCount:
+          type: integer
+        openWorkOrderCount:
+          type: integer
+        lastActivityAt:
+          type: ["string", "null"]
+        adminEmails:
+          type: array
+          items:
+            type: string
+
     QuickCreateResult:
       type: object
       required: [workCaseId, workCaseNumber, quoteId, receptionId, workOrderId, workOrderNumber]
@@ -4304,6 +4737,9 @@ components:
           type: integer
         workOrderNumber:
           type: string
+        estimatedDeliveryDate:
+          type: ["string", "null"]
+          description: Término estimado según la carga del taller
 
     WorkCaseCommentInput:
       type: object

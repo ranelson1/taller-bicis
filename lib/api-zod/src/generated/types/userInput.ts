@@ -16,4 +16,6 @@ export interface UserInput {
   weeklyHours?: number | null;
   /** @nullable */
   calendarColor?: string | null;
+  /** Hace trabajos (se le asignan OT y cuenta para la capacidad) */
+  doesJobs?: boolean;
 }

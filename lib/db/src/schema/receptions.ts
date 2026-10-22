@@ -1,3 +1,4 @@
+import { workshopIdColumn } from "./workshops";
 import {
   pgTable, serial, text, integer, boolean, timestamp, jsonb, pgEnum, numeric
 } from "drizzle-orm/pg-core";
@@ -27,7 +28,8 @@ export const findingSeverityEnum = pgEnum("finding_severity", [
 
 export const receptionsTable = pgTable("receptions", {
   id: serial("id").primaryKey(),
-  receptionNumber: text("reception_number").notNull().unique(),
+  workshopId: workshopIdColumn(),
+  receptionNumber: text("reception_number").notNull(),
   clientId: integer("client_id").notNull().references(() => clientsTable.id),
   bicycleId: integer("bicycle_id").notNull().references(() => bicyclesTable.id),
   quoteId: integer("quote_id").references(() => quotesTable.id),
@@ -48,6 +50,7 @@ export const receptionsTable = pgTable("receptions", {
 
 export const inspectionFindingsTable = pgTable("inspection_findings", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   receptionId: integer("reception_id").notNull().references(() => receptionsTable.id),
   quoteId: integer("quote_id").references(() => quotesTable.id),
   mechanicId: integer("mechanic_id").references(() => usersTable.id),

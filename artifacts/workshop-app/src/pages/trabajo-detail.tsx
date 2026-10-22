@@ -4,12 +4,14 @@ import {
   useGetWorkCaseTimeline,
   useGetWorkOrder,
   useUpdateWorkOrderStatus,
+  useCancelWorkOrderItem,
   useAddWorkOrderItem,
   useDecideWorkOrderItem,
   useShareWorkOrder,
   useAddWorkCaseComment,
   useAssignMechanicToWorkOrder,
   useListUsers,
+  useGetMe,
   useListServices,
   useListParts,
   getGetWorkCaseQueryKey,
@@ -20,6 +22,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkers } from "@/hooks/use-workers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,40 +34,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft, Briefcase, User, Bike, ChevronDown, ChevronUp, Clock, CheckCircle2, Circle, XCircle,
   Play, MessageSquarePlus, PlusCircle, Send, Copy, ExternalLink, MessageCircle, Check, X,
-  ClipboardCheck, Eye, FileText,
+  ClipboardCheck, Eye, FileText, CalendarDays, Pencil, Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+import { WO_STATUS_LABELS, WO_STATUS_COLORS, WO_STEPS, WO_NEXT_ACTION, formatCLP } from "@/lib/work-status";
+import { WorkOrderDatesCard } from "@/components/trabajo/dates-card";
+import { ChecklistCard } from "@/components/trabajo/checklist-card";
+import { WorkOrderMenu } from "@/components/trabajo/work-order-menu";
+import { WhatsAppButton } from "@/components/whatsapp-button";
+import { PhotosCard } from "@/components/trabajo/photos-card";
+import { whatsappLink } from "@/lib/whatsapp";
+
 // Ficha del taller: un trabajo = una OT que se va actualizando.
 // Presupuesto y recepción siguen existiendo por dentro, pero no se muestran como documentos aparte.
-
-const WO_STATUS_LABELS: Record<string, string> = {
-  ready_to_work: "Recibida", in_progress: "En reparación",
-  quality_control: "Control de calidad", ready_for_pickup: "Lista para retiro",
-  delivered: "Entregada", cancelled: "Cancelada",
-};
-
-const WO_STATUS_COLORS: Record<string, string> = {
-  ready_to_work: "bg-sky-50 text-sky-700 border-sky-200",
-  in_progress: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  quality_control: "bg-purple-50 text-purple-700 border-purple-200",
-  ready_for_pickup: "bg-green-50 text-green-700 border-green-200",
-  delivered: "bg-gray-50 text-gray-500 border-gray-200",
-  cancelled: "bg-red-50 text-red-600 border-red-200",
-};
-
-const WO_STEPS = ["ready_to_work", "in_progress", "quality_control", "ready_for_pickup", "delivered"];
-
-// Siguiente paso de la OT con un toque.
-const WO_NEXT_ACTION: Record<string, { label: string; next: string }> = {
-  ready_to_work: { label: "Iniciar trabajo", next: "in_progress" },
-  in_progress: { label: "Enviar a control de calidad", next: "quality_control" },
-  quality_control: { label: "Marcar lista para retiro", next: "ready_for_pickup" },
-  ready_for_pickup: { label: "Marcar como entregada", next: "delivered" },
-};
 
 const COMMENT_TYPES = [
   { value: "durante_trabajo", label: "Durante el trabajo" },
@@ -96,7 +86,8 @@ const EVENT_LABELS: Record<string, string> = {
   additional_item_added: "Adicional agregado",
   item_decision: "Aprobación de ítem",
   item_completed: "Ítem completado",
-  item_cancelled: "Ítem cancelado",
+  item_cancelled: "Ítem quitado",
+  work_order_cancelled: "Trabajo cancelado",
   item_started: "Ítem iniciado",
   work_case_status_changed: "Estado del trabajo",
   comment_recepcion: "Comentario · Recepción",
@@ -105,6 +96,11 @@ const EVENT_LABELS: Record<string, string> = {
   comment_observacion_tecnica: "Comentario · Observación técnica",
   comment_entrega: "Comentario · Entrega",
   comment_interno: "Comentario · Interno",
+  payment_registered: "Pago registrado",
+  payment_removed: "Pago anulado",
+  estimate_recalculated: "Término estimado recalculado",
+  photo_added: "Foto agregada",
+  photo_deleted: "Foto eliminada",
 };
 
 // Eventos de plomería interna (presupuesto/recepción ocultos) que no aportan al taller.
@@ -112,11 +108,6 @@ const HIDDEN_EVENTS = new Set([
   "quote_created", "reception_created", "work_case_status_changed",
   "quote_linked_to_work_case", "reception_linked_to_work_case", "work_order_linked_to_work_case",
 ]);
-
-function formatCLP(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
-  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);
-}
 
 function eventDetail(e: any): string | null {
   if (e.action === "status_changed" && e.newStatus) {
@@ -165,9 +156,10 @@ export default function TrabajoDetail() {
   const addComment = useAddWorkCaseComment();
   const assignMechanic = useAssignMechanicToWorkOrder();
   const { data: users } = useListUsers();
+  const { data: me } = useGetMe();
   const { data: services } = useListServices();
   const { data: parts } = useListParts();
-  const mechanics = (users ?? []).filter((u: any) => u.role === "mechanic" && u.active !== false);
+  const { workers: mechanics, solo } = useWorkers();
 
   const [showTimeline, setShowTimeline] = useState(false);
   const [itemDialog, setItemDialog] = useState(false);
@@ -182,6 +174,16 @@ export default function TrabajoDetail() {
   const [itemErr, setItemErr] = useState<string | null>(null);
   const [commentDraft, setCommentDraft] = useState({ commentType: "durante_trabajo", comment: "", visibleToClient: false });
   const [commentErr, setCommentErr] = useState<string | null>(null);
+  const [removeItem, setRemoveItem] = useState<WorkOrderItem | null>(null);
+  const cancelItem = useCancelWorkOrderItem();
+
+  const confirmRemoveItem = () => {
+    if (!woId || !removeItem) return;
+    cancelItem.mutate({ id: woId, itemId: removeItem.id }, {
+      onSuccess: () => { toast({ title: "Ítem quitado", description: removeItem.description }); setRemoveItem(null); invalidate(); },
+      onError: (e) => toast({ variant: "destructive", title: apiError(e, "No se pudo quitar el ítem") }),
+    });
+  };
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getGetWorkCaseQueryKey(workCaseId) });
@@ -201,7 +203,10 @@ export default function TrabajoDetail() {
   const handleAdvance = () => {
     const action = wo ? WO_NEXT_ACTION[wo.status] : undefined;
     if (!action) return;
-    if (action.next === "in_progress" && !wo?.mechanicId) {
+    // Sin mecánico: la API lo asigna sola si quien inicia hace trabajos o si hay uno solo.
+    // Solo hay que elegir cuando hay varios y quien inicia no repara.
+    const meWorks = mechanics.some((m: any) => m.id === me?.id);
+    if (action.next === "in_progress" && !wo?.mechanicId && !solo && !meWorks) {
       setSelectedMechanicId("");
       setMechanicDialogAutoAdvance(true);
       setMechanicDialog(true);
@@ -275,8 +280,10 @@ export default function TrabajoDetail() {
   };
 
   const publicUrl = shareData ? `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}${shareData.path}` : "";
+  // Sin teléfono válido, wa.me sin número deja elegir el contacto en WhatsApp.
   const whatsappUrl = shareData
-    ? `https://wa.me/${(shareData.clientPhone ?? "").replace(/\D/g, "")}?text=${encodeURIComponent(`${shareData.message}\n${publicUrl}`)}`
+    ? whatsappLink(shareData.clientPhone, `${shareData.message}\n${publicUrl}`)
+      ?? `https://wa.me/?text=${encodeURIComponent(`${shareData.message}\n${publicUrl}`)}`
     : "";
 
   const copyLink = async () => {
@@ -335,10 +342,13 @@ export default function TrabajoDetail() {
   const stepIdx = WO_STEPS.indexOf(woStatus);
   const nextAction = WO_NEXT_ACTION[woStatus];
   const checklist = wo?.checklist ?? [];
-  const checklistDone = checklist.filter(c => ["completed", "with_observation", "not_applicable"].includes(c.status)).length;
+  // Saludo prellenado al abrir el chat; el taller lo puede editar antes de enviar.
+  const chatGreeting = wo
+    ? `Hola ${(workCase.clientName ?? "").split(" ")[0]}, te escribo del taller por tu ${workCase.bicycleName ?? "bicicleta"} (${wo.workOrderNumber}).`
+    : undefined;
 
   return (
-    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-4">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto space-y-4 pb-24 md:pb-8">
       {/* Encabezado */}
       <div className="flex items-start gap-2">
         <Link href="/trabajos">
@@ -355,6 +365,12 @@ export default function TrabajoDetail() {
           </div>
           <p className="text-muted-foreground text-sm">{workCase.clientName ?? "—"} · {workCase.bicycleName ?? "Sin bicicleta"}</p>
         </div>
+        {wo && (
+          <div className="flex items-center gap-1">
+            <WhatsAppButton phone={wo.clientPhone} text={chatGreeting} />
+            <WorkOrderMenu wo={wo} onChanged={invalidate} />
+          </div>
+        )}
       </div>
 
       {!wo ? (
@@ -371,20 +387,43 @@ export default function TrabajoDetail() {
       ) : (
         <>
           {/* Acciones principales */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Button onClick={handleShare} disabled={share.isPending} className="h-11" data-testid="button-share">
-              <Send className="h-4 w-4 mr-2" /> Enviar al cliente
-            </Button>
-            {nextAction ? (
-              <Button variant="outline" onClick={handleAdvance} disabled={updateStatus.isPending} className="h-11" data-testid="button-advance">
-                <Play className="h-4 w-4 mr-2" /> {nextAction.label}
-              </Button>
-            ) : (
-              <div className="h-11 flex items-center justify-center text-sm text-muted-foreground border rounded-md">
-                {woStatus === "delivered" ? "Orden entregada" : "Orden cancelada"}
+          {woStatus === "cancelled" ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-center gap-2">
+              <XCircle className="h-4 w-4 shrink-0" /> Este trabajo está cancelado.
+            </div>
+          ) : (
+            <>
+              <div className="hidden md:grid grid-cols-2 gap-2">
+                {nextAction ? (
+                  <Button onClick={handleAdvance} disabled={updateStatus.isPending} className="h-11" data-testid="button-advance">
+                    <Play className="h-4 w-4 mr-2" /> {nextAction.label}
+                  </Button>
+                ) : (
+                  <div className="h-11 flex items-center justify-center gap-2 text-sm text-green-700 border border-green-200 bg-green-50 rounded-md">
+                    <CheckCircle2 className="h-4 w-4" /> Bicicleta entregada
+                  </div>
+                )}
+                <Button variant="outline" onClick={handleShare} disabled={share.isPending} className="h-11" data-testid="button-share">
+                  <Send className="h-4 w-4 mr-2" /> Enviar al cliente
+                </Button>
               </div>
-            )}
-          </div>
+              {/* Móvil: la acción principal queda fija abajo, sobre la navegación. */}
+              <div className="md:hidden fixed left-0 right-0 bottom-16 z-40 border-t bg-background/95 backdrop-blur px-4 py-2.5 flex gap-2">
+                {nextAction ? (
+                  <Button onClick={handleAdvance} disabled={updateStatus.isPending} className="h-11 flex-1" data-testid="button-advance-mobile">
+                    <Play className="h-4 w-4 mr-2" /> {nextAction.label}
+                  </Button>
+                ) : (
+                  <div className="h-11 flex-1 flex items-center justify-center gap-2 text-sm text-green-700 border border-green-200 bg-green-50 rounded-md">
+                    <CheckCircle2 className="h-4 w-4" /> Entregada
+                  </div>
+                )}
+                <Button variant="outline" onClick={handleShare} disabled={share.isPending} className="h-11 w-11 p-0" aria-label="Enviar al cliente" data-testid="button-share-mobile">
+                  <Send className="h-5 w-5" />
+                </Button>
+              </div>
+            </>
+          )}
 
           {/* Recorrido */}
           {woStatus !== "cancelled" && (
@@ -413,6 +452,8 @@ export default function TrabajoDetail() {
               </CardContent>
             </Card>
           )}
+
+          <WorkOrderDatesCard wo={wo} onChanged={invalidate} />
 
           {/* Pendientes del cliente */}
           {pendingItems.length > 0 && !isClosed && (
@@ -451,9 +492,16 @@ export default function TrabajoDetail() {
                             {item.status === "completed" && <span className="text-[11px] text-green-700 inline-flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" />Hecho</span>}
                           </div>
                         </div>
-                        <span className={cn("font-semibold text-sm whitespace-nowrap", item.itemType === "discount" && "text-green-700")}>
-                          {item.itemType === "discount" ? "-" : ""}{formatCLP(item.total)}
-                        </span>
+                        <div className="flex flex-col items-end">
+                          <span className={cn("font-semibold text-sm whitespace-nowrap", item.itemType === "discount" && "text-green-700")}>
+                            {item.itemType === "discount" ? "-" : ""}{formatCLP(item.total)}
+                          </span>
+                          {!isClosed && item.status !== "completed" && (
+                            <button type="button" className="text-[11px] text-muted-foreground hover:text-destructive mt-0.5" onClick={() => setRemoveItem(item)} data-testid={`button-remove-item-${item.id}`}>
+                              Quitar
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {item.approvalStatus === "pending" && !isClosed && (
                         <div className="flex gap-2 mt-2">
@@ -479,23 +527,11 @@ export default function TrabajoDetail() {
             </CardContent>
           </Card>
 
-          {/* Checklist */}
           {checklist.length > 0 && (
-            <Link href={`/ordenes/${wo.id}`}>
-              <Card className="cursor-pointer hover:bg-muted/40 transition-colors">
-                <CardContent className="py-4 flex items-center gap-3">
-                  <ClipboardCheck className="h-5 w-5 text-primary" />
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">Checklist del mecánico</p>
-                    <div className="h-1.5 rounded-full bg-muted mt-1.5 overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${Math.round((checklistDone / checklist.length) * 100)}%` }} />
-                    </div>
-                  </div>
-                  <span className="text-sm text-muted-foreground">{checklistDone}/{checklist.length}</span>
-                </CardContent>
-              </Card>
-            </Link>
+            <ChecklistCard workOrderId={wo.id} checklist={checklist} items={items} disabled={isClosed} onChanged={invalidate} />
           )}
+
+          <PhotosCard workOrderId={wo.id} readOnly={woStatus === "cancelled"} />
 
           {/* Cliente y bicicleta */}
           <Card>
@@ -503,25 +539,32 @@ export default function TrabajoDetail() {
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground shrink-0" />
                 <Link href={`/clientes/${workCase.clientId}`}><span className="font-medium hover:underline text-primary cursor-pointer">{workCase.clientName ?? "—"}</span></Link>
+                <span className="text-muted-foreground text-xs">{wo.clientPhone ?? "sin teléfono"}</span>
+                <WhatsAppButton phone={wo.clientPhone} text={chatGreeting} label="Chat" className="ml-auto h-7" />
               </div>
               {workCase.bicycleName && (
                 <div className="flex items-center gap-2"><Bike className="h-4 w-4 text-muted-foreground shrink-0" /><span>{workCase.bicycleName}</span></div>
               )}
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">Mecánico: {wo.mechanicName ?? "sin asignar"}</span>
-                {!isClosed && (
-                  <Button variant="ghost" size="sm" className="h-6 px-1.5 text-xs ml-auto" data-testid="button-assign-mechanic"
-                    onClick={() => { setSelectedMechanicId(wo.mechanicId ? String(wo.mechanicId) : ""); setMechanicDialogAutoAdvance(false); setMechanicDialog(true); }}>
-                    {wo.mechanicId ? "Cambiar" : "Asignar"}
-                  </Button>
-                )}
-              </div>
+              {!solo && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground">Mecánico: {wo.mechanicName ?? "sin asignar"}</span>
+                  {!isClosed && (
+                    <Button variant="ghost" size="sm" className="h-6 px-1.5 text-xs ml-auto" data-testid="button-assign-mechanic"
+                      onClick={() => { setSelectedMechanicId(wo.mechanicId ? String(wo.mechanicId) : ""); setMechanicDialogAutoAdvance(false); setMechanicDialog(true); }}>
+                      {wo.mechanicId ? "Cambiar" : "Asignar"}
+                    </Button>
+                  )}
+                </div>
+              )}
               {workCase.initialRequirement && (
                 <div className="p-2 bg-muted rounded-md"><span className="text-xs text-muted-foreground block">Problema reportado</span>{workCase.initialRequirement}</div>
               )}
               {wo.internalNotes && (
                 <div className="p-2 bg-muted rounded-md"><span className="text-xs text-muted-foreground block">Nota interna</span>{wo.internalNotes}</div>
+              )}
+              {wo.customerNotes && (
+                <div className="p-2 bg-muted rounded-md"><span className="text-xs text-muted-foreground block flex items-center gap-1"><Eye className="h-3 w-3" />Mensaje para el cliente</span>{wo.customerNotes}</div>
               )}
             </CardContent>
           </Card>
@@ -669,6 +712,20 @@ export default function TrabajoDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quitar ítem */}
+      <AlertDialog open={!!removeItem} onOpenChange={(o) => !o && setRemoveItem(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Quitar “{removeItem?.description}”?</AlertDialogTitle>
+            <AlertDialogDescription>Deja de sumar al total y sus pasos del checklist quedan como “no aplica”.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemoveItem} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Quitar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Asignar mecánico */}
       <Dialog open={mechanicDialog} onOpenChange={setMechanicDialog}>

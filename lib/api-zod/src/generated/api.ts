@@ -28,7 +28,9 @@ export const LoginResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "email": zod.string(),
-  "role": zod.enum(['admin', 'mechanic', 'reception'])
+  "role": zod.enum(['admin', 'mechanic', 'reception', 'superadmin']),
+  "workshopId": zod.number().nullish().describe('Taller de la sesión (null = superadmin sin taller elegido)'),
+  "workshopName": zod.string().nullish()
 })
 
 
@@ -45,7 +47,9 @@ export const GetMeResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "email": zod.string(),
-  "role": zod.enum(['admin', 'mechanic', 'reception'])
+  "role": zod.enum(['admin', 'mechanic', 'reception', 'superadmin']),
+  "workshopId": zod.number().nullish().describe('Taller de la sesión (null = superadmin sin taller elegido)'),
+  "workshopName": zod.string().nullish()
 })
 
 
@@ -59,6 +63,7 @@ export const ListUsersResponseItem = zod.object({
   "role": zod.enum(['admin', 'mechanic', 'reception']),
   "weeklyHours": zod.number().nullish(),
   "calendarColor": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional().describe('Hace trabajos (se le asignan OT y cuenta para la capacidad)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -75,7 +80,8 @@ export const CreateUserBody = zod.object({
   "password": zod.string(),
   "role": zod.enum(['admin', 'mechanic', 'reception']),
   "weeklyHours": zod.number().nullish(),
-  "calendarColor": zod.string().nullish()
+  "calendarColor": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional().describe('Hace trabajos (se le asignan OT y cuenta para la capacidad)')
 })
 
 export const CreateUserResponse = zod.object({
@@ -85,6 +91,7 @@ export const CreateUserResponse = zod.object({
   "role": zod.enum(['admin', 'mechanic', 'reception']),
   "weeklyHours": zod.number().nullish(),
   "calendarColor": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional().describe('Hace trabajos (se le asignan OT y cuenta para la capacidad)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -117,6 +124,7 @@ export const GetUserResponse = zod.object({
   "role": zod.enum(['admin', 'mechanic', 'reception']),
   "weeklyHours": zod.number().nullish(),
   "calendarColor": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional().describe('Hace trabajos (se le asignan OT y cuenta para la capacidad)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -137,6 +145,7 @@ export const UpdateUserBody = zod.object({
   "role": zod.enum(['admin', 'mechanic', 'reception']).optional(),
   "weeklyHours": zod.number().nullish(),
   "calendarColor": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional().describe('Hace trabajos (se le asignan OT y cuenta para la capacidad)'),
   "active": zod.boolean().optional()
 })
 
@@ -147,6 +156,7 @@ export const UpdateUserResponse = zod.object({
   "role": zod.enum(['admin', 'mechanic', 'reception']),
   "weeklyHours": zod.number().nullish(),
   "calendarColor": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional().describe('Hace trabajos (se le asignan OT y cuenta para la capacidad)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2130,6 +2140,12 @@ export const ListWorkOrdersResponseItem = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2178,6 +2194,12 @@ export const CreateWorkOrderFromQuoteResponse = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2225,6 +2247,12 @@ export const CreateWorkOrderFromReceptionResponse = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2264,6 +2292,12 @@ export const GetWorkOrderResponse = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2328,6 +2362,9 @@ export const UpdateWorkOrderBody = zod.object({
   "mechanicId": zod.number().nullish(),
   "priority": zod.enum(['low', 'normal', 'high', 'urgent']).optional(),
   "estimatedDeliveryDate": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paidAmount": zod.number().nullish(),
   "internalNotes": zod.string().nullish(),
   "customerNotes": zod.string().nullish()
 })
@@ -2348,6 +2385,12 @@ export const UpdateWorkOrderResponse = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2387,6 +2430,12 @@ export const DeleteWorkOrderResponse = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2431,6 +2480,256 @@ export const UpdateWorkOrderStatusResponse = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
+  "total": zod.number(),
+  "estimatedLaborHours": zod.number(),
+  "progressPercentage": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "clientName": zod.string().nullish(),
+  "bicycleName": zod.string().nullish(),
+  "mechanicName": zod.string().nullish(),
+  "quoteNumber": zod.string().nullish(),
+  "receptionNumber": zod.string().nullish(),
+  "workCaseId": zod.number().nullish(),
+  "workCaseNumber": zod.string().nullish()
+})
+
+
+/**
+ * @summary Datos del taller
+ */
+export const GetWorkshopSettingsResponse = zod.object({
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "schedule": zod.array(zod.object({
+  "day": zod.number().describe('0 = domingo … 6 = sábado'),
+  "open": zod.string().describe('HH:MM'),
+  "close": zod.string().describe('HH:MM')
+}).and(zod.object({
+  "netHours": zod.number().describe('Horas de trabajo del día sin la colación')
+}))),
+  "lunchStart": zod.string().nullish(),
+  "lunchEnd": zod.string().nullish(),
+  "workdays": zod.array(zod.number()),
+  "weeklyNetHours": zod.number()
+})
+
+
+/**
+ * @summary Guarda los datos del taller (solo admin)
+ */
+export const UpdateWorkshopSettingsBody = zod.object({
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "schedule": zod.array(zod.object({
+  "day": zod.number().describe('0 = domingo … 6 = sábado'),
+  "open": zod.string().describe('HH:MM'),
+  "close": zod.string().describe('HH:MM')
+})),
+  "lunchStart": zod.string().nullish(),
+  "lunchEnd": zod.string().nullish()
+})
+
+export const UpdateWorkshopSettingsResponse = zod.object({
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "schedule": zod.array(zod.object({
+  "day": zod.number().describe('0 = domingo … 6 = sábado'),
+  "open": zod.string().describe('HH:MM'),
+  "close": zod.string().describe('HH:MM')
+}).and(zod.object({
+  "netHours": zod.number().describe('Horas de trabajo del día sin la colación')
+}))),
+  "lunchStart": zod.string().nullish(),
+  "lunchEnd": zod.string().nullish(),
+  "workdays": zod.array(zod.number()),
+  "weeklyNetHours": zod.number()
+})
+
+
+/**
+ * @summary Fotos de la OT
+ */
+export const ListWorkOrderPhotosParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListWorkOrderPhotosResponseItem = zod.object({
+  "id": zod.number(),
+  "workOrderId": zod.number(),
+  "note": zod.string().nullish(),
+  "visibleToClient": zod.boolean(),
+  "sizeBytes": zod.number(),
+  "createdAt": zod.string(),
+  "url": zod.string()
+})
+export const ListWorkOrderPhotosResponse = zod.array(ListWorkOrderPhotosResponseItem)
+
+
+/**
+ * @summary Cambia la nota o la visibilidad de una foto
+ */
+export const UpdateWorkOrderPhotoParams = zod.object({
+  "id": zod.coerce.number(),
+  "photoId": zod.coerce.number()
+})
+
+export const UpdateWorkOrderPhotoBody = zod.object({
+  "note": zod.string().nullish(),
+  "visibleToClient": zod.boolean().optional()
+})
+
+export const UpdateWorkOrderPhotoResponse = zod.object({
+  "id": zod.number(),
+  "workOrderId": zod.number(),
+  "note": zod.string().nullish(),
+  "visibleToClient": zod.boolean(),
+  "sizeBytes": zod.number(),
+  "createdAt": zod.string(),
+  "url": zod.string()
+})
+
+
+/**
+ * @summary Elimina una foto
+ */
+export const DeleteWorkOrderPhotoParams = zod.object({
+  "id": zod.coerce.number(),
+  "photoId": zod.coerce.number()
+})
+
+export const DeleteWorkOrderPhotoResponse = zod.object({
+  "id": zod.number(),
+  "workOrderId": zod.number(),
+  "note": zod.string().nullish(),
+  "visibleToClient": zod.boolean(),
+  "sizeBytes": zod.number(),
+  "createdAt": zod.string(),
+  "url": zod.string()
+})
+
+
+/**
+ * @summary Talleres de la plataforma (solo superadmin)
+ */
+export const ListPlatformWorkshopsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "active": zod.boolean(),
+  "createdAt": zod.string(),
+  "userCount": zod.number(),
+  "workOrderCount": zod.number(),
+  "openWorkOrderCount": zod.number(),
+  "lastActivityAt": zod.string().nullish(),
+  "adminEmails": zod.array(zod.string())
+})
+export const ListPlatformWorkshopsResponse = zod.array(ListPlatformWorkshopsResponseItem)
+
+
+/**
+ * @summary Crea un taller con su primer administrador (solo superadmin)
+ */
+export const CreatePlatformWorkshopBody = zod.object({
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "adminName": zod.string(),
+  "adminEmail": zod.string(),
+  "adminPassword": zod.string()
+})
+
+export const CreatePlatformWorkshopResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string()
+})
+
+
+/**
+ * @summary Renombra o activa/desactiva un taller (solo superadmin)
+ */
+export const UpdatePlatformWorkshopParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdatePlatformWorkshopBody = zod.object({
+  "name": zod.string().optional(),
+  "active": zod.boolean().optional()
+})
+
+export const UpdatePlatformWorkshopResponse = zod.unknown()
+
+
+/**
+ * @summary El superadmin entra a un taller para dar soporte
+ */
+export const EnterPlatformWorkshopParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const EnterPlatformWorkshopResponse = zod.unknown()
+
+
+/**
+ * @summary El superadmin sale del taller en que estaba
+ */
+export const ExitPlatformWorkshopResponse = zod.unknown()
+
+
+/**
+ * @summary Término estimado de un trabajo aún no creado (no guarda nada)
+ */
+export const PreviewWorkOrderEstimateBody = zod.object({
+  "laborHours": zod.number(),
+  "mechanicId": zod.number().nullish()
+})
+
+export const PreviewWorkOrderEstimateResponse = zod.object({
+  "date": zod.string(),
+  "backlogHours": zod.number(),
+  "jobHours": zod.number(),
+  "dailyCapacityHours": zod.number(),
+  "workdays": zod.number()
+})
+
+
+/**
+ * @summary Recalcula el término estimado según la carga actual del taller
+ */
+export const EstimateWorkOrderCompletionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const EstimateWorkOrderCompletionResponse = zod.object({
+  "id": zod.number(),
+  "workOrderNumber": zod.string(),
+  "quoteId": zod.number().nullish(),
+  "receptionId": zod.number().nullish(),
+  "clientId": zod.number(),
+  "bicycleId": zod.number(),
+  "mechanicId": zod.number().nullish(),
+  "status": zod.enum(['ready_to_work', 'in_progress', 'quality_control', 'ready_for_pickup', 'delivered', 'cancelled']),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']),
+  "internalNotes": zod.string().nullish(),
+  "customerNotes": zod.string().nullish(),
+  "estimatedDeliveryDate": zod.string().nullish(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2474,6 +2773,12 @@ export const CancelWorkOrderResponse = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2517,6 +2822,12 @@ export const AssignMechanicToWorkOrderResponse = zod.object({
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
   "estimatedLaborHours": zod.number(),
   "progressPercentage": zod.number(),
@@ -2901,6 +3212,10 @@ export const GetPublicWorkOrderResponse = zod.object({
   "receivedAt": zod.string(),
   "estimatedDeliveryDate": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "workshopAddress": zod.string().nullish(),
   "clientName": zod.string(),
   "bicycle": zod.object({
   "brand": zod.string().optional(),
@@ -2929,6 +3244,12 @@ export const GetPublicWorkOrderResponse = zod.object({
   "net": zod.number(),
   "tax": zod.number(),
   "pendingApprovalCount": zod.number(),
+  "photos": zod.array(zod.object({
+  "id": zod.number(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "url": zod.string()
+})).optional(),
   "timeline": zod.array(zod.object({
   "id": zod.number(),
   "createdAt": zod.string(),
@@ -2959,6 +3280,10 @@ export const DecidePublicWorkOrderItemResponse = zod.object({
   "receivedAt": zod.string(),
   "estimatedDeliveryDate": zod.string().nullish(),
   "deliveredAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "workshopAddress": zod.string().nullish(),
   "clientName": zod.string(),
   "bicycle": zod.object({
   "brand": zod.string().optional(),
@@ -2987,6 +3312,12 @@ export const DecidePublicWorkOrderItemResponse = zod.object({
   "net": zod.number(),
   "tax": zod.number(),
   "pendingApprovalCount": zod.number(),
+  "photos": zod.array(zod.object({
+  "id": zod.number(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "url": zod.string()
+})).optional(),
   "timeline": zod.array(zod.object({
   "id": zod.number(),
   "createdAt": zod.string(),
@@ -3169,7 +3500,8 @@ export const QuickCreateWorkCaseResponse = zod.object({
   "quoteId": zod.number(),
   "receptionId": zod.number(),
   "workOrderId": zod.number(),
-  "workOrderNumber": zod.string()
+  "workOrderNumber": zod.string(),
+  "estimatedDeliveryDate": zod.string().nullish().describe('Término estimado según la carga del taller')
 })
 
 

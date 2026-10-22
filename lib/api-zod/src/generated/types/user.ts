@@ -16,6 +16,8 @@ export interface User {
   weeklyHours?: number | null;
   /** @nullable */
   calendarColor?: string | null;
+  /** Hace trabajos (se le asignan OT y cuenta para la capacidad) */
+  doesJobs?: boolean;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;

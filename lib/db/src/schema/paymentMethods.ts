@@ -1,9 +1,11 @@
+import { workshopIdColumn } from "./workshops";
 import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const paymentMethodsTable = pgTable("payment_methods", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   name: text("name").notNull(),
   notes: text("notes"),
   active: boolean("active").notNull().default(true),

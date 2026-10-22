@@ -14,6 +14,12 @@ export interface WorkOrderUpdateInput {
   /** @nullable */
   estimatedDeliveryDate?: string | null;
   /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  paymentMethodId?: number | null;
+  /** @nullable */
+  paidAmount?: number | null;
+  /** @nullable */
   internalNotes?: string | null;
   /** @nullable */
   customerNotes?: string | null;

@@ -1,3 +1,4 @@
+export * from "./workshops";
 export * from "./users";
 export * from "./categories";
 export * from "./paymentMethods";
@@ -10,3 +11,5 @@ export * from "./workCases";
 export * from "./quotes";
 export * from "./receptions";
 export * from "./workOrders";
+export * from "./workshopSettings";
+export * from "./workOrderPhotos";

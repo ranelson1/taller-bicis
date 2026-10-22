@@ -3,10 +3,10 @@ import { z } from "zod/v4";
 import { db } from "@workspace/db";
 import { categoriesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, adminOnlyWrites } from "../middlewares/auth";
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, adminOnlyWrites);
 
 const createCategorySchema = z.object({
   name: z.string().min(1),
@@ -68,7 +68,8 @@ router.delete("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
   try {
-    await db.update(categoriesTable).set({ active: false, updatedAt: new Date() }).where(eq(categoriesTable.id, id));
+    const deleted = await db.update(categoriesTable).set({ active: false, updatedAt: new Date() }).where(eq(categoriesTable.id, id)).returning({ id: categoriesTable.id });
+    if (deleted.length === 0) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ ok: true });
   } catch { res.status(500).json({ error: "Internal server error" }); }
 });

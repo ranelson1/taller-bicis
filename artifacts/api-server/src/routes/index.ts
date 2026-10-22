@@ -15,6 +15,8 @@ import receptionsRouter from "./receptions";
 import workOrdersRouter from "./work-orders";
 import workCasesRouter from "./work-cases";
 import publicRouter from "./public";
+import settingsRouter from "./settings";
+import platformRouter from "./platform";
 
 const router: IRouter = Router();
 
@@ -34,5 +36,7 @@ router.use("/quotes", quotesRouter);
 router.use("/receptions", receptionsRouter);
 router.use("/work-orders", workOrdersRouter);
 router.use("/work-cases", workCasesRouter);
+router.use("/settings", settingsRouter);
+router.use("/platform", platformRouter);
 
 export default router;

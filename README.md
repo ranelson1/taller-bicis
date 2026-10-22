@@ -1,56 +1,90 @@
 # TallerBicis
 
-Sistema de gestión para talleres de bicicletas: clientes, bicicletas, servicios con checklist,
-repuestos, presupuestos, recepciones, órdenes de trabajo y la ficha unificada de **Trabajos (TR)**.
+Sistema de gestión para talleres de bicicletas: trabajos (una OT por bicicleta con checklist, fotos,
+adicionales que el cliente aprueba desde un link, fechas y pagos), clientes, bicicletas y catálogo.
+**Una sola instalación sirve a varios talleres**: cada taller entra con sus usuarios y ve solo lo suyo.
 
 Documentación funcional y de arquitectura: [`replit.md`](./replit.md).
 
 ## Requisitos
 
 - Node.js 22+ (desarrollado con 24) y pnpm 10
-- PostgreSQL 16+
+- PostgreSQL 16+ (en local, con Docker)
 
-## Desarrollo local
+## Desarrollo local (Windows)
 
-```bash
-pnpm install --frozen-lockfile
-
-export DATABASE_URL="postgresql://usuario@localhost/taller"
-export SESSION_SECRET="$(openssl rand -hex 32)"
-export WORKSHOP_NAME="Mi Taller"            # opcional, se muestra al cliente
-export WORKSHOP_PHONE="+56 9 1234 5678"     # opcional, botones Llamar/WhatsApp del cliente
-
-# Base nueva: crear tablas y datos demo (no hacerlo sobre una base restaurada)
-pnpm --filter @workspace/db run push
-pnpm --filter @workspace/api-server run seed
-
-# Terminal 1 — API
-PORT=8080 pnpm --filter @workspace/api-server run dev
-
-# Terminal 2 — Frontend, reenviando /api al backend
-PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://localhost:8080 \
-  pnpm --filter @workspace/workshop-app run dev
+```powershell
+pnpm install
+.\dev.ps1
 ```
 
-Abrir http://localhost:5173. Usuarios demo en `replit.md` (solo desarrollo).
+La primera vez `dev.ps1` crea el contenedor de Postgres, el esquema, el usuario de la app, el
+superadmin y el taller demo ([`seed/demo-sendero.json`](artifacts/api-server/seed/demo-sendero.json)).
+Las credenciales quedan en `.env` (no se sube al repo).
+
+En otro sistema, lo mismo a mano:
+
+```bash
+psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f lib/db/schema.sql
+psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -v app_password='...' -f lib/db/scripts/grant-app-role.sql
+SUPERADMIN_EMAIL=tu@correo.cl SUPERADMIN_PASSWORD='...' pnpm --filter @workspace/api-server run create-superadmin
+DEMO_USERS_PASSWORD='...' pnpm --filter @workspace/api-server run seed      # taller demo, opcional
+
+PORT=8080 pnpm --filter @workspace/api-server run dev
+PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://localhost:8080 pnpm --filter @workspace/workshop-app run dev
+```
+
+## Varios talleres
+
+- **Superadmin** (dueño de la plataforma): entra a `/plataforma`, crea talleres con su primer
+  administrador, los activa o desactiva y puede "entrar" a uno para dar soporte.
+- **Usuarios de un taller** (admin, mecánico, recepción): el email identifica su taller; ven y
+  editan solo datos de ese taller. El admin de cada taller crea a su equipo en Administración → Usuarios.
+- **Aislamiento**: cada tabla tiene `workshop_id` y Postgres aplica Row Level Security; la API fija
+  el taller de la sesión en la conexión de cada request. Si una consulta olvida filtrar, la base filtra
+  igual. Prueba automática (entra como dos talleres e intenta cruzar datos):
+
+  ```bash
+  ISOLATION_A="admin@tallerA.cl:clave" ISOLATION_B="admin@tallerB.cl:clave" pnpm --filter @workspace/api-server run check-isolation
+  ```
+
+### Usuario de base de datos de la app
+
+RLS **no aplica a superusuarios ni a roles con BYPASSRLS**. Por eso hay dos conexiones:
+
+| Variable | Usuario | Para qué |
+|---|---|---|
+| `DATABASE_URL` | `taller_app` (normal) | La API y los scripts (`create-superadmin`, `seed`) |
+| `DATABASE_URL_ADMIN` | dueño de la base | Esquema y migraciones |
+
+La API revisa al partir: si su usuario puede saltarse RLS, en producción no arranca.
 
 ## Migraciones
 
-`drizzle push` pide confirmaciones interactivas en bases con datos. Los cambios de esquema se
-entregan también como SQL idempotente en `lib/db/migrations/`; aplicarlos en orden:
+Para una base que ya existe, aplicar en orden lo que falte de `lib/db/migrations/` (son idempotentes)
+con el usuario dueño:
 
 ```bash
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f lib/db/migrations/001-ot-publica.sql
+for f in lib/db/migrations/*.sql; do psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f "$f"; done
 ```
+
+`008-multi-taller.sql` convierte una base de un solo taller: sus datos pasan a ser el taller #1.
+Después crear el usuario de la app (`lib/db/scripts/grant-app-role.sql`) y apuntar `DATABASE_URL` a él.
+No usar `drizzle push`: no conoce las políticas de RLS.
+
+Para una base nueva basta `lib/db/schema.sql`. Si cambias el esquema con una migración, regéneralo:
+`pg_dump --schema-only --no-owner --no-privileges` desde una base migrada.
 
 ## Comandos útiles
 
 - `pnpm run typecheck` — typecheck de todo el monorepo
 - `pnpm --filter @workspace/api-spec run codegen` — regenerar cliente y schemas desde `lib/api-spec/openapi.yaml`
+- `psql "$DATABASE_URL_ADMIN" -v workshop=<id> -f lib/db/scripts/delete-workshop.sql` — borrar un taller de prueba y todos sus datos
 
 ## Producción
 
-Ver `LEEME-TRASLADO.md` del respaldo original: build de API y frontend, Nginx con `/api` hacia el
-backend, HTTPS y un store de sesiones persistente (hoy en memoria).
+Build de API y frontend, `/api` hacia el backend, HTTPS, `NODE_ENV=production`, un `SESSION_SECRET`
+largo y `UPLOADS_DIR` en un disco persistente (fotos de las OT) o cambiar `helpers/photoStorage.ts`
+por S3/R2.
 
 > ⚠️ Nunca subir respaldos de base de datos ni archivos `.env` a este repositorio.

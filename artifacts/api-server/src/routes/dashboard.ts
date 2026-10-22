@@ -13,7 +13,7 @@ router.get("/summary", async (_req, res) => {
     const [bicyclesResult] = await db.select({ c: count() }).from(bicyclesTable).where(eq(bicyclesTable.active, true));
     const [servicesResult] = await db.select({ c: count() }).from(servicesTable).where(eq(servicesTable.active, true));
     const [mechanicsResult] = await db.select({ c: count() }).from(usersTable)
-      .where(and(eq(usersTable.active, true), eq(usersTable.role, "mechanic")));
+      .where(and(eq(usersTable.active, true), eq(usersTable.doesJobs, true)));
 
     const [draftResult] = await db.select({ c: count() }).from(quotesTable)
       .where(and(eq(quotesTable.active, true), eq(quotesTable.status, "draft")));

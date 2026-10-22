@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { z } from "zod/v4";
-import { db } from "@workspace/db";
-import { workOrdersTable } from "@workspace/db";
+import { db, withBypass, setCurrentWorkshop } from "@workspace/db";
+import { workOrdersTable, workOrderPhotosTable } from "@workspace/db";
+import { photoPath } from "../helpers/photoStorage";
 import { and, eq } from "drizzle-orm";
 import { triggerWorkCaseRecalc } from "../helpers/workCase";
 import { buildPublicWorkOrder, decideWorkOrderItem, ItemDecisionError } from "../helpers/workOrderPublic";
@@ -10,11 +11,18 @@ import { buildPublicWorkOrder, decideWorkOrderItem, ItemDecisionError } from "..
 // así que cada handler debe limitarse a la OT de ese token.
 const router = Router();
 
+// El token se busca en todos los talleres; desde ahí el request queda fijado al taller de esa OT,
+// así todo lo demás (ítems, fotos, configuración) sale solo de ese taller.
 async function findByToken(token: string) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
-  const [wo] = await db.select().from(workOrdersTable)
-    .where(and(eq(workOrdersTable.publicToken, token), eq(workOrdersTable.active, true)));
-  return wo ?? null;
+  const wo = await withBypass(async (bypassDb) => {
+    const [row] = await bypassDb.select().from(workOrdersTable)
+      .where(and(eq(workOrdersTable.publicToken, token), eq(workOrdersTable.active, true)));
+    return row ?? null;
+  });
+  if (!wo) return null;
+  await setCurrentWorkshop(wo.workshopId);
+  return wo;
 }
 
 // GET /public/ot/:token
@@ -26,6 +34,27 @@ router.get("/ot/:token", async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /public/ot/:token/photos/:photoId — solo fotos de esa OT marcadas como visibles.
+router.get("/ot/:token/photos/:photoId", async (req, res) => {
+  const photoId = Number(req.params.photoId);
+  if (!Number.isInteger(photoId)) { res.status(404).end(); return; }
+  try {
+    const wo = await findByToken(req.params.token);
+    if (!wo) { res.status(404).end(); return; }
+    const [photo] = await db.select().from(workOrderPhotosTable).where(and(
+      eq(workOrderPhotosTable.id, photoId),
+      eq(workOrderPhotosTable.workOrderId, wo.id),
+      eq(workOrderPhotosTable.active, true),
+      eq(workOrderPhotosTable.visibleToClient, true),
+    ));
+    if (!photo) { res.status(404).end(); return; }
+    res.type(photo.mimeType).set("Cache-Control", "private, no-cache").sendFile(photoPath(photo.storageKey));
+  } catch (e) {
+    console.error(e);
+    res.status(500).end();
   }
 });
 

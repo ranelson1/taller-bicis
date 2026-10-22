@@ -1,3 +1,4 @@
+import { workshopIdColumn } from "./workshops";
 import {
   pgTable, serial, text, integer, boolean, timestamp, numeric, pgEnum, uniqueIndex
 } from "drizzle-orm/pg-core";
@@ -9,6 +10,7 @@ import { quotesTable } from "./quotes";
 import { receptionsTable } from "./receptions";
 import { quoteItemsTable } from "./quotes";
 import { serviceStepsTable } from "./serviceSteps";
+import { paymentMethodsTable } from "./paymentMethods";
 
 export const workOrderStatusEnum = pgEnum("work_order_status", [
   "ready_to_work",
@@ -51,7 +53,8 @@ export const workOrderPriorityEnum = pgEnum("work_order_priority", [
 
 export const workOrdersTable = pgTable("work_orders", {
   id: serial("id").primaryKey(),
-  workOrderNumber: text("work_order_number").notNull().unique(),
+  workshopId: workshopIdColumn(),
+  workOrderNumber: text("work_order_number").notNull(),
   quoteId: integer("quote_id").references(() => quotesTable.id),
   receptionId: integer("reception_id").references(() => receptionsTable.id),
   clientId: integer("client_id").notNull().references(() => clientsTable.id),
@@ -65,6 +68,10 @@ export const workOrdersTable = pgTable("work_orders", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   deliveredAt: timestamp("delivered_at"),
+  // Fecha de pago: independiente del término (completedAt) y de la entrega (deliveredAt).
+  paidAt: timestamp("paid_at"),
+  paymentMethodId: integer("payment_method_id").references(() => paymentMethodsTable.id),
+  paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
   estimatedLaborHours: numeric("estimated_labor_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   progressPercentage: numeric("progress_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
@@ -82,6 +89,7 @@ export const workOrdersTable = pgTable("work_orders", {
 
 export const workOrderItemsTable = pgTable("work_order_items", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   workOrderId: integer("work_order_id").notNull().references(() => workOrdersTable.id),
   quoteItemId: integer("quote_item_id").references(() => quoteItemsTable.id),
   itemType: text("item_type").notNull(),
@@ -103,6 +111,7 @@ export const workOrderItemsTable = pgTable("work_order_items", {
 
 export const workOrderChecklistItemsTable = pgTable("work_order_checklist_items", {
   id: serial("id").primaryKey(),
+  workshopId: workshopIdColumn(),
   workOrderId: integer("work_order_id").notNull().references(() => workOrdersTable.id),
   workOrderItemId: integer("work_order_item_id").references(() => workOrderItemsTable.id),
   serviceStepId: integer("service_step_id").references(() => serviceStepsTable.id),

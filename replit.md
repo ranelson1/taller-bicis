@@ -94,6 +94,71 @@ se siguen creando por dentro desde Nuevo Trabajo, pero ya no aparecen en el men�
 Migración: `lib/db/migrations/001-ot-publica.sql` (idempotente). En una base existente correrla con
 `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f lib/db/migrations/001-ot-publica.sql`.
 
+## Multi-taller (Etapa 8)
+
+- Tabla `workshops`; todas las demás tienen `workshop_id` (default `current_workshop_id()`), con
+  Row Level Security forzado (migración `008-multi-taller.sql`, esquema completo en `lib/db/schema.sql`).
+- `lib/db/src/index.ts`: cada request usa su propia conexión con `app.workshop_id` fijado
+  (`runWithTenantConnection`, middleware en `app.ts`); `db` es un proxy a esa conexión, así las rutas
+  no filtran a mano. `withBypass` solo para login, links públicos (`/ot/:token`) y `/api/platform`.
+- Sesión: `userId` + `workshopId`. Rol `superadmin` (sin taller) administra `/plataforma` y puede
+  entrar a un taller (`POST /api/platform/workshops/:id/enter`) — ahí actúa como su admin.
+- Numeración por taller en `document_counters` (cada taller parte en OT-0001).
+- Configuración por taller en `workshop_settings` (PK `workshop_id`); ya no se usan `WORKSHOP_*`.
+- Fotos guardadas en `uploads/taller-<id>/ot-<id>/`.
+- Scripts: `create-superadmin`, `load-demo`/`seed` (JSON de `docs/esquema-seed.md`), `check-isolation`.
+
+## Simplificación (Etapa 7): un trabajo = una OT
+
+- **Navegación**: Inicio, Trabajos, Clientes, Bicicletas. Administración (solo rol `admin`):
+  Usuarios, Catálogo (servicios/repuestos/categorías en pestañas) y Configuración (datos del taller,
+  días hábiles, métodos de pago).
+- **Permisos**: `adminOnlyWrites` (middlewares/auth.ts) — usuarios, catálogos y configuración se
+  leen con cualquier sesión, pero solo un admin puede crearlos, editarlos o borrarlos.
+- **Estados**: una sola fuente, `workshop-app/src/lib/work-status.ts` (Recibida → En reparación →
+  Control de calidad → Lista para retiro → Entregada). La lista y el Inicio usan las OT, no los TR.
+- **Inicio** (`pages/dashboard.tsx`): alertas (atrasados, esperando al cliente, listas sin retirar,
+  entregadas con saldo), tablero por estado y carga por mecánico. Un mecánico puede ver solo lo suyo.
+- **Nuevo trabajo** (`pages/trabajo-nuevo.tsx`): una pantalla — buscar cliente por nombre o teléfono,
+  bici del cliente o nueva, servicios del catálogo como botones, término estimado en vivo
+  (`POST /api/work-orders/estimate-preview`) antes de crear.
+- **Ficha** (`pages/trabajo-detail.tsx` + `components/trabajo/`): checklist en línea, quitar ítems,
+  editar notas y cancelar en el menú ⋮, pago con método y monto (abonos), acción principal fija abajo
+  en el celular. `/ordenes/:id` redirige al trabajo; `/presupuestos/:id` y `/recepciones/:id` quedan solo
+  para trabajos antiguos sin OT.
+- **WhatsApp** (`shareMessage`): el texto cambia según el momento (adicionales por aprobar, lista para
+  retirar con total, fecha estimada si no ha vencido).
+- **Sesiones** en Postgres (`connect-pg-simple`, tabla `session`): reiniciar la API no cierra sesiones.
+- **Numeración** TR/P/R/OT con secuencias (`helpers/numbering.ts`), sin choques al crear en paralelo.
+- **Configuración** en `workshop_settings` (una fila). Si está vacía se usan `WORKSHOP_NAME`,
+  `WORKSHOP_PHONE` y `WORKSHOP_WORKDAYS`; una vez guardada desde la app, manda lo guardado.
+
+Migraciones: `003-pago-ot.sql`, `004-sesiones.sql`, `005-configuracion-y-numeracion.sql`.
+
+### Horario y capacidad (`helpers/schedule.ts`, migración `006-horario-taller.sql`)
+
+- Configuración guarda el horario por día (`schedule`: `[{day, open, close}]`, solo días que abre) y una
+  colación del equipo (`lunch_start`/`lunch_end`, null = sin colación). Horas netas del día = cierre −
+  apertura − la parte de la colación que cae dentro. Sin horario guardado: L–V 10:00–19:00, colación 14–15.
+- Capacidad de cada mecánico = horas netas del día × (sus `weeklyHours` / horas netas semanales del
+  taller, tope 1; sin `weeklyHours` = jornada completa).
+- La estimación recorre día a día desde ahora (cuenta lo que queda de hoy) hasta cubrir la cola.
+
+## Fechas de la OT y término estimado
+
+- Al crear una OT sin fecha (Nuevo Trabajo, desde presupuesto o recepción) se calcula
+  `estimatedDeliveryDate` con `helpers/completionEstimate.ts`: horas pendientes de las OT abiertas
+  (del mecánico asignado, o de todo el taller si no hay) + horas de la OT nueva, divididas por la
+  capacidad diaria (`weeklyHours` de los mecánicos / días hábiles). Una OT sin horas cuenta 1 h.
+- Las horas de cada ítem salen del servicio del catálogo (`services.estimatedHours`) si no vienen.
+- `POST /api/work-orders/:id/estimate` recalcula (botón **Recalcular** en la ficha).
+- Fechas independientes en la ficha: ingreso (`createdAt`), término estimado, terminada
+  (`completedAt`, al quedar lista para retiro; se borra si vuelve a reparación), entregada
+  (`deliveredAt`) y pagada (`paidAt`, vía `PATCH /api/work-orders/:id`).
+- Variable opcional `WORKSHOP_WORKDAYS` (0=domingo … 6=sábado), por defecto `1,2,3,4,5`.
+
+Migración: `lib/db/migrations/002-fechas-ot.sql` (agrega `work_orders.paid_at`).
+
 ## Nuevo Trabajo Rápido (Etapa 5A)
 
 - `POST /api/work-cases/quick-create` — crea en una sola transacción atómica: cliente (nuevo o existente), bicicleta (nueva o existente), TR, presupuesto, recepción y OT. Requiere al menos 1 ítem (`items` con `minItems: 1`, cada ítem con `itemType`). La inserción rápida de bicicleta NO persiste `rimSize`.

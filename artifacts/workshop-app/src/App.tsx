@@ -1,10 +1,10 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useParams } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/app-layout";
-import { useGetMe } from "@workspace/api-client-react";
+import { useGetMe, useGetWorkOrder } from "@workspace/api-client-react";
 
 // Pages
 import Login from "@/pages/login";
@@ -13,24 +13,17 @@ import Clients from "@/pages/clients";
 import ClientDetail from "@/pages/client-detail";
 import Bicycles from "@/pages/bicycles";
 import Users from "@/pages/admin/users";
-import Services from "@/pages/admin/services";
 import ServiceDetail from "@/pages/admin/service-detail";
-import Parts from "@/pages/admin/parts";
-import Categories from "@/pages/admin/categories";
-import PaymentMethods from "@/pages/admin/payment-methods";
-import Presupuestos from "@/pages/presupuestos";
-import PresupuestoNuevo from "@/pages/presupuesto-nuevo";
+import Catalog from "@/pages/admin/catalog";
+import Settings from "@/pages/admin/settings";
 import PresupuestoDetail from "@/pages/presupuesto-detail";
-import PlaceholderPage from "@/pages/placeholder";
-import Recepciones from "@/pages/recepciones";
 import RecepcionNueva from "@/pages/recepcion-nueva";
 import RecepcionDetail from "@/pages/recepcion-detail";
-import Ordenes from "@/pages/ordenes";
-import OrdenDetail from "@/pages/orden-detail";
 import Trabajos from "@/pages/trabajos";
 import TrabajoNuevo from "@/pages/trabajo-nuevo";
 import TrabajoDetail from "@/pages/trabajo-detail";
 import OtPublica from "@/pages/ot-publica";
+import Platform from "@/pages/platform";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,7 +51,37 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return <Redirect to="/login" />;
   }
 
+  // El superadmin sin taller elegido solo tiene el panel de la plataforma.
+  if (user.role === "superadmin" && user.workshopId == null) {
+    return <Redirect to="/plataforma" />;
+  }
+
   return <AppLayout>{children}</AppLayout>;
+}
+
+// Páginas de administración del taller: admin (o el superadmin dentro de un taller).
+function AdminGate({ children }: { children: React.ReactNode }) {
+  const { data: user } = useGetMe({ request: { credentials: "include" } });
+  if (user && user.role !== "admin" && user.role !== "superadmin") return <Redirect to="/" />;
+  return <AuthGate>{children}</AuthGate>;
+}
+
+// Panel de la plataforma: solo superadmin.
+function SuperadminGate({ children }: { children: React.ReactNode }) {
+  const { data: user, isLoading } = useGetMe({ request: { credentials: "include" } });
+  if (isLoading) return null;
+  if (!user) return <Redirect to="/login" />;
+  if (user.role !== "superadmin") return <Redirect to="/" />;
+  return <AppLayout>{children}</AppLayout>;
+}
+
+// Las OT se ven dentro de su trabajo: /ordenes/:id lleva a /trabajos/:workCaseId.
+function OrdenRedirect() {
+  const { id } = useParams<{ id: string }>();
+  const { data: wo, isError } = useGetWorkOrder(Number(id));
+  if (isError) return <Redirect to="/trabajos" />;
+  if (!wo) return null;
+  return <Redirect to={wo.workCaseId ? `/trabajos/${wo.workCaseId}` : "/trabajos"} />;
 }
 
 function Router() {
@@ -67,6 +90,10 @@ function Router() {
       <Route path="/login" component={Login} />
       {/* Vista pública del cliente: sin login, por token secreto */}
       <Route path="/ot/:token" component={OtPublica} />
+
+      <Route path="/plataforma">
+        <SuperadminGate><Platform /></SuperadminGate>
+      </Route>
 
       <Route path="/">
         <AuthGate><Dashboard /></AuthGate>
@@ -83,48 +110,40 @@ function Router() {
 
       {/* Admin */}
       <Route path="/admin/usuarios">
-        <AuthGate><Users /></AuthGate>
+        <AdminGate><Users /></AdminGate>
       </Route>
-      <Route path="/admin/servicios">
-        <AuthGate><Services /></AuthGate>
+      <Route path="/admin/catalogo">
+        <AdminGate><Catalog /></AdminGate>
       </Route>
       <Route path="/admin/servicios/:id">
-        <AuthGate><ServiceDetail /></AuthGate>
+        <AdminGate><ServiceDetail /></AdminGate>
       </Route>
-      <Route path="/admin/repuestos">
-        <AuthGate><Parts /></AuthGate>
+      <Route path="/admin/configuracion">
+        <AdminGate><Settings /></AdminGate>
       </Route>
-      <Route path="/admin/categorias">
-        <AuthGate><Categories /></AuthGate>
-      </Route>
-      <Route path="/admin/metodos-pago">
-        <AuthGate><PaymentMethods /></AuthGate>
-      </Route>
+      {/* Rutas anteriores del catálogo y la configuración */}
+      <Route path="/admin/servicios"><Redirect to="/admin/catalogo?tab=servicios" /></Route>
+      <Route path="/admin/repuestos"><Redirect to="/admin/catalogo?tab=repuestos" /></Route>
+      <Route path="/admin/categorias"><Redirect to="/admin/catalogo?tab=categorias" /></Route>
+      <Route path="/admin/metodos-pago"><Redirect to="/admin/configuracion" /></Route>
 
-      {/* Presupuestos */}
-      <Route path="/presupuestos">
-        <AuthGate><Presupuestos /></AuthGate>
-      </Route>
-      <Route path="/presupuestos/nuevo">
-        <AuthGate><PresupuestoNuevo /></AuthGate>
-      </Route>
+      {/* Presupuesto y recepción ya no son documentos aparte: todo vive en el trabajo.
+          Sus fichas quedan solo para trabajos antiguos que aún no tienen OT. */}
+      <Route path="/presupuestos"><Redirect to="/trabajos" /></Route>
+      <Route path="/presupuestos/nuevo"><Redirect to="/trabajos/nuevo" /></Route>
       <Route path="/presupuestos/:id">
         <AuthGate><PresupuestoDetail /></AuthGate>
       </Route>
-      <Route path="/recepciones">
-        <AuthGate><Recepciones /></AuthGate>
-      </Route>
+      <Route path="/recepciones"><Redirect to="/trabajos" /></Route>
       <Route path="/recepciones/nueva">
         <AuthGate><RecepcionNueva /></AuthGate>
       </Route>
       <Route path="/recepciones/:id">
         <AuthGate><RecepcionDetail /></AuthGate>
       </Route>
-      <Route path="/ordenes">
-        <AuthGate><Ordenes /></AuthGate>
-      </Route>
+      <Route path="/ordenes"><Redirect to="/trabajos" /></Route>
       <Route path="/ordenes/:id">
-        <AuthGate><OrdenDetail /></AuthGate>
+        <AuthGate><OrdenRedirect /></AuthGate>
       </Route>
       <Route path="/trabajos">
         <AuthGate><Trabajos /></AuthGate>
@@ -135,12 +154,8 @@ function Router() {
       <Route path="/trabajos/:id">
         <AuthGate><TrabajoDetail /></AuthGate>
       </Route>
-      <Route path="/agenda">
-        <AuthGate><PlaceholderPage title="Agenda" description="Calendario de turnos y entregas." /></AuthGate>
-      </Route>
-      <Route path="/pagos">
-        <AuthGate><PlaceholderPage title="Pagos" description="Registro de pagos y facturación." /></AuthGate>
-      </Route>
+      <Route path="/agenda"><Redirect to="/" /></Route>
+      <Route path="/pagos"><Redirect to="/" /></Route>
 
       <Route component={NotFound} />
     </Switch>
