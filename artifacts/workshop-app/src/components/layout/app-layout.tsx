@@ -120,14 +120,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 
+  // Con logo: el logo y el nombre del taller. Sin logo: la marca de la app.
   const Brand = ({ size }: { size: "sm" | "lg" }) => (
-    <div className="min-w-0">
-      <h1 className={`${size === "lg" ? "text-xl" : "text-lg"} font-bold text-sidebar-primary flex items-center gap-2`}>
-        <Wrench className={size === "lg" ? "h-6 w-6" : "h-5 w-5"} />
-        TallerBicis
-      </h1>
-      {user?.workshopName && <p className="text-xs text-sidebar-foreground/70 truncate mt-0.5" data-testid="workshop-name">{user.workshopName}</p>}
-    </div>
+    user?.workshopLogoUrl ? (
+      <div className="flex items-center gap-2.5 min-w-0">
+        <img src={user.workshopLogoUrl} alt="" className={`${size === "lg" ? "h-10 w-10" : "h-8 w-8"} rounded-md bg-white object-contain shrink-0`} />
+        <p className="font-semibold text-sidebar-foreground truncate" data-testid="workshop-name">{user.workshopName}</p>
+      </div>
+    ) : (
+      <div className="min-w-0">
+        <h1 className={`${size === "lg" ? "text-xl" : "text-lg"} font-bold text-sidebar-primary flex items-center gap-2`}>
+          <Wrench className={size === "lg" ? "h-6 w-6" : "h-5 w-5"} />
+          TallerBicis
+        </h1>
+        {user?.workshopName && <p className="text-xs text-sidebar-foreground/70 truncate mt-0.5" data-testid="workshop-name">{user.workshopName}</p>}
+      </div>
+    )
   );
 
   return (

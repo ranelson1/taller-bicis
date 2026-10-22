@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod/v4";
 import { db, withBypass, setCurrentWorkshop } from "@workspace/db";
-import { workOrdersTable, workOrderPhotosTable } from "@workspace/db";
+import { workOrdersTable, workOrderPhotosTable, workshopSettingsTable } from "@workspace/db";
 import { photoPath } from "../helpers/photoStorage";
 import { and, eq } from "drizzle-orm";
 import { triggerWorkCaseRecalc } from "../helpers/workCase";
@@ -52,6 +52,22 @@ router.get("/ot/:token/photos/:photoId", async (req, res) => {
     ));
     if (!photo) { res.status(404).end(); return; }
     res.type(photo.mimeType).set("Cache-Control", "private, no-cache").sendFile(photoPath(photo.storageKey));
+  } catch (e) {
+    console.error(e);
+    res.status(500).end();
+  }
+});
+
+// GET /public/workshops/:id/logo — el logo no es privado: sale en el link del cliente y en la app.
+router.get("/workshops/:id/logo", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) { res.status(404).end(); return; }
+  try {
+    const [row] = await withBypass((bdb) => bdb.select({ key: workshopSettingsTable.logoKey })
+      .from(workshopSettingsTable).where(eq(workshopSettingsTable.workshopId, id)));
+    if (!row?.key) { res.status(404).end(); return; }
+    // La URL lleva ?v=<versión>, así que se puede cachear largo.
+    res.set("Cache-Control", "public, max-age=31536000, immutable").sendFile(photoPath(row.key));
   } catch (e) {
     console.error(e);
     res.status(500).end();

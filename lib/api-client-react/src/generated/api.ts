@@ -92,6 +92,7 @@ import type {
   UpdatePlatformWorkshopBody,
   UpdateWorkOrderItemBody,
   UpdateWorkOrderPhotoBody,
+  UpdateWorkshopCostsBody,
   User,
   UserCapacity,
   UserInput,
@@ -7228,6 +7229,146 @@ export const useExitPlatformWorkshop = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getExitPlatformWorkshopMutationOptions(options));
+    }
+
+export const getUpdateWorkshopCostsUrl = () => {
+
+
+
+
+  return `/api/settings/costs`
+}
+
+/**
+ * @summary Guarda los costos del taller (costo hora, margen de repuestos)
+ */
+export const updateWorkshopCosts = async (updateWorkshopCostsBody: UpdateWorkshopCostsBody, options?: RequestInit): Promise<WorkshopSettings> => {
+
+  return customFetch<WorkshopSettings>(getUpdateWorkshopCostsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateWorkshopCostsBody)
+  }
+);}
+
+
+
+
+export const getUpdateWorkshopCostsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopCosts>>, TError,{data: BodyType<UpdateWorkshopCostsBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopCosts>>, TError,{data: BodyType<UpdateWorkshopCostsBody>}, TContext> => {
+
+const mutationKey = ['updateWorkshopCosts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWorkshopCosts>>, {data: BodyType<UpdateWorkshopCostsBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateWorkshopCosts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWorkshopCostsMutationResult = NonNullable<Awaited<ReturnType<typeof updateWorkshopCosts>>>
+    export type UpdateWorkshopCostsMutationBody = BodyType<UpdateWorkshopCostsBody>
+    export type UpdateWorkshopCostsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Guarda los costos del taller (costo hora, margen de repuestos)
+ */
+export const useUpdateWorkshopCosts = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopCosts>>, TError,{data: BodyType<UpdateWorkshopCostsBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWorkshopCosts>>,
+        TError,
+        {data: BodyType<UpdateWorkshopCostsBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateWorkshopCostsMutationOptions(options));
+    }
+
+export const getDeleteWorkshopLogoUrl = () => {
+
+
+
+
+  return `/api/settings/logo`
+}
+
+/**
+ * @summary Quita el logo del taller (para subirlo se usa POST con la imagen como cuerpo)
+ */
+export const deleteWorkshopLogo = async ( options?: RequestInit): Promise<WorkshopSettings> => {
+
+  return customFetch<WorkshopSettings>(getDeleteWorkshopLogoUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteWorkshopLogoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWorkshopLogo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteWorkshopLogo>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteWorkshopLogo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWorkshopLogo>>, void> = () => {
+
+
+          return  deleteWorkshopLogo(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteWorkshopLogoMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWorkshopLogo>>>
+
+    export type DeleteWorkshopLogoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Quita el logo del taller (para subirlo se usa POST con la imagen como cuerpo)
+ */
+export const useDeleteWorkshopLogo = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWorkshopLogo>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteWorkshopLogo>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteWorkshopLogoMutationOptions(options));
     }
 
 export const getPreviewWorkOrderEstimateUrl = () => {

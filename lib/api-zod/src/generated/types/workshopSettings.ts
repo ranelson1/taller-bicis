@@ -20,4 +20,19 @@ export interface WorkshopSettings {
   lunchEnd?: string | null;
   workdays: number[];
   weeklyNetHours: number;
+  /** @nullable */
+  monthlyFixedCosts?: number | null;
+  /** @nullable */
+  monthlySalary?: number | null;
+  /** @nullable */
+  monthlyWorkHours?: number | null;
+  /**
+     * Costo de una hora de trabajo del taller
+     * @nullable
+     */
+  laborCostPerHour?: number | null;
+  /** Margen por defecto sobre repuestos comprados para un trabajo (%) */
+  defaultPartsMarginPct: number;
+  /** @nullable */
+  logoUrl?: string | null;
 }

@@ -1,5 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { usersTable, workshopsTable, withBypass } from "@workspace/db";
+import { usersTable, workshopsTable, workshopSettingsTable, withBypass } from "@workspace/db";
+import { logoUrl } from "../helpers/settings";
 import { eq } from "drizzle-orm";
 import "../lib/session";
 
@@ -10,6 +11,8 @@ export type SessionUser = {
   role: "admin" | "mechanic" | "reception" | "superadmin";
   workshopId: number | null;
   workshopName: string | null;
+  workshopLogoUrl: string | null;
+  doesJobs: boolean;
 };
 
 // Usuario de la sesión y su taller, o null si la sesión ya no vale (usuario o taller desactivado,
@@ -23,13 +26,17 @@ export async function loadSessionUser(req: Request): Promise<SessionUser | null>
     if (!user?.active) return null;
     if (user.role !== "superadmin" && user.workshopId !== workshopId) return null;
     let workshopName: string | null = null;
+    let workshopLogoUrl: string | null = null;
     if (workshopId != null) {
       const [ws] = await db.select().from(workshopsTable).where(eq(workshopsTable.id, workshopId));
       // Un taller desactivado deja fuera a sus usuarios (el superadmin puede seguir entrando).
       if (!ws || (!ws.active && user.role !== "superadmin")) return null;
       workshopName = ws.name;
+      const [settings] = await db.select({ logoKey: workshopSettingsTable.logoKey }).from(workshopSettingsTable)
+        .where(eq(workshopSettingsTable.workshopId, workshopId));
+      workshopLogoUrl = settings?.logoKey ? logoUrl(workshopId, settings.logoKey) : null;
     }
-    return { id: user.id, name: user.name, email: user.email, role: user.role, workshopId, workshopName };
+    return { id: user.id, name: user.name, email: user.email, role: user.role, workshopId, workshopName, workshopLogoUrl, doesJobs: user.doesJobs };
   });
 }
 

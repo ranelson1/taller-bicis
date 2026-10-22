@@ -1,4 +1,4 @@
-import { pgTable, integer, text, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, integer, text, timestamp, jsonb, numeric } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { workshopsTable } from "./workshops";
 
@@ -18,6 +18,14 @@ export const workshopSettingsTable = pgTable("workshop_settings", {
   // Colación del equipo, se descuenta de la capacidad. null = sin colación.
   lunchStart: text("lunch_start"),
   lunchEnd: text("lunch_end"),
+  // Costo de la hora de trabajo = (gastos fijos + sueldo) / horas que se repara al mes.
+  monthlyFixedCosts: numeric("monthly_fixed_costs", { precision: 12, scale: 2 }),
+  monthlySalary: numeric("monthly_salary", { precision: 12, scale: 2 }),
+  monthlyWorkHours: numeric("monthly_work_hours", { precision: 6, scale: 1 }),
+  laborCostPerHour: numeric("labor_cost_per_hour", { precision: 12, scale: 2 }),
+  // Margen por defecto sobre repuestos comprados para un trabajo (30 = 30 %).
+  defaultPartsMarginPct: numeric("default_parts_margin_pct", { precision: 5, scale: 1 }).notNull().default("30"),
+  logoKey: text("logo_key"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

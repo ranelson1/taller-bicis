@@ -19,4 +19,7 @@ export interface AuthUser {
   workshopId?: number | null;
   /** @nullable */
   workshopName?: string | null;
+  /** @nullable */
+  workshopLogoUrl?: string | null;
+  doesJobs?: boolean;
 }

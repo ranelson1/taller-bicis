@@ -15,6 +15,8 @@ export interface PublicWorkOrder {
   workshopName: string;
   /** @nullable */
   workshopPhone?: string | null;
+  /** @nullable */
+  workshopLogoUrl?: string | null;
   workOrderNumber: string;
   status: PublicWorkOrderStatus;
   progressPercentage: number;

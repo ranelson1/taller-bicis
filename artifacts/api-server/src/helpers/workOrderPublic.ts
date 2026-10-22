@@ -21,7 +21,7 @@ const TAX_RATE = 0.19;
 
 export const workshopInfo = async () => {
   const s = await getWorkshopSettings();
-  return { workshopName: s.name, workshopPhone: s.phone, workshopAddress: s.address };
+  return { workshopName: s.name, workshopPhone: s.phone, workshopAddress: s.address, workshopLogoUrl: s.logoUrl };
 };
 
 export class ItemDecisionError extends Error {}

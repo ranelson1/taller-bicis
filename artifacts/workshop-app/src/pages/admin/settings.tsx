@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Clock, Store } from "lucide-react";
 import PaymentMethods from "./payment-methods";
+import { CostsCard } from "@/components/settings/costs-card";
+import { LogoCard } from "@/components/settings/logo-card";
 
 // Configuración del taller: datos que ve el cliente, horario y colación (de ahí sale la
 // capacidad para estimar el término de cada trabajo) y métodos de pago.
@@ -163,6 +165,12 @@ export default function Settings() {
           <Button onClick={submit} disabled={save.isPending || !canSave} data-testid="button-save-settings">
             {save.isPending ? "Guardando…" : "Guardar configuración"}
           </Button>
+        )}
+        {settings && (
+          <div className="grid gap-6 xl:grid-cols-[2fr_1fr] items-start max-w-2xl xl:max-w-none">
+            <CostsCard settings={settings} />
+            <LogoCard settings={settings} />
+          </div>
         )}
       </div>
       <PaymentMethods />

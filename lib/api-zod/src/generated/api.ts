@@ -30,7 +30,9 @@ export const LoginResponse = zod.object({
   "email": zod.string(),
   "role": zod.enum(['admin', 'mechanic', 'reception', 'superadmin']),
   "workshopId": zod.number().nullish().describe('Taller de la sesión (null = superadmin sin taller elegido)'),
-  "workshopName": zod.string().nullish()
+  "workshopName": zod.string().nullish(),
+  "workshopLogoUrl": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional()
 })
 
 
@@ -49,7 +51,9 @@ export const GetMeResponse = zod.object({
   "email": zod.string(),
   "role": zod.enum(['admin', 'mechanic', 'reception', 'superadmin']),
   "workshopId": zod.number().nullish().describe('Taller de la sesión (null = superadmin sin taller elegido)'),
-  "workshopName": zod.string().nullish()
+  "workshopName": zod.string().nullish(),
+  "workshopLogoUrl": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional()
 })
 
 
@@ -2519,7 +2523,13 @@ export const GetWorkshopSettingsResponse = zod.object({
   "lunchStart": zod.string().nullish(),
   "lunchEnd": zod.string().nullish(),
   "workdays": zod.array(zod.number()),
-  "weeklyNetHours": zod.number()
+  "weeklyNetHours": zod.number(),
+  "monthlyFixedCosts": zod.number().nullish(),
+  "monthlySalary": zod.number().nullish(),
+  "monthlyWorkHours": zod.number().nullish(),
+  "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
+  "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "logoUrl": zod.string().nullish()
 })
 
 
@@ -2553,7 +2563,13 @@ export const UpdateWorkshopSettingsResponse = zod.object({
   "lunchStart": zod.string().nullish(),
   "lunchEnd": zod.string().nullish(),
   "workdays": zod.array(zod.number()),
-  "weeklyNetHours": zod.number()
+  "weeklyNetHours": zod.number(),
+  "monthlyFixedCosts": zod.number().nullish(),
+  "monthlySalary": zod.number().nullish(),
+  "monthlyWorkHours": zod.number().nullish(),
+  "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
+  "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "logoUrl": zod.string().nullish()
 })
 
 
@@ -2682,6 +2698,68 @@ export const EnterPlatformWorkshopResponse = zod.unknown()
  * @summary El superadmin sale del taller en que estaba
  */
 export const ExitPlatformWorkshopResponse = zod.unknown()
+
+
+/**
+ * @summary Guarda los costos del taller (costo hora, margen de repuestos)
+ */
+export const UpdateWorkshopCostsBody = zod.object({
+  "monthlyFixedCosts": zod.number().nullish(),
+  "monthlySalary": zod.number().nullish(),
+  "monthlyWorkHours": zod.number().nullish(),
+  "laborCostPerHour": zod.number().nullish(),
+  "defaultPartsMarginPct": zod.number().optional()
+})
+
+export const UpdateWorkshopCostsResponse = zod.object({
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "schedule": zod.array(zod.object({
+  "day": zod.number().describe('0 = domingo … 6 = sábado'),
+  "open": zod.string().describe('HH:MM'),
+  "close": zod.string().describe('HH:MM')
+}).and(zod.object({
+  "netHours": zod.number().describe('Horas de trabajo del día sin la colación')
+}))),
+  "lunchStart": zod.string().nullish(),
+  "lunchEnd": zod.string().nullish(),
+  "workdays": zod.array(zod.number()),
+  "weeklyNetHours": zod.number(),
+  "monthlyFixedCosts": zod.number().nullish(),
+  "monthlySalary": zod.number().nullish(),
+  "monthlyWorkHours": zod.number().nullish(),
+  "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
+  "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "logoUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Quita el logo del taller (para subirlo se usa POST con la imagen como cuerpo)
+ */
+export const DeleteWorkshopLogoResponse = zod.object({
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "schedule": zod.array(zod.object({
+  "day": zod.number().describe('0 = domingo … 6 = sábado'),
+  "open": zod.string().describe('HH:MM'),
+  "close": zod.string().describe('HH:MM')
+}).and(zod.object({
+  "netHours": zod.number().describe('Horas de trabajo del día sin la colación')
+}))),
+  "lunchStart": zod.string().nullish(),
+  "lunchEnd": zod.string().nullish(),
+  "workdays": zod.array(zod.number()),
+  "weeklyNetHours": zod.number(),
+  "monthlyFixedCosts": zod.number().nullish(),
+  "monthlySalary": zod.number().nullish(),
+  "monthlyWorkHours": zod.number().nullish(),
+  "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
+  "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "logoUrl": zod.string().nullish()
+})
 
 
 /**
@@ -3206,6 +3284,7 @@ export const GetPublicWorkOrderParams = zod.object({
 export const GetPublicWorkOrderResponse = zod.object({
   "workshopName": zod.string(),
   "workshopPhone": zod.string().nullish(),
+  "workshopLogoUrl": zod.string().nullish(),
   "workOrderNumber": zod.string(),
   "status": zod.enum(['ready_to_work', 'in_progress', 'quality_control', 'ready_for_pickup', 'delivered', 'cancelled']),
   "progressPercentage": zod.number(),
@@ -3274,6 +3353,7 @@ export const DecidePublicWorkOrderItemBody = zod.object({
 export const DecidePublicWorkOrderItemResponse = zod.object({
   "workshopName": zod.string(),
   "workshopPhone": zod.string().nullish(),
+  "workshopLogoUrl": zod.string().nullish(),
   "workOrderNumber": zod.string(),
   "status": zod.enum(['ready_to_work', 'in_progress', 'quality_control', 'ready_for_pickup', 'delivered', 'cancelled']),
   "progressPercentage": zod.number(),

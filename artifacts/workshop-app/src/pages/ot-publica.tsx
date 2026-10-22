@@ -183,7 +183,11 @@ export default function OtPublica() {
         {/* Encabezado */}
         <header className="rounded-2xl bg-gradient-to-br from-orange-600 to-orange-500 text-white p-5 shadow-md">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-white/15 flex items-center justify-center"><Wrench className="h-6 w-6" /></div>
+            {ot.workshopLogoUrl ? (
+              <img src={ot.workshopLogoUrl} alt="" className="h-12 w-12 rounded-xl bg-white object-contain p-1" />
+            ) : (
+              <div className="h-11 w-11 rounded-xl bg-white/15 flex items-center justify-center"><Wrench className="h-6 w-6" /></div>
+            )}
             <div>
               <p className="text-[11px] uppercase tracking-widest text-white/80">Seguimiento de tu reparación</p>
               <p className="text-xl font-extrabold leading-tight">{ot.workshopName}</p>

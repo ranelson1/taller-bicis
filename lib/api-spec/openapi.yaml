@@ -2059,6 +2059,49 @@ paths:
         "200":
           description: Sesión sin taller
 
+  /settings/costs:
+    put:
+      operationId: updateWorkshopCosts
+      tags: [settings]
+      summary: Guarda los costos del taller (costo hora, margen de repuestos)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                monthlyFixedCosts:
+                  type: ["number", "null"]
+                monthlySalary:
+                  type: ["number", "null"]
+                monthlyWorkHours:
+                  type: ["number", "null"]
+                laborCostPerHour:
+                  type: ["number", "null"]
+                defaultPartsMarginPct:
+                  type: number
+      responses:
+        "200":
+          description: Configuración
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkshopSettings"
+
+  /settings/logo:
+    delete:
+      operationId: deleteWorkshopLogo
+      tags: [settings]
+      summary: Quita el logo del taller (para subirlo se usa POST con la imagen como cuerpo)
+      responses:
+        "200":
+          description: Configuración
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkshopSettings"
+
   /work-orders/estimate-preview:
     post:
       operationId: previewWorkOrderEstimate
@@ -2876,6 +2919,10 @@ components:
           description: Taller de la sesión (null = superadmin sin taller elegido)
         workshopName:
           type: ["string", "null"]
+        workshopLogoUrl:
+          type: ["string", "null"]
+        doesJobs:
+          type: boolean
 
     # ── USERS ────────────────────────────────────────────────────────────────
     User:
@@ -4202,6 +4249,8 @@ components:
           type: string
         workshopPhone:
           type: ["string", "null"]
+        workshopLogoUrl:
+          type: ["string", "null"]
         workOrderNumber:
           type: string
         status:
@@ -4615,7 +4664,7 @@ components:
 
     WorkshopSettings:
       type: object
-      required: [name, schedule, workdays, weeklyNetHours]
+      required: [name, schedule, workdays, weeklyNetHours, defaultPartsMarginPct]
       properties:
         name:
           type: string
@@ -4644,6 +4693,20 @@ components:
             type: integer
         weeklyNetHours:
           type: number
+        monthlyFixedCosts:
+          type: ["number", "null"]
+        monthlySalary:
+          type: ["number", "null"]
+        monthlyWorkHours:
+          type: ["number", "null"]
+        laborCostPerHour:
+          type: ["number", "null"]
+          description: Costo de una hora de trabajo del taller
+        defaultPartsMarginPct:
+          type: number
+          description: Margen por defecto sobre repuestos comprados para un trabajo (%)
+        logoUrl:
+          type: ["string", "null"]
 
     WorkshopSettingsInput:
       type: object

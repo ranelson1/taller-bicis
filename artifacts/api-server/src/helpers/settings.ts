@@ -15,7 +15,7 @@ export function parseWorkdays(value: string | null | undefined): number[] {
 export async function getWorkshopSettings(exec: Tx | typeof db = db) {
   // Fila del taller de la conexión actual (RLS ya la limita; el filtro lo deja explícito).
   const [row] = await exec.select().from(workshopSettingsTable).where(eq(workshopSettingsTable.workshopId, sql`current_workshop_id()`));
-  const [workshop] = await exec.select({ name: workshopsTable.name }).from(workshopsTable).where(eq(workshopsTable.id, sql`current_workshop_id()`));
+  const [workshop] = await exec.select({ id: workshopsTable.id, name: workshopsTable.name }).from(workshopsTable).where(eq(workshopsTable.id, sql`current_workshop_id()`));
 
   // Sin horario guardado: días de `workdays` de 10:00 a 19:00 con colación por defecto.
   const configured = Array.isArray(row?.schedule) && row.schedule.length > 0;
@@ -35,8 +35,21 @@ export async function getWorkshopSettings(exec: Tx | typeof db = db) {
     lunchEnd: lunch?.end ?? null,
     workdays: schedule.map(d => d.day),
     weeklyNetHours: weeklyNetHours(schedule, lunch),
+    // Costos (para márgenes).
+    monthlyFixedCosts: num(row?.monthlyFixedCosts),
+    monthlySalary: num(row?.monthlySalary),
+    monthlyWorkHours: num(row?.monthlyWorkHours),
+    laborCostPerHour: num(row?.laborCostPerHour),
+    defaultPartsMarginPct: num(row?.defaultPartsMarginPct) ?? 30,
+    // El logo se sirve sin login (sale en el link del cliente); `v` cambia al subir uno nuevo.
+    logoUrl: row?.logoKey && workshop ? logoUrl(workshop.id, row.logoKey) : null,
   };
 }
+
+const num = (v: string | null | undefined) => (v == null ? null : Number(v));
+
+export const logoUrl = (workshopId: number, key: string) =>
+  `/api/public/workshops/${workshopId}/logo?v=${key.split("/").pop()!.slice(0, 8)}`;
 
 export type WorkshopSettingsView = Awaited<ReturnType<typeof getWorkshopSettings>>;
 

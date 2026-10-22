@@ -22,13 +22,24 @@ export function sniffImageType(buf: Buffer): string | null {
   return null;
 }
 
-// La clave nunca viene del usuario: carpeta por taller y OT + nombre aleatorio.
-export async function savePhoto(workshopId: number, workOrderId: number, data: Buffer, mimeType: string): Promise<string> {
-  const key = `taller-${workshopId}/ot-${workOrderId}/${crypto.randomBytes(16).toString("hex")}.${ALLOWED_TYPES[mimeType]}`;
+// Extensión por tipo para todo lo que se guarda (imágenes y documentos de compra).
+const EXTENSIONS: Record<string, string> = { ...ALLOWED_TYPES, "application/pdf": "pdf", "application/xml": "xml" };
+
+// La clave nunca viene del usuario: carpeta del taller + subcarpeta + nombre aleatorio.
+export async function saveFile(workshopId: number, folder: string, data: Buffer, mimeType: string): Promise<string> {
+  const key = `taller-${workshopId}/${folder}/${crypto.randomBytes(16).toString("hex")}.${EXTENSIONS[mimeType] ?? "bin"}`;
   const file = path.join(ROOT, key);
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, data);
   return key;
+}
+
+export async function savePhoto(workshopId: number, workOrderId: number, data: Buffer, mimeType: string): Promise<string> {
+  return saveFile(workshopId, `ot-${workOrderId}`, data, mimeType);
+}
+
+export async function readFile(key: string): Promise<Buffer> {
+  return fs.readFile(photoPath(key));
 }
 
 export function photoPath(key: string): string {

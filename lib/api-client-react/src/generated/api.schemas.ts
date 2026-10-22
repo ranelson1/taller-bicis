@@ -36,6 +36,9 @@ export interface AuthUser {
   workshopId?: number | null;
   /** @nullable */
   workshopName?: string | null;
+  /** @nullable */
+  workshopLogoUrl?: string | null;
+  doesJobs?: boolean;
 }
 
 export type UserRole = typeof UserRole[keyof typeof UserRole];
@@ -1218,6 +1221,8 @@ export interface PublicWorkOrder {
   workshopName: string;
   /** @nullable */
   workshopPhone?: string | null;
+  /** @nullable */
+  workshopLogoUrl?: string | null;
   workOrderNumber: string;
   status: PublicWorkOrderStatus;
   progressPercentage: number;
@@ -1595,6 +1600,21 @@ export interface WorkshopSettings {
   lunchEnd?: string | null;
   workdays: number[];
   weeklyNetHours: number;
+  /** @nullable */
+  monthlyFixedCosts?: number | null;
+  /** @nullable */
+  monthlySalary?: number | null;
+  /** @nullable */
+  monthlyWorkHours?: number | null;
+  /**
+     * Costo de una hora de trabajo del taller
+     * @nullable
+     */
+  laborCostPerHour?: number | null;
+  /** Margen por defecto sobre repuestos comprados para un trabajo (%) */
+  defaultPartsMarginPct: number;
+  /** @nullable */
+  logoUrl?: string | null;
 }
 
 export interface WorkshopSettingsInput {
@@ -1765,6 +1785,18 @@ export type CreatePlatformWorkshop201 = {
 export type UpdatePlatformWorkshopBody = {
   name?: string;
   active?: boolean;
+};
+
+export type UpdateWorkshopCostsBody = {
+  /** @nullable */
+  monthlyFixedCosts?: number | null;
+  /** @nullable */
+  monthlySalary?: number | null;
+  /** @nullable */
+  monthlyWorkHours?: number | null;
+  /** @nullable */
+  laborCostPerHour?: number | null;
+  defaultPartsMarginPct?: number;
 };
 
 export type PreviewWorkOrderEstimateBody = {

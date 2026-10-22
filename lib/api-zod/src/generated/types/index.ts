@@ -111,6 +111,7 @@ export * from './updatePlatformWorkshopBody';
 export * from './updateWorkOrderItemBody';
 export * from './updateWorkOrderItemBodyStatus';
 export * from './updateWorkOrderPhotoBody';
+export * from './updateWorkshopCostsBody';
 export * from './user';
 export * from './userCapacity';
 export * from './userInput';
