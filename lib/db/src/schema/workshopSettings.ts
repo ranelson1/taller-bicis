@@ -1,4 +1,4 @@
-import { pgTable, integer, text, timestamp, jsonb, numeric } from "drizzle-orm/pg-core";
+import { pgTable, integer, text, timestamp, jsonb, numeric, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { workshopsTable } from "./workshops";
 
@@ -26,6 +26,8 @@ export const workshopSettingsTable = pgTable("workshop_settings", {
   // Margen por defecto sobre repuestos comprados para un trabajo (30 = 30 %).
   defaultPartsMarginPct: numeric("default_parts_margin_pct", { precision: 5, scale: 1 }).notNull().default("30"),
   logoKey: text("logo_key"),
+  // Con inicio de actividades el IVA de las compras se recupera: costos y márgenes netos.
+  recoversVat: boolean("recovers_vat").notNull().default(false),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

@@ -10,8 +10,15 @@ export const partsTable = pgTable("parts", {
   name: text("name").notNull(),
   categoryId: integer("category_id").references(() => categoriesTable.id),
   brand: text("brand"),
+  // Precio al cliente (PVP). Puede ser el que fija el distribuidor o costo + margen.
   suggestedPrice: numeric("suggested_price", { precision: 10, scale: 2 }),
   sku: text("sku"),
+  // Inventario (migración 011): part = se cobra al cliente; supply = insumo del taller.
+  kind: text("kind").notNull().default("part"),
+  unit: text("unit").notNull().default("un"),
+  costPrice: numeric("cost_price", { precision: 12, scale: 2 }),     // costo promedio ponderado
+  stock: numeric("stock", { precision: 12, scale: 3 }).notNull().default("0"),
+  minStock: numeric("min_stock", { precision: 12, scale: 3 }),       // punto de recompra
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

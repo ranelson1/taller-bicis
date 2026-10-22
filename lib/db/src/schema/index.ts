@@ -13,3 +13,4 @@ export * from "./receptions";
 export * from "./workOrders";
 export * from "./workshopSettings";
 export * from "./workOrderPhotos";
+export * from "./inventory";

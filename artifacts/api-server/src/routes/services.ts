@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod/v4";
 import { db } from "@workspace/db";
-import { servicesTable, serviceStepsTable, categoriesTable } from "@workspace/db";
+import { servicesTable, serviceStepsTable, categoriesTable, serviceSuppliesTable, partsTable } from "@workspace/db";
 import { eq, count, asc } from "drizzle-orm";
 import { requireAuth, adminOnlyWrites } from "../middlewares/auth";
 
@@ -122,6 +122,41 @@ router.delete("/:id", async (req, res) => {
   try {
     const deleted = await db.update(servicesTable).set({ active: false, updatedAt: new Date() }).where(eq(servicesTable.id, id)).returning({ id: servicesTable.id });
     if (deleted.length === 0) { res.status(404).json({ error: "Not found" }); return; }
+    res.json({ ok: true });
+  } catch { res.status(500).json({ error: "Internal server error" }); }
+});
+
+// ── Insumos del servicio (receta) ───────────────────────────────────────────────
+// Lo que gasta cada vez que se hace (ej.: sangrado de frenos = 50 ml de líquido). Se descuenta del
+// stock cuando la OT queda lista y entra en el costo del trabajo.
+router.get("/:id/supplies", async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const rows = await db.select({
+      partId: serviceSuppliesTable.partId, quantity: serviceSuppliesTable.quantity,
+      name: partsTable.name, unit: partsTable.unit, costPrice: partsTable.costPrice,
+    }).from(serviceSuppliesTable).innerJoin(partsTable, eq(partsTable.id, serviceSuppliesTable.partId))
+      .where(eq(serviceSuppliesTable.serviceId, id)).orderBy(partsTable.name);
+    res.json(rows.map(r => ({ ...r, quantity: Number(r.quantity), costPrice: r.costPrice != null ? Number(r.costPrice) : null })));
+  } catch { res.status(500).json({ error: "Internal server error" }); }
+});
+
+router.put("/:id/supplies", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const parsed = z.object({
+    supplies: z.array(z.object({ partId: z.number().int().positive(), quantity: z.number().positive() })),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Datos inválidos" }); return; }
+  try {
+    const [svc] = await db.select({ id: servicesTable.id }).from(servicesTable).where(eq(servicesTable.id, id));
+    if (!svc) { res.status(404).json({ error: "Not found" }); return; }
+    await db.transaction(async (tx) => {
+      await tx.delete(serviceSuppliesTable).where(eq(serviceSuppliesTable.serviceId, id));
+      const unique = [...new Map(parsed.data.supplies.map(s => [s.partId, s])).values()];
+      if (unique.length) {
+        await tx.insert(serviceSuppliesTable).values(unique.map(s => ({ serviceId: id, partId: s.partId, quantity: String(s.quantity) })));
+      }
+    });
     res.json({ ok: true });
   } catch { res.status(500).json({ error: "Internal server error" }); }
 });

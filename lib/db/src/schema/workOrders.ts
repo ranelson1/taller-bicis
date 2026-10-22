@@ -68,6 +68,8 @@ export const workOrdersTable = pgTable("work_orders", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   deliveredAt: timestamp("delivered_at"),
+  // Cuándo se descontaron del stock los repuestos e insumos de la OT (al quedar lista).
+  stockConsumedAt: timestamp("stock_consumed_at"),
   // Fecha de pago: independiente del término (completedAt) y de la entrega (deliveredAt).
   paidAt: timestamp("paid_at"),
   paymentMethodId: integer("payment_method_id").references(() => paymentMethodsTable.id),
@@ -103,6 +105,11 @@ export const workOrderItemsTable = pgTable("work_order_items", {
   origin: text("origin").notNull().default("initial"), // initial | additional
   approvalDecidedAt: timestamp("approval_decided_at"),
   approvalDecidedBy: text("approval_decided_by"), // client | staff
+  // Artículo del inventario, su costo unitario y si ya se descontó del stock (migración 011).
+  partId: integer("part_id"),
+  serviceId: integer("service_id"),
+  unitCost: numeric("unit_cost", { precision: 12, scale: 2 }),
+  stockConsumed: boolean("stock_consumed").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),

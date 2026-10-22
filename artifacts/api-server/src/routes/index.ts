@@ -17,6 +17,8 @@ import workCasesRouter from "./work-cases";
 import publicRouter from "./public";
 import settingsRouter from "./settings";
 import platformRouter from "./platform";
+import inventoryRouter from "./inventory";
+import purchasesRouter from "./purchases";
 
 const router: IRouter = Router();
 
@@ -38,5 +40,7 @@ router.use("/work-orders", workOrdersRouter);
 router.use("/work-cases", workCasesRouter);
 router.use("/settings", settingsRouter);
 router.use("/platform", platformRouter);
+router.use("/inventory", inventoryRouter);
+router.use("/purchases", purchasesRouter);
 
 export default router;

@@ -254,6 +254,8 @@ export async function createWorkOrderFromQuoteInternal(
       unitPrice: qi.unitPrice,
       total: qi.total,
       estimatedLaborHours: qi.estimatedLaborHours ?? null,
+      partId: qi.partId ?? null,
+      serviceId: qi.serviceId ?? null,
       sortOrder: i,
     }).returning();
 

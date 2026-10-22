@@ -24,6 +24,7 @@ import {
   buildPublicWorkOrder, decideWorkOrderItem, ensurePublicToken, formatCLP, ItemDecisionError, logWorkOrderEvent, shareMessage,
 } from "../helpers/workOrderPublic";
 import { estimateCompletionDate } from "../helpers/completionEstimate";
+import { consumeWorkOrderStock, returnWorkOrderStock, workOrderEconomics } from "../helpers/inventory";
 import { ALLOWED_TYPES, MAX_PHOTO_BYTES, deletePhotoFile, photoPath, savePhoto, sniffImageType } from "../helpers/photoStorage";
 
 const router = Router();
@@ -600,6 +601,20 @@ router.get("/:id/photos/:photoId/file", async (req, res) => {
   }
 });
 
+// ── GET /work-orders/:id/economics ────────────────────────────────────────────
+// Lo cobrado, lo que costaron repuestos/insumos y la mano de obra, y el margen. Solo admin.
+router.get("/:id/economics", async (req, res) => {
+  if (res.locals.userRole !== "admin") { res.status(403).json({ error: "Solo un administrador ve los márgenes" }); return; }
+  try {
+    const eco = await workOrderEconomics(parseInt(req.params.id));
+    if (!eco) { res.status(404).json({ error: "Orden de trabajo no encontrada" }); return; }
+    res.json(eco);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── POST /work-orders/estimate-preview ────────────────────────────────────────
 // Término estimado de un trabajo que aún no se crea (Nuevo trabajo). No guarda nada.
 router.post("/estimate-preview", async (req, res) => {
@@ -753,6 +768,11 @@ router.post("/:id/status", async (req, res) => {
     if (parsed.data.status === "delivered") updates.deliveredAt = now;
 
     await db.update(workOrdersTable).set(updates).where(eq(workOrdersTable.id, id));
+    // Stock: al quedar lista se descuentan repuestos e insumos; si vuelve a reparación, se devuelven.
+    if (target === "ready_for_pickup") await consumeWorkOrderStock(id, userId);
+    if (wo.status === "ready_for_pickup" && ["in_progress", "quality_control", "ready_to_work"].includes(target)) {
+      await returnWorkOrderStock(id, userId);
+    }
     await recalcProgress(id);
     await logEvent(id, `status_changed`, userId, wo.status, parsed.data.status, parsed.data.comment);
     await triggerWorkCaseRecalc(wo.workCaseId, userId);
@@ -1011,6 +1031,9 @@ router.post("/:id/items", async (req, res) => {
       approvalDecidedAt: data.alreadyApproved ? now : null,
       approvalDecidedBy: data.alreadyApproved ? "staff" : null,
       sortOrder: (last?.s ?? 0) + 1,
+      // Enlace al catálogo: el repuesto sale del stock y el servicio gasta sus insumos.
+      partId: data.partId ?? null,
+      serviceId: data.serviceId ?? null,
     }).returning();
 
     await logWorkOrderEvent(workOrderId, "additional_item_added", userId, {
