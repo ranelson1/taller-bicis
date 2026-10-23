@@ -132,7 +132,7 @@ function Router() {
       </Route>
       {/* Rutas anteriores del catálogo y la configuración */}
       <Route path="/admin/servicios"><Redirect to="/admin/catalogo?tab=servicios" /></Route>
-      <Route path="/admin/repuestos"><Redirect to="/admin/catalogo?tab=repuestos" /></Route>
+      <Route path="/admin/repuestos"><Redirect to="/inventario" /></Route>
       <Route path="/admin/categorias"><Redirect to="/admin/catalogo?tab=categorias" /></Route>
       <Route path="/admin/metodos-pago"><Redirect to="/admin/configuracion" /></Route>
 

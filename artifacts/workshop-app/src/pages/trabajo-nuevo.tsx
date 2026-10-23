@@ -91,7 +91,8 @@ export default function TrabajoNuevo() {
   const { data: bicycles } = useListBicycles();
   const { data: users } = useListUsers();
   const { data: services } = useListServices({});
-  const { data: parts } = useListParts({});
+  const { data: allParts } = useListParts({});
+  const parts = useMemo(() => (allParts ?? []).filter((p: any) => p.kind !== "supply"), [allParts]);
   const quickCreate = useQuickCreateWorkCase();
   const preview = usePreviewWorkOrderEstimate();
 

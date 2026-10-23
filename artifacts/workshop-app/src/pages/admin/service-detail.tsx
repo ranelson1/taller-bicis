@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { ServiceSuppliesCard } from "@/components/inventory/supplies-card";
 import { DollarSign, Clock, Plus, Pencil, Trash2, ChevronUp, ChevronDown, ArrowLeft } from "lucide-react";
 
 const stepSchema = z.object({
@@ -233,6 +234,8 @@ export default function ServiceDetail() {
           )}
         </CardContent>
       </Card>
+
+      <ServiceSuppliesCard serviceId={id} />
 
       {/* Step Dialog */}
       <Dialog open={stepDialogOpen} onOpenChange={setStepDialogOpen}>

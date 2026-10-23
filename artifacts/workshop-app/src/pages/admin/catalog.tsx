@@ -1,13 +1,11 @@
 import { useLocation, useSearch } from "wouter";
 import { cn } from "@/lib/utils";
 import Services from "./services";
-import Parts from "./parts";
 import Categories from "./categories";
 
-// Catálogo: servicios, repuestos y categorías en una sola página con pestañas.
+// Catálogo: servicios y categorías en una sola página con pestañas.
 const TABS = [
   { value: "servicios", label: "Servicios", Component: Services },
-  { value: "repuestos", label: "Repuestos", Component: Parts },
   { value: "categorias", label: "Categorías", Component: Categories },
 ] as const;
 

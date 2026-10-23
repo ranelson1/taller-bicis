@@ -201,9 +201,10 @@ function PurchasesTab() {
   const create = useCreatePurchase();
   const { importFile, busy } = useImportPurchase();
   const inputRef = useRef<HTMLInputElement>(null);
+  const forOrder = Number(new URLSearchParams(useSearch()).get("ot")) || undefined;
 
   const manual = () => create.mutate({ data: { items: [] } }, {
-    onSuccess: p => navigate(`/inventario/compras/${p.id}`),
+    onSuccess: p => navigate(`/inventario/compras/${p.id}${forOrder ? `?ot=${forOrder}` : ""}`),
     onError: () => toast({ variant: "destructive", title: "No se pudo crear la compra" }),
   });
 
@@ -212,7 +213,7 @@ function PurchasesTab() {
       <Card className="border-dashed">
         <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1">
-            <p className="font-medium">Ingresa una compra</p>
+            <p className="font-medium">{forOrder ? "Compra de un repuesto para un trabajo" : "Ingresa una compra"}</p>
             <p className="text-sm text-muted-foreground">
               Sube el XML de la factura (lo descargas del SII o te lo manda el proveedor){reader?.pdfAndImages ? ", el PDF o una foto de la factura o boleta" : ""} y se llena solo.
             </p>
@@ -225,7 +226,7 @@ function PurchasesTab() {
           </div>
           <input ref={inputRef} type="file" className="hidden" data-testid="input-invoice-file"
             accept={reader?.pdfAndImages ? ".xml,application/xml,text/xml,application/pdf,image/*" : ".xml,application/xml,text/xml"}
-            onChange={e => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = ""; }} />
+            onChange={e => { const f = e.target.files?.[0]; if (f) importFile(f, forOrder); e.target.value = ""; }} />
         </CardContent>
       </Card>
 

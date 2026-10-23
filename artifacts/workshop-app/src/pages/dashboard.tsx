@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useGetMe, useGetWorkshopSettings, useListUsers, useListWorkOrders, type WorkOrder } from "@workspace/api-client-react";
+import { useGetMe, useGetWorkshopSettings, useListInventory, useListUsers, useListWorkOrders, type WorkOrder } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { AlertTriangle, CircleDollarSign, Clock, PackageCheck, Plus, Users } from "lucide-react";
+import { AlertTriangle, CircleDollarSign, Clock, PackageCheck, Plus, ShoppingCart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkers } from "@/hooks/use-workers";
 import { WO_STATUS_LABELS, formatCLP, hasBalanceDue } from "@/lib/work-status";
@@ -66,6 +66,8 @@ function AlertCard({ title, icon: Icon, tone, items, render }: {
 export default function Dashboard() {
   const { data: me } = useGetMe();
   const { data: workOrders, isLoading } = useListWorkOrders();
+  const { data: stock } = useListInventory();
+  const toBuy = (stock ?? []).filter(i => i.needsReorder);
   const { data: users } = useListUsers();
   const { data: settings } = useGetWorkshopSettings();
   const { workers: mechanics, solo } = useWorkers();
@@ -121,6 +123,18 @@ export default function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40" />)}</div>
       ) : (
         <>
+          {toBuy.length > 0 && (
+            <Link href="/inventario?tab=comprar">
+              <Card className="border-2 border-amber-200 cursor-pointer hover:bg-muted/40" data-testid="alert-to-buy">
+                <CardContent className="py-3 flex items-center gap-3 text-sm">
+                  <ShoppingCart className="h-4 w-4 text-amber-700" />
+                  <span><strong>{toBuy.length}</strong> artículo(s) por comprar: {toBuy.slice(0, 3).map(i => i.name).join(", ")}{toBuy.length > 3 ? "…" : ""}</span>
+                  <span className="ml-auto text-primary">Ver lista →</span>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+
           {/* Alertas */}
           {hasAlerts ? (
             <div className="grid gap-4 md:grid-cols-2">

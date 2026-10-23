@@ -51,6 +51,7 @@ import { ChecklistCard } from "@/components/trabajo/checklist-card";
 import { WorkOrderMenu } from "@/components/trabajo/work-order-menu";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { PhotosCard } from "@/components/trabajo/photos-card";
+import { EconomicsCard } from "@/components/inventory/economics-card";
 import { whatsappLink } from "@/lib/whatsapp";
 
 // Ficha del taller: un trabajo = una OT que se va actualizando.
@@ -532,6 +533,8 @@ export default function TrabajoDetail() {
           )}
 
           <PhotosCard workOrderId={wo.id} readOnly={woStatus === "cancelled"} />
+
+          {(me?.role === "admin" || me?.role === "superadmin") && <EconomicsCard workOrderId={wo.id} closed={isClosed} />}
 
           {/* Cliente y bicicleta */}
           <Card>
