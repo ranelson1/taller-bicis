@@ -14,6 +14,7 @@
     "check-isolation": "tsx src/scripts/check-isolation.ts",
     "seed-inventario": "tsx src/scripts/seed-inventario.ts && tsx src/scripts/seed-recetas.ts",
     "seed-recetas": "tsx src/scripts/seed-recetas.ts",
+    "create-workshop": "tsx src/scripts/create-workshop.ts",
     "load-catalogo": "tsx src/scripts/load-catalogo.ts"
   },
   "dependencies": {
