@@ -42,7 +42,7 @@ import {
   Play, MessageSquarePlus, PlusCircle, Send, Copy, ExternalLink, MessageCircle, Check, X,
   ClipboardCheck, Eye, FileText, CalendarDays, Pencil, Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 import { WO_STATUS_LABELS, WO_STATUS_COLORS, WO_STEPS, WO_NEXT_ACTION, formatCLP } from "@/lib/work-status";
@@ -169,6 +169,8 @@ export default function TrabajoDetail() {
   const [mechanicDialogAutoAdvance, setMechanicDialogAutoAdvance] = useState(false);
   const [selectedMechanicId, setSelectedMechanicId] = useState("");
   const [shareData, setShareData] = useState<WorkOrderShare | null>(null);
+  // Si el aviso se abrió solo (trabajo recién creado, bici lista), el título explica por qué.
+  const [notifyTitle, setNotifyTitle] = useState<string | null>(null);
   const emptyItem = { itemType: "part", description: "", quantity: "1", unitPrice: "", alreadyApproved: false };
   const [itemDraft, setItemDraft] = useState(emptyItem);
   const [itemCatalogId, setItemCatalogId] = useState("");
@@ -196,7 +198,11 @@ export default function TrabajoDetail() {
   const advanceTo = (next: string) => {
     if (!woId) return;
     updateStatus.mutate({ id: woId, data: { status: next as any } }, {
-      onSuccess: () => { invalidate(); toast({ title: "Estado actualizado", description: WO_STATUS_LABELS[next] }); },
+      onSuccess: () => {
+        invalidate();
+        toast({ title: "Estado actualizado", description: WO_STATUS_LABELS[next] });
+        if (next === "ready_for_pickup") openShare("¡Bici lista! Avisa a tu cliente");
+      },
       onError: (e) => toast({ variant: "destructive", title: apiError(e, "Error al actualizar el estado") }),
     });
   };
@@ -272,13 +278,27 @@ export default function TrabajoDetail() {
     });
   };
 
-  const handleShare = () => {
+  const openShare = (title: string | null) => {
     if (!woId) return;
     share.mutate({ id: woId }, {
-      onSuccess: (data) => setShareData(data),
+      onSuccess: (data) => { setNotifyTitle(title); setShareData(data); },
       onError: () => toast({ variant: "destructive", title: "No se pudo generar el link" }),
     });
   };
+  const handleShare = () => openShare(null);
+
+  // Al llegar desde "Crear trabajo" (?avisar=1) se ofrece avisar al cliente una sola vez.
+  const noticeDone = useRef(false);
+  useEffect(() => {
+    if (noticeDone.current || !woId || !wo) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("avisar") !== "1") return;
+    noticeDone.current = true;
+    url.searchParams.delete("avisar");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    openShare("Trabajo creado: avisa a tu cliente");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [woId, wo]);
 
   const publicUrl = shareData ? `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, "")}${shareData.path}` : "";
   // Sin teléfono válido, wa.me sin número deja elegir el contacto en WhatsApp.
@@ -614,10 +634,10 @@ export default function TrabajoDetail() {
       </Card>
 
       {/* Enviar al cliente */}
-      <Dialog open={!!shareData} onOpenChange={(o) => !o && setShareData(null)}>
+      <Dialog open={!!shareData} onOpenChange={(o) => { if (!o) { setShareData(null); setNotifyTitle(null); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enviar al cliente</DialogTitle>
+            <DialogTitle>{notifyTitle ?? "Enviar al cliente"}</DialogTitle>
             <DialogDescription>El cliente ve el estado, los trabajos y aprueba los adicionales desde este link, sin crear cuenta.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -632,6 +652,7 @@ export default function TrabajoDetail() {
               <Button variant="outline" onClick={copyLink}><Copy className="h-4 w-4 mr-2" />Copiar link</Button>
               <Button variant="outline" asChild><a href={publicUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4 mr-2" />Ver como cliente</a></Button>
             </div>
+            {notifyTitle && <Button variant="ghost" onClick={() => { setShareData(null); setNotifyTitle(null); }}>Ahora no</Button>}
           </div>
         </DialogContent>
       </Dialog>

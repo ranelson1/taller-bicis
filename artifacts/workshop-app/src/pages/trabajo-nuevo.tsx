@@ -244,7 +244,7 @@ export default function TrabajoNuevo() {
         toast({ title: `Trabajo ${result.workOrderNumber} creado`, description: `Listo para enviar al cliente${etaText}` });
         qc.invalidateQueries({ queryKey: getListWorkCasesQueryKey() });
         qc.invalidateQueries({ queryKey: getListWorkOrdersQueryKey() });
-        navigate(`/trabajos/${result.workCaseId}`);
+        navigate(`/trabajos/${result.workCaseId}?avisar=1`);
       },
       onError: (err: any) => toast({ variant: "destructive", title: "No se pudo crear el trabajo", description: err?.data?.error ?? err?.message }),
     });
