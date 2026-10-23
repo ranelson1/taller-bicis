@@ -22,6 +22,31 @@ export const VIDEO_TYPES: Record<string, string> = {
 };
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
+// Notas de voz grabadas desde el celular (Safari graba mp4/aac; Chrome y Android, webm/opus).
+export const AUDIO_TYPES: Record<string, string> = {
+  "audio/mp4": "m4a",
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/mpeg": "mp3",
+};
+export const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+
+// El contenedor se comprueba por su firma; el tipo de audio lo da el Content-Type declarado (un webm o mp4 solo
+// de audio tiene la misma firma que uno de video).
+export function sniffAudioType(buf: Buffer, declared: string): string | null {
+  const type = declared.split(";")[0].trim().toLowerCase();
+  if (!(type in AUDIO_TYPES)) return null;
+  const isMp4 = buf.length >= 12 && buf.subarray(4, 8).toString("ascii") === "ftyp";
+  const isWebm = buf.length >= 4 && buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3;
+  const isOgg = buf.length >= 4 && buf.subarray(0, 4).toString("ascii") === "OggS";
+  const isMp3 = buf.length >= 3 && (buf.subarray(0, 3).toString("ascii") === "ID3" || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0));
+  if (type === "audio/mp4" && isMp4) return type;
+  if (type === "audio/webm" && isWebm) return type;
+  if (type === "audio/ogg" && isOgg) return type;
+  if (type === "audio/mpeg" && isMp3) return type;
+  return null;
+}
+
 // Firma real del video: "ftyp" a partir del byte 4 (mp4/mov) o cabecera EBML (webm).
 export function sniffVideoType(buf: Buffer): string | null {
   if (buf.length >= 12 && buf.subarray(4, 8).toString("ascii") === "ftyp") {
@@ -40,7 +65,7 @@ export function sniffImageType(buf: Buffer): string | null {
 }
 
 // Extensión por tipo para todo lo que se guarda (imágenes y documentos de compra).
-const EXTENSIONS: Record<string, string> = { ...ALLOWED_TYPES, ...VIDEO_TYPES, "application/pdf": "pdf", "application/xml": "xml" };
+const EXTENSIONS: Record<string, string> = { ...ALLOWED_TYPES, ...VIDEO_TYPES, ...AUDIO_TYPES, "application/pdf": "pdf", "application/xml": "xml" };
 
 // La clave nunca viene del usuario: carpeta del taller + subcarpeta + nombre aleatorio.
 export async function saveFile(workshopId: number, folder: string, data: Buffer, mimeType: string): Promise<string> {

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Bike, Camera, Check, CheckCircle2, CircleDashed, Clock, FileText, MessageCircle,
-  FileDown, Landmark, PackageCheck, Phone, Plus, SlidersHorizontal, Wrench, X,
+  FileDown, Landmark, Mic, PackageCheck, Phone, Plus, SlidersHorizontal, Wrench, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -357,7 +357,12 @@ export default function OtPublica() {
             <div className="grid grid-cols-2 gap-2">
               {ot.photos!.map(p => (
                 <figure key={p.id} className="rounded-xl overflow-hidden bg-stone-100">
-                  {p.mimeType?.startsWith("video/") ? (
+                  {p.mimeType?.startsWith("audio/") ? (
+                    <div className="p-3 bg-sky-50 flex items-center gap-2">
+                      <Mic className="h-5 w-5 text-sky-700 shrink-0" />
+                      <audio src={p.url} controls preload="metadata" className="w-full h-9" data-testid="public-audio" />
+                    </div>
+                  ) : p.mimeType?.startsWith("video/") ? (
                     <video src={`${p.url}#t=0.1`} controls playsInline preload="metadata" className="w-full aspect-square object-cover bg-black" />
                   ) : (
                     <a href={p.url} target="_blank" rel="noreferrer">

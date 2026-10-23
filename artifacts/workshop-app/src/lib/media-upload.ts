@@ -7,7 +7,8 @@ export const MAX_VIDEO_MB = 100;
 
 export const isVideoFile = (f: File) => f.type.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(f.name);
 export const isImageFile = (f: File) => f.type.startsWith("image/") || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name);
-export const isMediaFile = (f: File) => isImageFile(f) || isVideoFile(f);
+export const isAudioFile = (f: File) => f.type.startsWith("audio/") || /\.(m4a|weba|ogg|mp3)$/i.test(f.name);
+export const isMediaFile = (f: File) => isImageFile(f) || isVideoFile(f) || isAudioFile(f);
 
 // Algunos Android no informan el tipo del video: se deduce por la extensión.
 function videoType(f: File): string {
@@ -38,12 +39,13 @@ function send(url: string, blob: Blob, type: string, onProgress?: (pct: number) 
 export async function uploadWorkOrderMedia(
   workOrderId: number, file: File, opts: { note?: string; onProgress?: (pct: number) => void } = {},
 ): Promise<void> {
-  const video = isVideoFile(file);
+  const audio = isAudioFile(file);
+  const video = !audio && isVideoFile(file);
   if (video && file.size > MAX_VIDEO_MB * 1024 * 1024) {
     throw new Error(`El video pesa ${Math.round(file.size / 1048576)} MB (máximo ${MAX_VIDEO_MB} MB). Graba uno más corto o en calidad 1080p.`);
   }
-  const blob = video ? file : await resizeImage(file);
-  const type = video ? videoType(file) : "image/jpeg";
+  const blob = video || audio ? file : await resizeImage(file);
+  const type = audio ? (file.type.split(";")[0] || "audio/mp4") : video ? videoType(file) : "image/jpeg";
   const url = `/api/work-orders/${workOrderId}/photos${opts.note ? `?note=${encodeURIComponent(opts.note)}` : ""}`;
   try {
     await send(url, blob, type, opts.onProgress);

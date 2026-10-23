@@ -26,7 +26,7 @@ import {
 import { estimateCompletionDate } from "../helpers/completionEstimate";
 import { buildWorkOrderPdf, sendPdf } from "../helpers/workOrderPdfFile";
 import { consumeWorkOrderStock, returnWorkOrderStock, workOrderEconomics } from "../helpers/inventory";
-import { ALLOWED_TYPES, MAX_PHOTO_BYTES, MAX_VIDEO_BYTES, VIDEO_TYPES, deletePhotoFile, photoPath, savePhoto, sniffImageType, sniffVideoType } from "../helpers/photoStorage";
+import { ALLOWED_TYPES, MAX_PHOTO_BYTES, MAX_VIDEO_BYTES, MAX_AUDIO_BYTES, VIDEO_TYPES, AUDIO_TYPES, deletePhotoFile, photoPath, savePhoto, sniffImageType, sniffVideoType, sniffAudioType } from "../helpers/photoStorage";
 
 const router = Router();
 router.use(requireAuth);
@@ -533,19 +533,25 @@ router.get("/:id/photos", async (req, res) => {
 });
 
 router.post("/:id/photos",
-  express.raw({ type: [...Object.keys(ALLOWED_TYPES), ...Object.keys(VIDEO_TYPES)], limit: MAX_VIDEO_BYTES }),
+  express.raw({ type: [...Object.keys(ALLOWED_TYPES), ...Object.keys(VIDEO_TYPES), ...Object.keys(AUDIO_TYPES)], limit: MAX_VIDEO_BYTES }),
   async (req, res) => {
     const id = parseInt(req.params.id);
     const userId = (req.session as any)?.userId ?? null;
     const body = req.body as Buffer;
     if (!Buffer.isBuffer(body) || body.length === 0) {
-      res.status(400).json({ error: "Envía una imagen (JPG, PNG, WebP) o un video (MP4, MOV, WebM)" });
+      res.status(400).json({ error: "Envía una imagen (JPG, PNG, WebP), un video (MP4, MOV, WebM) o una nota de voz" });
       return;
     }
+    const declared = String(req.headers["content-type"] ?? "");
     const imageType = sniffImageType(body);
-    const mimeType = imageType ?? sniffVideoType(body);
+    const audioType = declared.toLowerCase().startsWith("audio/") ? sniffAudioType(body, declared) : null;
+    const mimeType = imageType ?? audioType ?? (declared.toLowerCase().startsWith("audio/") ? null : sniffVideoType(body));
     if (!mimeType) {
-      res.status(400).json({ error: "El archivo no es una imagen ni un video válido" });
+      res.status(400).json({ error: "El archivo no es una imagen, un video ni un audio válido" });
+      return;
+    }
+    if (audioType && body.length > MAX_AUDIO_BYTES) {
+      res.status(413).json({ error: "El audio pesa más de 25 MB" });
       return;
     }
     if (imageType && body.length > MAX_PHOTO_BYTES) {

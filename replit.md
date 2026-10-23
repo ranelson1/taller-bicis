@@ -287,6 +287,12 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
 - PWA: `public/manifest.webmanifest`, `public/sw.js` (sin caché de datos, solo aviso sin conexión) e iconos; `capture-buttons.tsx`
   abre la cámara del celular para foto o video y `lib/media-upload.ts` sube con progreso y un reintento (videos hasta 100 MB).
 
+## Notas de voz
+
+- El mecánico graba una nota de voz desde la ficha del trabajo (o al crear uno): `voice-recorder.tsx` usa `MediaRecorder` (Safari graba
+  mp4/aac; Chrome y Android, webm/opus) y la sube como cualquier foto. El servidor acepta `audio/mp4|webm|ogg|mpeg` (hasta 25 MB) y
+  valida la firma del contenedor. El cliente la escucha con reproductor en su link.
+
 ## Fotos y videos de la OT
 
 - `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.

@@ -12,12 +12,13 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { useToast } from "@/hooks/use-toast";
 import { uploadWorkOrderMedia } from "@/lib/media-upload";
 import { CaptureButtons } from "@/components/trabajo/capture-buttons";
-import { Camera, EyeOff, Play, Trash2 } from "lucide-react";
+import { Camera, EyeOff, Mic, Play, Trash2 } from "lucide-react";
 
 // Fotos de la OT: el mecánico las saca desde el celular (cámara o galería), les pone una nota
 // y decide si el cliente las ve en su link.
 
 const isVideo = (mime?: string | null) => !!mime && mime.startsWith("video/");
+const isAudio = (mime?: string | null) => !!mime && mime.startsWith("audio/");
 
 export function PhotosCard({ workOrderId, readOnly }: { workOrderId: number; readOnly?: boolean }) {
   const qc = useQueryClient();
@@ -70,7 +71,11 @@ export function PhotosCard({ workOrderId, readOnly }: { workOrderId: number; rea
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {items.map(p => (
               <button key={p.id} type="button" onClick={() => setOpen(p)} className="relative aspect-square overflow-hidden rounded-md border bg-muted group" data-testid={`photo-${p.id}`}>
-                {isVideo(p.mimeType) ? (
+                {isAudio(p.mimeType) ? (
+                  <span className="flex h-full w-full flex-col items-center justify-center gap-1 bg-sky-50 text-sky-700">
+                    <Mic className="h-6 w-6" /><span className="text-[10px] font-medium">Nota de voz</span>
+                  </span>
+                ) : isVideo(p.mimeType) ? (
                   <>
                     <video src={`${p.url}#t=0.1`} preload="metadata" muted playsInline className="h-full w-full object-cover" />
                     <span className="absolute inset-0 flex items-center justify-center"><span className="rounded-full bg-black/55 p-2 text-white"><Play className="h-4 w-4" /></span></span>
@@ -131,10 +136,12 @@ function PhotoDialog({ photo, workOrderId, readOnly, onClose, onChanged }: {
     <Dialog open={!!photo} onOpenChange={o => { if (!o) { setLoadedFor(null); onClose(); } }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{photo && isVideo(photo.mimeType) ? "Video" : "Foto"} · {photo ? new Date(photo.createdAt).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" }) : ""}</DialogTitle>
+          <DialogTitle>{photo && isAudio(photo.mimeType) ? "Nota de voz" : photo && isVideo(photo.mimeType) ? "Video" : "Foto"} · {photo ? new Date(photo.createdAt).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" }) : ""}</DialogTitle>
         </DialogHeader>
         {photo && (
-          isVideo(photo.mimeType) ? (
+          isAudio(photo.mimeType) ? (
+            <audio src={photo.url} controls preload="metadata" className="w-full" data-testid="audio-player" />
+          ) : isVideo(photo.mimeType) ? (
             <video src={photo.url} controls playsInline preload="metadata" className="w-full max-h-[60vh] rounded-md bg-black" />
           ) : (
             <a href={photo.url} target="_blank" rel="noreferrer">
