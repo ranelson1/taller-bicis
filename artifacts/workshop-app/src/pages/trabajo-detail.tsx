@@ -12,6 +12,7 @@ import {
   useAssignMechanicToWorkOrder,
   useListUsers,
   useGetMe,
+  useGetWorkshopSettings,
   useListServices,
   useListParts,
   getGetWorkCaseQueryKey,
@@ -40,12 +41,12 @@ import {
 import {
   ArrowLeft, Briefcase, User, Bike, ChevronDown, ChevronUp, Clock, CheckCircle2, Circle, XCircle,
   Play, MessageSquarePlus, PlusCircle, Send, Copy, ExternalLink, MessageCircle, Check, X,
-  ClipboardCheck, Eye, FileText, CalendarDays, Pencil, Wallet,
+  ClipboardCheck, Eye, FileText, CalendarDays, Pencil, Wallet, AlertTriangle,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
-import { WO_STATUS_LABELS, WO_STATUS_COLORS, WO_STEPS, WO_NEXT_ACTION, formatCLP } from "@/lib/work-status";
+import { WO_STATUS_LABELS, WO_STATUS_COLORS, WO_STEPS, WO_NEXT_ACTION, balanceDue, formatCLP } from "@/lib/work-status";
 import { WorkOrderDatesCard } from "@/components/trabajo/dates-card";
 import { ChecklistCard } from "@/components/trabajo/checklist-card";
 import { WorkOrderMenu } from "@/components/trabajo/work-order-menu";
@@ -158,6 +159,7 @@ export default function TrabajoDetail() {
   const assignMechanic = useAssignMechanicToWorkOrder();
   const { data: users } = useListUsers();
   const { data: me } = useGetMe();
+  const { data: settings } = useGetWorkshopSettings();
   const { data: services } = useListServices();
   const { data: parts } = useListParts();
   const { workers: mechanics, solo } = useWorkers();
@@ -407,6 +409,19 @@ export default function TrabajoDetail() {
         </Card>
       ) : (
         <>
+          {/* Entregada y sin cobrar del todo */}
+          {balanceDue(wo) > 0 && (
+            <div className="rounded-lg border-2 border-red-300 bg-red-50 p-3 text-sm text-red-800 flex flex-wrap items-center gap-x-3 gap-y-2" role="alert" data-testid="alert-unpaid">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" />
+              <span className="flex-1 min-w-48">
+                <strong>Pendiente de cobro: {formatCLP(balanceDue(wo))}</strong>
+                <span className="block text-xs text-red-700">{wo.paidAt ? "El cliente abonó, pero falta saldo." : "Entregada sin pago registrado."} Registra el pago en la tarjeta de fechas.</span>
+              </span>
+              <WhatsAppButton phone={wo.clientPhone} label="Recordar pago"
+                text={`Hola ${(wo.clientName ?? "").split(" ")[0]}, te escribimos de ${settings?.name ?? "el taller"}. Queda un saldo de ${formatCLP(balanceDue(wo))} de la orden ${wo.workOrderNumber}. ¿Cuándo podrías pasar a pagarlo? ¡Gracias!`} />
+            </div>
+          )}
+
           {/* Acciones principales */}
           {woStatus === "cancelled" ? (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-center gap-2">

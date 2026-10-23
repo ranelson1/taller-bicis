@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useListUsers, useListWorkCases, useListWorkOrders, type WorkOrder } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,9 @@ export default function Trabajos() {
   const { data: users } = useListUsers();
   const { workers: mechanics, solo } = useWorkers();
 
-  const [filter, setFilter] = useState<string>("open");
+  // ?filtro=unpaid (desde Mis números o Inicio) abre la lista ya filtrada.
+  const initialFilter = new URLSearchParams(useSearch()).get("filtro");
+  const [filter, setFilter] = useState<string>(FILTERS.some(f => f.value === initialFilter) ? initialFilter! : "open");
   const [search, setSearch] = useState("");
   const [mechanicId, setMechanicId] = useState("all");
 

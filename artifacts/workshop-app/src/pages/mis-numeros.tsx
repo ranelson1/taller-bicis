@@ -19,16 +19,18 @@ const PERIODS = [
   { value: "anio", label: "Este año", range: () => { const n = today(); return [ymd(new Date(n.getFullYear(), 0, 1)), ymd(n)]; } },
 ] as const;
 
-function Stat({ icon: Icon, label, value, hint, tone }: { icon: typeof Banknote; label: string; value: string; hint?: string; tone?: "red" | "green" }) {
-  return (
-    <Card>
+function Stat({ icon: Icon, label, value, hint, tone, href }: { icon: typeof Banknote; label: string; value: string; hint?: string; tone?: "red" | "green"; href?: string }) {
+  const card = (
+    <Card className={cn(href && "cursor-pointer transition-colors hover:bg-muted/40")}>
       <CardContent className="p-4">
         <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" />{label}</p>
         <p className={cn("text-2xl font-bold mt-1", tone === "red" && "text-red-600", tone === "green" && "text-green-700")}>{value}</p>
         {hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+        {href && <p className="text-xs text-primary mt-1">Ver detalle →</p>}
       </CardContent>
     </Card>
   );
+  return href ? <Link href={href}>{card}</Link> : card;
 }
 
 export default function MisNumeros() {
@@ -79,9 +81,9 @@ export default function MisNumeros() {
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Stat icon={Banknote} label="Cobrado en el período" value={formatCLP(data.collected.amount)} hint={`${data.collected.count} pago(s)`} />
-            <Stat icon={Clock} label="Por cobrar (total)" value={formatCLP(data.receivable.amount)} hint={`${data.receivable.count} trabajo(s) entregado(s) sin pagar`} tone={data.receivable.amount > 0 ? "red" : undefined} />
-            <Stat icon={ShoppingCart} label="Compras confirmadas" value={formatCLP(data.purchases.total)} hint={`${data.purchases.count} documento(s), con IVA`} />
-            <Stat icon={PackageSearch} label="Valor del stock" value={formatCLP(data.stockValue)} hint="Lo que tienes guardado, a costo" />
+            <Stat icon={Clock} label="Por cobrar (total)" value={formatCLP(data.receivable.amount)} hint={`${data.receivable.count} trabajo(s) entregado(s) sin pagar`} tone={data.receivable.amount > 0 ? "red" : undefined} href="/trabajos?filtro=unpaid" />
+            <Stat icon={ShoppingCart} label="Compras confirmadas" value={formatCLP(data.purchases.total)} hint={`${data.purchases.count} documento(s), con IVA`} href="/inventario?tab=compras" />
+            <Stat icon={PackageSearch} label="Valor del stock" value={formatCLP(data.stockValue)} hint="Lo que tienes guardado, a costo" href="/inventario" />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
