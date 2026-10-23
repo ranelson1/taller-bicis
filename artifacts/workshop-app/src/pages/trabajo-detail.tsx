@@ -43,7 +43,7 @@ import {
 import {
   ArrowLeft, Briefcase, User, Bike, ChevronDown, ChevronUp, Clock, CheckCircle2, Circle, XCircle,
   Play, MessageSquarePlus, PlusCircle, Send, Copy, ExternalLink, MessageCircle, Check, X,
-  ClipboardCheck, Eye, FileText, CalendarDays, Pencil, Wallet, AlertTriangle,
+  ClipboardCheck, Eye, FileText, FileDown, CalendarDays, Pencil, Wallet, AlertTriangle,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -729,6 +729,7 @@ export default function TrabajoDetail() {
             <div className="grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={copyLink}><Copy className="h-4 w-4 mr-2" />Copiar link</Button>
               <Button variant="outline" asChild><a href={publicUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4 mr-2" />Ver como cliente</a></Button>
+              <Button variant="outline" asChild className="col-span-2"><a href={`/api/work-orders/${woId}/pdf`} target="_blank" rel="noreferrer" data-testid="share-download-pdf"><FileDown className="h-4 w-4 mr-2" />Ver comprobante en PDF</a></Button>
             </div>
             {notifyTitle && <Button variant="ghost" onClick={() => { setShareData(null); setNotifyTitle(null); }}>Ahora no</Button>}
           </div>

@@ -270,6 +270,14 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
   (`/api/bicycles/:id/history-link`) y la página pública `/bici/:token` (`GET /api/public/bikes/:token/history`) muestra los
   servicios entregados y la ficha de ajustes, sin precios ni datos del dueño.
 
+## Comprobante en PDF
+
+- `helpers/workOrderPdf.ts` (pdf-lib, sin binarios: se empaqueta en el bundle) dibuja el comprobante a partir del mismo payload del
+  link del cliente: cotización mientras el trabajo está en curso, comprobante de servicio con la bici lista o entregada; logo,
+  detalle, descuentos, IVA, estado del pago, datos para transferir, ítems pendientes de aprobación y ajustes de la bici.
+- `GET /api/public/ot/:token/pdf` (cliente) y `GET /api/work-orders/:id/pdf` (taller). Botón en el link del cliente, en el menú
+  del trabajo y en el diálogo de envío.
+
 ## Fotos y videos de la OT
 
 - `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.

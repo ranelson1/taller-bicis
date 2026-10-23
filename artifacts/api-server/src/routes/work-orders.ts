@@ -24,6 +24,7 @@ import {
   buildPublicWorkOrder, decideWorkOrderItem, ensurePublicToken, formatCLP, ItemDecisionError, logWorkOrderEvent, shareMessage,
 } from "../helpers/workOrderPublic";
 import { estimateCompletionDate } from "../helpers/completionEstimate";
+import { buildWorkOrderPdf, sendPdf } from "../helpers/workOrderPdfFile";
 import { consumeWorkOrderStock, returnWorkOrderStock, workOrderEconomics } from "../helpers/inventory";
 import { ALLOWED_TYPES, MAX_PHOTO_BYTES, MAX_VIDEO_BYTES, VIDEO_TYPES, deletePhotoFile, photoPath, savePhoto, sniffImageType, sniffVideoType } from "../helpers/photoStorage";
 
@@ -389,6 +390,21 @@ router.get("/", async (req, res) => {
 });
 
 // ── GET /work-orders/:id ──────────────────────────────────────────────────────
+// GET /work-orders/:id/pdf — comprobante en PDF, igual al que recibe el cliente.
+router.get("/:id/pdf", async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  try {
+    const [row] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, id));
+    if (!row) { res.status(404).json({ error: "Orden de trabajo no encontrada" }); return; }
+    const url = row.publicToken ? `${req.protocol}://${req.get("host")}/ot/${row.publicToken}` : undefined;
+    sendPdf(res, await buildWorkOrderPdf(row, url));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   try {

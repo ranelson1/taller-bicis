@@ -7,6 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { triggerWorkCaseRecalc } from "../helpers/workCase";
 import { buildBikeHistory } from "../helpers/bikeHistory";
 import { buildPublicWorkOrder, decideWorkOrderItem, ItemDecisionError } from "../helpers/workOrderPublic";
+import { buildWorkOrderPdf, sendPdf } from "../helpers/workOrderPdfFile";
 
 // Vista del cliente sin login. El token secreto de la OT es la única credencial,
 // así que cada handler debe limitarse a la OT de ese token.
@@ -25,6 +26,18 @@ async function findByToken(token: string) {
   await setCurrentWorkshop(wo.workshopId);
   return wo;
 }
+
+// GET /public/ot/:token/pdf — el mismo comprobante en PDF (cotización o comprobante de servicio).
+router.get("/ot/:token/pdf", async (req, res) => {
+  try {
+    const wo = await findByToken(req.params.token);
+    if (!wo) { res.status(404).json({ error: "Orden no encontrada" }); return; }
+    sendPdf(res, await buildWorkOrderPdf(wo, `${req.protocol}://${req.get("host")}/ot/${req.params.token}`));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // GET /public/ot/:token
 router.get("/ot/:token", async (req, res) => {

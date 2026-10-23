@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Bike, Camera, Check, CheckCircle2, CircleDashed, Clock, FileText, MessageCircle,
-  Landmark, PackageCheck, Phone, Plus, SlidersHorizontal, Wrench, X,
+  FileDown, Landmark, PackageCheck, Phone, Plus, SlidersHorizontal, Wrench, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -411,6 +411,13 @@ export default function OtPublica() {
             </button>
           </section>
         )}
+
+        {/* Comprobante en PDF */}
+        <a href={`/api/public/ot/${token}/pdf`} target="_blank" rel="noreferrer" data-testid="download-pdf"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50">
+          <FileDown className="h-4 w-4 text-orange-600" />
+          {ot.status === "ready_for_pickup" || ot.status === "delivered" ? "Descargar comprobante (PDF)" : "Descargar cotización (PDF)"}
+        </a>
 
         {/* Mensaje de retiro */}
         {ot.status === "ready_for_pickup" && (

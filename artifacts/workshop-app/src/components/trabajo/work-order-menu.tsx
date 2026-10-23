@@ -12,7 +12,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { Ban, MoreVertical, StickyNote } from "lucide-react";
+import { Ban, FileDown, MoreVertical, StickyNote } from "lucide-react";
 
 // Acciones poco frecuentes de la ficha: editar notas y cancelar el trabajo.
 export function WorkOrderMenu({ wo, onChanged }: { wo: WorkOrder; onChanged: () => void }) {
@@ -54,6 +54,9 @@ export function WorkOrderMenu({ wo, onChanged }: { wo: WorkOrder; onChanged: () 
           <Button variant="ghost" size="icon" aria-label="Más acciones" data-testid="button-more"><MoreVertical className="h-5 w-5" /></Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <a href={`/api/work-orders/${wo.id}/pdf`} target="_blank" rel="noreferrer" data-testid="menu-download-pdf"><FileDown className="h-4 w-4 mr-2" />Descargar comprobante (PDF)</a>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={openNotes}><StickyNote className="h-4 w-4 mr-2" />Editar notas</DropdownMenuItem>
           {!isClosed && (
             <>
