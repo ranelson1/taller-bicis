@@ -249,6 +249,12 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
 - En la ficha del trabajo, agregar/quitar/pasar por garantía un ítem ofrece "Avisar por WhatsApp" con el mensaje de cotización
   actualizada; los repuestos "que trae el cliente" se agregan sin cobro ni stock.
 
+## Ficha de ajustes de la bici (migración 015)
+
+- `bicycles.setup_notes` / `setup_updated_at`: texto libre con presiones, clicks de horquilla y shock, apertura de palancas.
+  `PUT /api/bicycles/:id/setup`; tarjeta "Ajustes de la bici" en la ficha del trabajo (con plantilla). El link del cliente la
+  muestra solo con la bici lista o entregada; queda en la bici como punto de partida del siguiente servicio.
+
 ## Fotos y videos de la OT
 
 - `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.

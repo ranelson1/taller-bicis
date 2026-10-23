@@ -106,6 +106,7 @@ import type {
   SetWorkOrderQuoteApprovalBody,
   Supplier,
   TimelineEvent,
+  UpdateBicycleSetupBody,
   UpdatePlatformWorkshopBody,
   UpdateServiceSuppliesBody,
   UpdateWorkOrderItemBody,
@@ -2069,6 +2070,77 @@ export const useCreateBicycle = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateBicycleMutationOptions(options));
+    }
+
+export const getUpdateBicycleSetupUrl = (id: number,) => {
+
+
+
+
+  return `/api/bicycles/${id}/setup`
+}
+
+/**
+ * @summary Guarda la ficha de ajustes de la bicicleta
+ */
+export const updateBicycleSetup = async (id: number,
+    updateBicycleSetupBody: UpdateBicycleSetupBody, options?: RequestInit): Promise<Bicycle> => {
+
+  return customFetch<Bicycle>(getUpdateBicycleSetupUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateBicycleSetupBody)
+  }
+);}
+
+
+
+
+export const getUpdateBicycleSetupMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBicycleSetup>>, TError,{id: number;data: BodyType<UpdateBicycleSetupBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBicycleSetup>>, TError,{id: number;data: BodyType<UpdateBicycleSetupBody>}, TContext> => {
+
+const mutationKey = ['updateBicycleSetup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBicycleSetup>>, {id: number;data: BodyType<UpdateBicycleSetupBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateBicycleSetup(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBicycleSetupMutationResult = NonNullable<Awaited<ReturnType<typeof updateBicycleSetup>>>
+    export type UpdateBicycleSetupMutationBody = BodyType<UpdateBicycleSetupBody>
+    export type UpdateBicycleSetupMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Guarda la ficha de ajustes de la bicicleta
+ */
+export const useUpdateBicycleSetup = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBicycleSetup>>, TError,{id: number;data: BodyType<UpdateBicycleSetupBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBicycleSetup>>,
+        TError,
+        {id: number;data: BodyType<UpdateBicycleSetupBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateBicycleSetupMutationOptions(options));
     }
 
 export const getGetBicycleUrl = (id: number,) => {

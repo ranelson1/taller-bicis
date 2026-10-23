@@ -19,4 +19,8 @@ export type PublicWorkOrderBicycle = {
   color?: string | null;
   /** @nullable */
   rimSize?: string | null;
+  /** @nullable */
+  setupNotes?: string | null;
+  /** @nullable */
+  setupUpdatedAt?: string | null;
 } | null;

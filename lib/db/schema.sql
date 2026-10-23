@@ -254,7 +254,9 @@ CREATE TABLE public.bicycles (
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
     year integer,
-    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    setup_notes text,
+    setup_updated_at timestamp without time zone
 );
 
 ALTER TABLE ONLY public.bicycles FORCE ROW LEVEL SECURITY;

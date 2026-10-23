@@ -18,6 +18,9 @@ export const bicyclesTable = pgTable("bicycles", {
   rimSize: text("rim_size"),
   serialNumber: text("serial_number"),
   notes: text("notes"),
+  // Ficha de ajustes (migración 015): presiones, clicks de suspensión, palancas de freno.
+  setupNotes: text("setup_notes"),
+  setupUpdatedAt: timestamp("setup_updated_at"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

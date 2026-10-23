@@ -25,6 +25,13 @@ export interface Bicycle {
   serialNumber?: string | null;
   /** @nullable */
   notes?: string | null;
+  /**
+     * Ficha de ajustes (presiones, clicks, palancas)
+     * @nullable
+     */
+  setupNotes?: string | null;
+  /** @nullable */
+  setupUpdatedAt?: Date | null;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;

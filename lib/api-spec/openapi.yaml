@@ -492,6 +492,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/Bicycle"
 
+  /bicycles/{id}/setup:
+    put:
+      operationId: updateBicycleSetup
+      tags: [bicycles]
+      summary: Guarda la ficha de ajustes de la bicicleta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [setupNotes]
+              properties:
+                setupNotes:
+                  type: ["string", "null"]
+      responses:
+        "200":
+          description: Bicicleta actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bicycle"
+
   /bicycles/{id}:
     get:
       operationId: getBicycle
@@ -3691,6 +3720,12 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        setupNotes:
+          type: ["string", "null"]
+          description: Ficha de ajustes (presiones, clicks, palancas)
+        setupUpdatedAt:
+          type: ["string", "null"]
+          format: date-time
         active:
           type: boolean
         createdAt:
@@ -4831,6 +4866,10 @@ components:
             color:
               type: ["string", "null"]
             rimSize:
+              type: ["string", "null"]
+            setupNotes:
+              type: ["string", "null"]
+            setupUpdatedAt:
               type: ["string", "null"]
         reportedProblem:
           type: ["string", "null"]

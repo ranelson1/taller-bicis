@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Bike, Camera, Check, CheckCircle2, CircleDashed, Clock, FileText, MessageCircle,
-  Landmark, PackageCheck, Phone, Plus, Wrench, X,
+  Landmark, PackageCheck, Phone, Plus, SlidersHorizontal, Wrench, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -340,6 +340,14 @@ export default function OtPublica() {
         {additionalItems.filter(i => i.approvalStatus !== "pending").length > 0 && (
           <Section icon={Plus} title="Trabajos adicionales">
             {additionalItems.filter(i => i.approvalStatus !== "pending").map(item => <ItemRow key={item.id} item={item} />)}
+          </Section>
+        )}
+
+        {/* Ajustes de la bici al retirar */}
+        {ot.bicycle?.setupNotes && (
+          <Section icon={SlidersHorizontal} title="Ajustes de tu bici">
+            <p className="text-sm text-stone-800 whitespace-pre-line break-words" data-testid="setup-notes">{ot.bicycle.setupNotes}</p>
+            {ot.bicycle.setupUpdatedAt && <p className="text-xs text-stone-500 mt-2">Dejados el {formatDate(ot.bicycle.setupUpdatedAt)}. Guárdalos para tu próximo servicio.</p>}
           </Section>
         )}
 

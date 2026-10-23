@@ -145,6 +145,7 @@ export * from './serviceWithSteps';
 export * from './setWorkOrderQuoteApprovalBody';
 export * from './supplier';
 export * from './timelineEvent';
+export * from './updateBicycleSetupBody';
 export * from './updatePlatformWorkshopBody';
 export * from './updateServiceSuppliesBody';
 export * from './updateServiceSuppliesBodySuppliesItem';

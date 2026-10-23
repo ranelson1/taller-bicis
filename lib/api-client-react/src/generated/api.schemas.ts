@@ -246,6 +246,13 @@ export interface Bicycle {
   serialNumber?: string | null;
   /** @nullable */
   notes?: string | null;
+  /**
+     * Ficha de ajustes (presiones, clicks, palancas)
+     * @nullable
+     */
+  setupNotes?: string | null;
+  /** @nullable */
+  setupUpdatedAt?: string | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -1271,6 +1278,10 @@ export type PublicWorkOrderBicycle = {
   color?: string | null;
   /** @nullable */
   rimSize?: string | null;
+  /** @nullable */
+  setupNotes?: string | null;
+  /** @nullable */
+  setupUpdatedAt?: string | null;
 } | null;
 
 export interface PublicWorkOrderPhoto {
@@ -2229,6 +2240,11 @@ export interface WorkCaseCommentInput {
 
 export type ListBicyclesParams = {
 clientId?: number;
+};
+
+export type UpdateBicycleSetupBody = {
+  /** @nullable */
+  setupNotes: string | null;
 };
 
 export type ListQuotesParams = {

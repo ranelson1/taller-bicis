@@ -438,6 +438,8 @@ export const ListBicyclesResponseItem = zod.object({
   "rimSize": zod.string().nullish(),
   "serialNumber": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "setupNotes": zod.string().nullish().describe('Ficha de ajustes (presiones, clicks, palancas)'),
+  "setupUpdatedAt": zod.coerce.date().nullish(),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -472,6 +474,39 @@ export const CreateBicycleResponse = zod.object({
   "rimSize": zod.string().nullish(),
   "serialNumber": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "setupNotes": zod.string().nullish().describe('Ficha de ajustes (presiones, clicks, palancas)'),
+  "setupUpdatedAt": zod.coerce.date().nullish(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Guarda la ficha de ajustes de la bicicleta
+ */
+export const UpdateBicycleSetupParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateBicycleSetupBody = zod.object({
+  "setupNotes": zod.string().nullable()
+})
+
+export const UpdateBicycleSetupResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "clientName": zod.string().nullish(),
+  "brand": zod.string(),
+  "model": zod.string(),
+  "year": zod.number().nullish(),
+  "type": zod.enum(['mtb', 'road', 'gravel', 'urban', 'ebike', 'kids', 'other']),
+  "color": zod.string().nullish(),
+  "rimSize": zod.string().nullish(),
+  "serialNumber": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "setupNotes": zod.string().nullish().describe('Ficha de ajustes (presiones, clicks, palancas)'),
+  "setupUpdatedAt": zod.coerce.date().nullish(),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -497,6 +532,8 @@ export const GetBicycleResponse = zod.object({
   "rimSize": zod.string().nullish(),
   "serialNumber": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "setupNotes": zod.string().nullish().describe('Ficha de ajustes (presiones, clicks, palancas)'),
+  "setupUpdatedAt": zod.coerce.date().nullish(),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -535,6 +572,8 @@ export const UpdateBicycleResponse = zod.object({
   "rimSize": zod.string().nullish(),
   "serialNumber": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "setupNotes": zod.string().nullish().describe('Ficha de ajustes (presiones, clicks, palancas)'),
+  "setupUpdatedAt": zod.coerce.date().nullish(),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -3358,7 +3397,9 @@ export const ApprovePublicWorkOrderQuoteResponse = zod.object({
   "year": zod.number().nullish(),
   "type": zod.string().optional(),
   "color": zod.string().nullish(),
-  "rimSize": zod.string().nullish()
+  "rimSize": zod.string().nullish(),
+  "setupNotes": zod.string().nullish(),
+  "setupUpdatedAt": zod.string().nullish()
 }).nullish(),
   "reportedProblem": zod.string().nullish(),
   "customerNotes": zod.string().nullish(),
@@ -4169,7 +4210,9 @@ export const GetPublicWorkOrderResponse = zod.object({
   "year": zod.number().nullish(),
   "type": zod.string().optional(),
   "color": zod.string().nullish(),
-  "rimSize": zod.string().nullish()
+  "rimSize": zod.string().nullish(),
+  "setupNotes": zod.string().nullish(),
+  "setupUpdatedAt": zod.string().nullish()
 }).nullish(),
   "reportedProblem": zod.string().nullish(),
   "customerNotes": zod.string().nullish(),
@@ -4241,7 +4284,9 @@ export const DecidePublicWorkOrderItemResponse = zod.object({
   "year": zod.number().nullish(),
   "type": zod.string().optional(),
   "color": zod.string().nullish(),
-  "rimSize": zod.string().nullish()
+  "rimSize": zod.string().nullish(),
+  "setupNotes": zod.string().nullish(),
+  "setupUpdatedAt": zod.string().nullish()
 }).nullish(),
   "reportedProblem": zod.string().nullish(),
   "customerNotes": zod.string().nullish(),

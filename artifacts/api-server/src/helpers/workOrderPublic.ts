@@ -191,6 +191,8 @@ export async function buildPublicWorkOrder(wo: WorkOrder) {
     bicycle: bike ? {
       brand: bike.brand, model: bike.model, year: bike.year, type: bike.type,
       color: bike.color, rimSize: bike.rimSize,
+      setupNotes: (wo.status === "ready_for_pickup" || wo.status === "delivered") ? bike.setupNotes ?? null : null,
+      setupUpdatedAt: (wo.status === "ready_for_pickup" || wo.status === "delivered") ? bike.setupUpdatedAt?.toISOString() ?? null : null,
     } : null,
     reportedProblem: reception?.customerReportedProblem ?? null,
     customerNotes: wo.customerNotes,

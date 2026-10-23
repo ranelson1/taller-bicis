@@ -38,6 +38,8 @@ const BIKE_FIELDS = {
   rimSize: bicyclesTable.rimSize,
   serialNumber: bicyclesTable.serialNumber,
   notes: bicyclesTable.notes,
+  setupNotes: bicyclesTable.setupNotes,
+  setupUpdatedAt: bicyclesTable.setupUpdatedAt,
   active: bicyclesTable.active,
   createdAt: bicyclesTable.createdAt,
   updatedAt: bicyclesTable.updatedAt,
@@ -85,6 +87,26 @@ router.get("/:id", async (req, res) => {
     if (!row) { res.status(404).json({ error: "Not found" }); return; }
     res.json(row);
   } catch { res.status(500).json({ error: "Internal server error" }); }
+});
+
+// PUT /bicycles/:id/setup — ficha de ajustes de la bici (queda como punto de partida del próximo servicio).
+router.put("/:id/setup", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const parsed = z.object({ setupNotes: z.string().trim().max(1500).nullable() }).safeParse(req.body);
+  if (isNaN(id) || !parsed.success) { res.status(400).json({ error: "Los ajustes son demasiado largos (máx. 1500 caracteres)" }); return; }
+  try {
+    const text = parsed.data.setupNotes || null;
+    const [updated] = await db.update(bicyclesTable)
+      .set({ setupNotes: text, setupUpdatedAt: text ? new Date() : null, updatedAt: new Date() })
+      .where(eq(bicyclesTable.id, id)).returning({ id: bicyclesTable.id });
+    if (!updated) { res.status(404).json({ error: "Bicicleta no encontrada" }); return; }
+    const [row] = await db.select(BIKE_FIELDS).from(bicyclesTable)
+      .leftJoin(clientsTable, eq(clientsTable.id, bicyclesTable.clientId)).where(eq(bicyclesTable.id, id));
+    res.json(row);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.patch("/:id", async (req, res) => {
