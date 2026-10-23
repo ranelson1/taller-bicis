@@ -5,6 +5,7 @@
  * API specification for Taller de Bicicletas
  * OpenAPI spec version: 0.1.0
  */
+import type { ReservationQuoteItem } from './reservationQuoteItem';
 import type { ReservationStatus } from './reservationStatus';
 
 export interface Reservation {
@@ -22,6 +23,8 @@ export interface Reservation {
   serviceId?: number | null;
   /** @nullable */
   estimatedHours?: number | null;
+  quoteItems?: ReservationQuoteItem[];
+  quoteTotal?: number;
   /** Día en que llega la bici (YYYY-MM-DD) */
   expectedOn: string;
   /** @nullable */

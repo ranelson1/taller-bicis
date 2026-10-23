@@ -142,6 +142,8 @@ export * from './reportSummaryTopServicesItem';
 export * from './reservation';
 export * from './reservationInput';
 export * from './reservationPreview';
+export * from './reservationQuoteItem';
+export * from './reservationQuoteItemItemType';
 export * from './reservationStatus';
 export * from './reservationUpdate';
 export * from './reservationUpdateStatus';

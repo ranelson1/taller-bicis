@@ -15,6 +15,7 @@ export type ReportSummaryReceivableItemsItem = {
   clientName?: string | null;
   /** @nullable */
   clientPhone?: string | null;
+  total?: number;
   balance: number;
   /** @nullable */
   deliveredAt?: string | null;

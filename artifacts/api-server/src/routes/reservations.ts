@@ -10,6 +10,14 @@ const router = Router();
 router.use(requireAuth);
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida");
+const quoteItemSchema = z.object({
+  itemType: z.enum(["service", "part", "additional_labor", "other"]),
+  description: z.string().trim().min(1).max(200),
+  quantity: z.number().min(0.001).max(999).default(1),
+  unitPrice: z.number().min(0).max(100_000_000),
+  hours: z.number().min(0).max(200).default(0),
+  serviceId: z.number().int().positive().nullable().optional(),
+});
 const baseSchema = z.object({
   clientId: z.number().int().positive().nullable().optional(),
   clientName: z.string().trim().min(1, "Falta el nombre del cliente").optional(),
@@ -18,6 +26,7 @@ const baseSchema = z.object({
   note: z.string().trim().nullable().optional(),
   serviceId: z.number().int().positive().nullable().optional(),
   estimatedHours: z.number().min(0).max(200).nullable().optional(),
+  quoteItems: z.array(quoteItemSchema).max(30).optional(),
   expectedOn: day,
   expectedTime: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
 });
@@ -25,8 +34,10 @@ const baseSchema = z.object({
 type Row = typeof reservationsTable.$inferSelect;
 
 // Horas de la reserva: las indicadas o, si no, las del servicio elegido.
-async function hoursFor(serviceId: number | null | undefined, hours: number | null | undefined) {
+async function hoursFor(serviceId: number | null | undefined, hours: number | null | undefined, items?: { hours: number; quantity: number }[]) {
   if (hours != null) return hours;
+  const fromItems = (items ?? []).reduce((s, i) => s + i.hours * i.quantity, 0);
+  if (fromItems > 0) return fromItems;
   if (!serviceId) return null;
   const [s] = await db.select({ h: servicesTable.estimatedHours }).from(servicesTable).where(eq(servicesTable.id, serviceId));
   return s?.h != null ? Number(s.h) : null;
@@ -39,7 +50,9 @@ async function view(r: Row) {
     : null;
   return {
     id: r.id, clientId: r.clientId, clientName: r.clientName, clientPhone: r.clientPhone, bicycleText: r.bicycleText, note: r.note,
-    serviceId: r.serviceId, estimatedHours: r.estimatedHours != null ? Number(r.estimatedHours) : null,
+    serviceId: r.serviceId, quoteItems: r.quoteItems ?? [],
+    quoteTotal: (r.quoteItems ?? []).reduce((s, i) => s + i.quantity * i.unitPrice, 0),
+    estimatedHours: r.estimatedHours != null ? Number(r.estimatedHours) : null,
     expectedOn: r.expectedOn, expectedTime: r.expectedTime, status: r.status, workCaseId: r.workCaseId, workOrderId: r.workOrderId,
     createdAt: r.createdAt.toISOString(),
     startsOn: est?.startDate.toISOString() ?? null,
@@ -96,10 +109,12 @@ router.post("/", async (req, res) => {
       name = c.name; phone = phone ?? c.phone ?? null;
     }
     if (!name) { res.status(400).json({ error: "Falta el nombre del cliente" }); return; }
-    const hours = await hoursFor(d.serviceId, d.estimatedHours);
+    const items = d.quoteItems ?? [];
+    const firstService = items.find(i => i.itemType === "service" && i.serviceId)?.serviceId ?? null;
+    const hours = await hoursFor(d.serviceId ?? firstService, d.estimatedHours, items);
     const [row] = await db.insert(reservationsTable).values({
       clientId: d.clientId ?? null, clientName: name, clientPhone: phone, bicycleText: d.bicycleText || null, note: d.note || null,
-      serviceId: d.serviceId ?? null, estimatedHours: hours != null ? String(hours) : null,
+      serviceId: d.serviceId ?? firstService, quoteItems: items, estimatedHours: hours != null ? String(hours) : null,
       expectedOn: d.expectedOn, expectedTime: d.expectedTime ?? null, createdByUserId: (req.session as any)?.userId ?? null,
     }).returning();
     res.status(201).json(await view(row));
@@ -120,8 +135,9 @@ router.patch("/:id", async (req, res) => {
     for (const k of ["clientName", "clientPhone", "bicycleText", "note", "serviceId", "expectedOn", "expectedTime", "status", "clientId"] as const) {
       if (d[k] !== undefined) updates[k] = d[k];
     }
-    if (d.estimatedHours !== undefined || d.serviceId !== undefined) {
-      const hours = await hoursFor(d.serviceId, d.estimatedHours);
+    if (d.quoteItems !== undefined) updates.quoteItems = d.quoteItems;
+    if (d.estimatedHours !== undefined || d.serviceId !== undefined || d.quoteItems !== undefined) {
+      const hours = await hoursFor(d.serviceId, d.estimatedHours, d.quoteItems);
       if (d.estimatedHours !== undefined || hours != null) updates.estimatedHours = hours != null ? String(hours) : null;
     }
     const [row] = await db.update(reservationsTable).set(updates)

@@ -180,7 +180,7 @@ export function WorkOrderDatesCard({ wo, onChanged }: { wo: WorkOrder; onChanged
   );
 }
 
-function PaymentDialog({ open, onOpenChange, total, pending, onConfirm }: {
+export function PaymentDialog({ open, onOpenChange, total, pending, onConfirm }: {
   open: boolean; onOpenChange: (o: boolean) => void; total: number; pending: boolean;
   onConfirm: (paymentMethodId: number | null, paidAmount: number) => void;
 }) {

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useGetReportSummary, useGetWorkshopSettings } from "@workspace/api-client-react";
 import { WhatsAppButton } from "@/components/whatsapp-button";
+import { QuickPayButton } from "@/components/trabajo/quick-pay";
 import { paymentReminder } from "@/lib/whatsapp";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -175,6 +176,7 @@ export default function MisNumeros() {
                       <p className="text-xs text-muted-foreground">{r.workOrderNumber}{r.deliveredAt ? ` · entregado ${new Date(r.deliveredAt).toLocaleDateString("es-CL")}` : ""}</p>
                     </Link>
                     <span className="font-semibold text-red-600">{formatCLP(r.balance)}</span>
+                    <QuickPayButton workOrderId={r.workOrderId} total={r.total ?? r.balance} />
                     <WhatsAppButton phone={r.clientPhone} label="Cobrar" className="h-7"
                       text={paymentReminder(r.clientName, settings?.name, formatCLP(r.balance), r.workOrderNumber, settings?.paymentInfo)} />
                   </div>

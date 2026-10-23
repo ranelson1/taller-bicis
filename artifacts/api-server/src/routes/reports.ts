@@ -137,7 +137,7 @@ router.get("/summary", async (req, res) => {
       collected: { amount: round(Number(collected.amount)), count: Number(collected.count) },
       receivable: {
         amount: round(unpaid.reduce((s, w) => s + w.balance, 0)), count: unpaid.length,
-        items: unpaid.slice(0, 8).map(w => ({ workOrderId: w.id, workCaseId: w.workCaseId, workOrderNumber: w.number, clientName: w.clientName, clientPhone: w.clientPhone, balance: round(w.balance), deliveredAt: w.deliveredAt?.toISOString() ?? null })),
+        items: unpaid.slice(0, 8).map(w => ({ workOrderId: w.id, workCaseId: w.workCaseId, workOrderNumber: w.number, clientName: w.clientName, clientPhone: w.clientPhone, total: Number(w.total), balance: round(w.balance), deliveredAt: w.deliveredAt?.toISOString() ?? null })),
       },
       inProgress: { count: Number(inProgress.count), value: round(Number(inProgress.value)) },
       purchases: { total: round(Number(bought.total)), net: round(Number(bought.net)), count: Number(bought.count) },

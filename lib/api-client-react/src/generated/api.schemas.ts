@@ -1788,6 +1788,27 @@ export interface PublicBikeHistory {
   entries: PublicBikeHistoryEntry[];
 }
 
+export type ReservationQuoteItemItemType = typeof ReservationQuoteItemItemType[keyof typeof ReservationQuoteItemItemType];
+
+
+export const ReservationQuoteItemItemType = {
+  service: 'service',
+  part: 'part',
+  additional_labor: 'additional_labor',
+  other: 'other',
+} as const;
+
+export interface ReservationQuoteItem {
+  itemType: ReservationQuoteItemItemType;
+  description: string;
+  quantity?: number;
+  unitPrice: number;
+  /** Horas por unidad */
+  hours?: number;
+  /** @nullable */
+  serviceId?: number | null;
+}
+
 export type ReservationStatus = typeof ReservationStatus[keyof typeof ReservationStatus];
 
 
@@ -1813,6 +1834,8 @@ export interface Reservation {
   serviceId?: number | null;
   /** @nullable */
   estimatedHours?: number | null;
+  quoteItems?: ReservationQuoteItem[];
+  quoteTotal?: number;
   /** Día en que llega la bici (YYYY-MM-DD) */
   expectedOn: string;
   /** @nullable */
@@ -1833,6 +1856,7 @@ export interface Reservation {
 }
 
 export interface ReservationInput {
+  quoteItems?: ReservationQuoteItem[];
   /** @nullable */
   clientId?: number | null;
   clientName?: string;
@@ -1861,6 +1885,7 @@ export const ReservationUpdateStatus = {
 } as const;
 
 export interface ReservationUpdate {
+  quoteItems?: ReservationQuoteItem[];
   /** @nullable */
   clientId?: number | null;
   clientName?: string;
@@ -2041,6 +2066,7 @@ export type ReportSummaryReceivableItemsItem = {
   clientName?: string | null;
   /** @nullable */
   clientPhone?: string | null;
+  total?: number;
   balance: number;
   /** @nullable */
   deliveredAt?: string | null;

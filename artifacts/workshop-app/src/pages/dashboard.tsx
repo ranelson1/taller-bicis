@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { WhatsAppButton } from "@/components/whatsapp-button";
+import { QuickPayButton } from "@/components/trabajo/quick-pay";
 import { paymentReminder } from "@/lib/whatsapp";
 import { ActivityCard } from "@/components/activity-card";
 import { ReservationDialog } from "@/components/reservations/reservation-dialog";
@@ -127,7 +128,7 @@ export default function Dashboard() {
             </label>
           )}
           <Button variant="outline" className="h-11" onClick={() => setReserveOpen(true)} data-testid="button-reserve">
-            <CalendarClock className="h-4 w-4 mr-1" />Reservar
+            <CalendarClock className="h-4 w-4 mr-1" /><span className="sm:hidden">Reservar</span><span className="hidden sm:inline">Cotizar y reservar</span>
           </Button>
           <Link href="/trabajos/nuevo">
             <Button className="h-11" data-testid="button-new-work"><Plus className="h-4 w-4 mr-1" />Nuevo trabajo</Button>
@@ -176,6 +177,7 @@ export default function Dashboard() {
                     <span className="flex items-center gap-2">
                       <span className="text-xs font-medium whitespace-nowrap">{formatCLP(owed)}</span>
                       <WhatsAppButton phone={wo.clientPhone} text={paymentReminder(wo.clientName, settings?.name, formatCLP(owed), wo.workOrderNumber, settings?.paymentInfo)} label="Cobrar" className="h-7" />
+                      <QuickPayButton workOrderId={wo.id} total={wo.total} />
                     </span>
                   );
                 }} />

@@ -32,15 +32,24 @@ export function paymentReminder(
 
 // Confirmación de una reserva: día, hora, bici y cuándo estimamos tenerla lista.
 export function reservationMessage(
-  r: { clientName: string; expectedOn: string; expectedTime?: string | null; bicycleText?: string | null; estimatedDeliveryDate?: string | null },
+  r: {
+    clientName: string; expectedOn: string; expectedTime?: string | null; bicycleText?: string | null; estimatedDeliveryDate?: string | null;
+    quoteItems?: { description: string; quantity?: number; unitPrice: number }[] | null;
+  },
   shopName: string | null | undefined,
 ): string {
   const first = r.clientName.split(" ")[0];
+  const fmt = (n: number) => `$${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(Math.round(n))}`;
   const day = new Date(`${r.expectedOn}T12:00:00`).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
   const ready = r.estimatedDeliveryDate
     ? ` Estimamos tenerla lista el ${new Date(r.estimatedDeliveryDate).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" })}.`
     : "";
-  return `Hola ${first}, te esperamos el ${day}${r.expectedTime ? ` a las ${r.expectedTime}` : ""} en ${shopName || "el taller"}${r.bicycleText ? ` con tu ${r.bicycleText}` : ""}.${ready} ¡Nos vemos!`;
+  const items = r.quoteItems ?? [];
+  const quote = items.length > 0
+    ? `Cotización para tu ${r.bicycleText || "bicicleta"}:\n${items.map(i => `• ${i.description}: ${fmt((i.quantity ?? 1) * i.unitPrice)}`).join("\n")}\nTotal: ${fmt(items.reduce((s, i) => s + (i.quantity ?? 1) * i.unitPrice, 0))}\n\n`
+    : "";
+  const when = `Te esperamos el ${day}${r.expectedTime ? ` a las ${r.expectedTime}` : ""} en ${shopName || "el taller"}${items.length === 0 && r.bicycleText ? ` con tu ${r.bicycleText}` : ""}.${ready}`;
+  return `Hola ${first}, ${items.length > 0 ? "te mando la cotización.\n\n" : ""}${quote}${when} ${items.length > 0 ? "¿Te parece bien?" : "¡Nos vemos!"}`;
 }
 
 // Recontacto: ya le toca repetir un servicio. Un servicio => lo nombra; varios => los lista.

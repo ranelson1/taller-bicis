@@ -892,6 +892,7 @@ CREATE TABLE public.reservations (
     created_by_user_id integer,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    quote_items jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT reservations_status_check CHECK ((status = ANY (ARRAY['reserved'::text, 'arrived'::text, 'cancelled'::text, 'no_show'::text])))
 );
 

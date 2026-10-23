@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { reservationMessage } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
+import { formatCLP } from "@/lib/work-status";
 import { CalendarClock, MoreHorizontal } from "lucide-react";
 
 // Reservas pendientes (bicis que van a llegar), por día. "Llegó" abre Nuevo trabajo con lo acordado.
@@ -58,7 +59,7 @@ export function ReservationsSection() {
                   <div className="min-w-0 flex-1 basis-48">
                     <p className="text-sm font-medium truncate">{r.expectedTime ? `${r.expectedTime} · ` : ""}{r.clientName}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {[r.bicycleText, r.note].filter(Boolean).join(" · ") || "Sin detalle"}
+                      {[r.bicycleText, r.quoteItems && r.quoteItems.length > 0 ? `${r.quoteItems.length} ítem(s) · ${formatCLP(r.quoteTotal ?? 0)}` : null, r.note].filter(Boolean).join(" · ") || "Sin detalle"}
                       {r.estimatedDeliveryDate && ` · lista ≈ ${new Date(r.estimatedDeliveryDate).toLocaleDateString("es-CL", { weekday: "short", day: "numeric", month: "short" })}`}
                     </p>
                   </div>

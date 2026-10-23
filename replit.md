@@ -293,6 +293,12 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
   mp4/aac; Chrome y Android, webm/opus) y la sube como cualquier foto. El servidor acepta `audio/mp4|webm|ogg|mpeg` (hasta 25 MB) y
   valida la firma del contenedor. El cliente la escucha con reproductor en su link.
 
+## Cotizar antes de que llegue la bici (migración 018)
+
+- La reserva guarda `quote_items` (servicios del catálogo y cobros con su precio y horas): se arma la cotización, se manda por
+  WhatsApp con el total y las fechas de llegada y entrega, y al apretar "Llegó" Nuevo trabajo parte con esos mismos ítems.
+- "Pagó" (`quick-pay.tsx`): registra el pago completo de un trabajo entregado desde Inicio o Mis números, sin abrir la ficha.
+
 ## Fotos y videos de la OT
 
 - `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.

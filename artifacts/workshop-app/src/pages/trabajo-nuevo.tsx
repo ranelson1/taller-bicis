@@ -209,8 +209,16 @@ export default function TrabajoNuevo() {
       setNewBike({ brand: brand ?? "", model: model.join(" "), type: "mtb", year: "", color: "", serialNumber: "" });
     }
     if (reservation.note) setProblem(reservation.note);
-    const svc = reservation.serviceId ? (services as any[]).find(s => s.id === reservation.serviceId) : null;
-    if (svc) toggleService(svc);
+    if (reservation.quoteItems && reservation.quoteItems.length > 0) {
+      // Lo cotizado por WhatsApp: los servicios del catálogo se agregan como siempre; lo demás, con el precio acordado.
+      setItems(reservation.quoteItems.map((q, k) => ({
+        key: q.serviceId ? `s${q.serviceId}` : `r${k}`, itemType: q.itemType, description: q.description, quantity: q.quantity ?? 1,
+        unitPrice: q.unitPrice, hours: q.hours ?? 0, serviceId: q.serviceId ?? null,
+      })));
+    } else {
+      const svc = reservation.serviceId ? (services as any[]).find(s => s.id === reservation.serviceId) : null;
+      if (svc) toggleService(svc);
+    }
     setChannel("whatsapp");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reservation, clients, services]);

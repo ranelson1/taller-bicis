@@ -5,9 +5,11 @@
  * API specification for Taller de Bicicletas
  * OpenAPI spec version: 0.1.0
  */
+import type { ReservationQuoteItem } from './reservationQuoteItem';
 import type { ReservationUpdateStatus } from './reservationUpdateStatus';
 
 export interface ReservationUpdate {
+  quoteItems?: ReservationQuoteItem[];
   /** @nullable */
   clientId?: number | null;
   clientName?: string;

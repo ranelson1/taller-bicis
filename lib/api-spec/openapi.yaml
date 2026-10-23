@@ -5501,6 +5501,17 @@ components:
           items:
             $ref: "#/components/schemas/PublicBikeHistoryEntry"
 
+    ReservationQuoteItem:
+      type: object
+      required: [itemType, description, unitPrice]
+      properties:
+        itemType: { type: string, enum: [service, part, additional_labor, other] }
+        description: { type: string }
+        quantity: { type: number }
+        unitPrice: { type: number }
+        hours: { type: number, description: Horas por unidad }
+        serviceId: { type: ["integer", "null"] }
+
     Reservation:
       type: object
       required: [id, clientName, expectedOn, status, createdAt]
@@ -5513,6 +5524,11 @@ components:
         note: { type: ["string", "null"] }
         serviceId: { type: ["integer", "null"] }
         estimatedHours: { type: ["number", "null"] }
+        quoteItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReservationQuoteItem"
+        quoteTotal: { type: number }
         expectedOn: { type: string, description: "Día en que llega la bici (YYYY-MM-DD)" }
         expectedTime: { type: ["string", "null"] }
         status: { type: string, enum: [reserved, arrived, cancelled, no_show] }
@@ -5526,6 +5542,10 @@ components:
       type: object
       required: [expectedOn]
       properties:
+        quoteItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReservationQuoteItem"
         clientId: { type: ["integer", "null"] }
         clientName: { type: string }
         clientPhone: { type: ["string", "null"] }
@@ -5539,6 +5559,10 @@ components:
     ReservationUpdate:
       type: object
       properties:
+        quoteItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReservationQuoteItem"
         clientId: { type: ["integer", "null"] }
         clientName: { type: string }
         clientPhone: { type: ["string", "null"] }
@@ -5755,6 +5779,7 @@ components:
                   workOrderNumber: { type: string }
                   clientName: { type: ["string", "null"] }
                   clientPhone: { type: ["string", "null"] }
+                  total: { type: number }
                   balance: { type: number }
                   deliveredAt: { type: ["string", "null"] }
         inProgress:
