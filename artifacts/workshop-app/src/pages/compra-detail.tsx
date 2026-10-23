@@ -46,6 +46,7 @@ export default function CompraDetail() {
 
   const [head, setHead] = useState({ supplierName: "", supplierRut: "", docType: "factura", docNumber: "", issuedOn: "", notes: "" });
   const [lines, setLines] = useState<Line[]>([]);
+  const [advanced, setAdvanced] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     if (!purchase) return;
@@ -61,6 +62,19 @@ export default function CompraDetail() {
     setLines(mapped.length ? mapped : [emptyLine(otPreset)]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purchase]);
+
+  // Líneas leídas de una factura: si el código o el nombre coincide con un artículo, se asigna solo.
+  useEffect(() => {
+    if (!parts || !purchase || purchase.status !== "draft") return;
+    setLines(ls => ls.map(l => {
+      if (l.partId) return l;
+      const code = l.supplierCode.trim().toLowerCase();
+      const name = l.description.trim().toLowerCase();
+      const hit = parts.find(p => (code && (p.sku ?? "").toLowerCase() === code) || p.name.toLowerCase() === name);
+      return hit ? { ...l, partId: hit.id, unit: hit.unit } : l;
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parts, purchase]);
 
   const openOrders = (orders ?? []).filter(o => OPEN_WO_STATUSES.includes(o.status));
   const recoversVat = !!settings?.recoversVat;
@@ -148,34 +162,15 @@ export default function CompraDetail() {
           return (
             <Card key={i} data-testid={`purchase-line-${i}`}><CardContent className="p-4 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-6 gap-3">
-                <div className="space-y-1.5 sm:col-span-4"><Label>Descripción</Label>
+                <div className="space-y-1.5 sm:col-span-6"><Label>Descripción</Label>
                   <Input disabled={!draft} value={l.description} onChange={e => setLine(i, { description: e.target.value })} data-testid={`line-desc-${i}`} /></div>
-                <div className="space-y-1.5 sm:col-span-2"><Label>Código proveedor</Label>
-                  <Input disabled={!draft} value={l.supplierCode} onChange={e => setLine(i, { supplierCode: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Cantidad</Label>
+                <div className="space-y-1.5 sm:col-span-2"><Label>Cantidad</Label>
                   <Input disabled={!draft} inputMode="decimal" value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} data-testid={`line-qty-${i}`} /></div>
-                <div className="space-y-1.5"><Label>Unidad</Label>
-                  <Select disabled={!draft} value={l.unit} onValueChange={v => setLine(i, { unit: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{UNITS.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}</SelectContent>
-                  </Select></div>
-                <div className="space-y-1.5 sm:col-span-2"><Label>Costo unitario neto</Label>
+                <div className="space-y-1.5 sm:col-span-4"><Label>Costo unitario neto</Label>
                   <Input disabled={!draft} inputMode="decimal" value={l.unitCostNet} onChange={e => setLine(i, { unitCostNet: e.target.value })} data-testid={`line-cost-${i}`} />
                   {cost != null && <p className="text-xs text-muted-foreground">Te cuesta {formatCLP(cost)} {recoversVat ? "(sin IVA)" : "(con IVA)"}</p>}</div>
-                <div className="space-y-1.5 sm:col-span-2"><Label>Precio al cliente (PVP)</Label>
-                  <Input disabled={!draft} inputMode="numeric" value={l.salePrice} onChange={e => setLine(i, { salePrice: e.target.value })}
-                    placeholder={suggested != null ? `Sugerido ${formatCLP(suggested)}` : "Opcional"} data-testid={`line-price-${i}`} />
-                  {m != null && <p className="text-xs text-muted-foreground">Margen {m.toFixed(0)} %</p>}</div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Artículo del inventario</Label>
-                  <Select disabled={!draft} value={l.partId ? String(l.partId) : NONE} onValueChange={v => pickPart(i, v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>Crear artículo nuevo</SelectItem>
-                      {(parts ?? []).map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select></div>
                 <div className="space-y-1.5"><Label>¿Es para un trabajo?</Label>
                   <Select disabled={!draft} value={l.workOrderId ? String(l.workOrderId) : NONE} onValueChange={v => setLine(i, { workOrderId: v === NONE ? null : Number(v) })}>
                     <SelectTrigger data-testid={`line-order-${i}`}><SelectValue /></SelectTrigger>
@@ -185,7 +180,37 @@ export default function CompraDetail() {
                     </SelectContent>
                   </Select>
                   {l.workOrderId && <p className="text-xs text-muted-foreground">Se suma al stock, se agrega a la OT y se consume al tiro.</p>}</div>
+                {l.workOrderId && (
+                  <div className="space-y-1.5"><Label>Precio al cliente</Label>
+                    <Input disabled={!draft} inputMode="numeric" value={l.salePrice} onChange={e => setLine(i, { salePrice: e.target.value })}
+                      placeholder={suggested != null ? `Sugerido ${formatCLP(suggested)}` : "Opcional"} data-testid={`line-price-${i}`} />
+                    {m != null && <p className="text-xs text-muted-foreground">Margen {m.toFixed(0)} %</p>}</div>
+                )}
               </div>
+              {draft && (
+                <button type="button" className="text-xs text-primary hover:underline" onClick={() => setAdvanced(a => ({ ...a, [i]: !a[i] }))}>
+                  {advanced[i] || !l.partId ? "Ocultar detalles" : `Artículo: ${(parts ?? []).find(p => p.id === l.partId)?.name ?? ""} · cambiar`}
+                </button>
+              )}
+              {(advanced[i] || !l.partId) && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5"><Label>Artículo del inventario</Label>
+                    <Select disabled={!draft} value={l.partId ? String(l.partId) : NONE} onValueChange={v => pickPart(i, v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>Crear artículo nuevo</SelectItem>
+                        {(parts ?? []).map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select></div>
+                  <div className="space-y-1.5"><Label>Código del proveedor</Label>
+                    <Input disabled={!draft} value={l.supplierCode} onChange={e => setLine(i, { supplierCode: e.target.value })} /></div>
+                  <div className="space-y-1.5"><Label>Unidad</Label>
+                    <Select disabled={!draft} value={l.unit} onValueChange={v => setLine(i, { unit: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{UNITS.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}</SelectContent>
+                    </Select></div>
+                </div>
+              )}
               {draft && lines.length > 1 && (
                 <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setLines(ls => ls.filter((_, k) => k !== i))}><Trash2 className="h-4 w-4 mr-1" />Quitar línea</Button>
               )}

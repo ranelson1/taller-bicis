@@ -109,7 +109,10 @@ export default function Dashboard() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Hola{me?.name ? `, ${me.name.split(" ")[0]}` : ""}</h1>
-          <p className="text-muted-foreground first-letter:uppercase">{today.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" })}</p>
+          <p className="text-muted-foreground first-letter:uppercase">
+            {today.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" })}
+            {solo && load[0] && load[0].count > 0 && load[0].days !== null && ` · ${load[0].count} en cola, ≈ ${load[0].days.toLocaleString("es-CL", { maximumFractionDigits: 1 })} día(s) de trabajo`}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {canScope && (
@@ -204,7 +207,7 @@ export default function Dashboard() {
           </div>
 
           {/* Carga por mecánico */}
-          {!isMechanic && mechanics.length > 0 && (
+          {!isMechanic && !solo && mechanics.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2"><Users className="h-4 w-4" />{solo ? "Tu carga" : "Carga del taller"}</CardTitle>

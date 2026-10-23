@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Wrench, Users, Bike, LayoutDashboard, Settings, LogOut, Menu, Briefcase, Plus, Building2, LifeBuoy, Package, TrendingUp, HardHat } from "lucide-react";
 import { useExitPlatformWorkshop, useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
+import { useWorkers } from "@/hooks/use-workers";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -12,14 +13,13 @@ const mainNavItems: NavItem[] = [
   { href: "/", label: "Inicio", icon: LayoutDashboard },
   { href: "/trabajos", label: "Trabajos", icon: Briefcase },
   { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/bicicletas", label: "Bicicletas", icon: Bike },
   { href: "/inventario", label: "Inventario", icon: Package },
 ];
 
 const adminNavItems: NavItem[] = [
   { href: "/admin/numeros", label: "Mis números", icon: TrendingUp },
-  { href: "/admin/usuarios", label: "Usuarios", icon: Users },
-  { href: "/admin/catalogo", label: "Catálogo", icon: Wrench },
+  { href: "/admin/usuarios", label: "Equipo", icon: Users },
+  { href: "/admin/catalogo", label: "Servicios y precios", icon: Wrench },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },
 ];
 
@@ -39,6 +39,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { data: user } = useGetMe();
   const me = user;
+  // Taller de una sola persona: sin "Mis trabajos" (es lo mismo que Trabajos).
+  const { solo } = useWorkers();
   const logoutMutation = useLogout();
   const exitWorkshop = useExitPlatformWorkshop();
   const queryClient = useQueryClient();
@@ -53,7 +55,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const roleLabel = user ? ROLE_LABELS[user.role] ?? user.role : "";
 
   const sections: { title: string; items: NavItem[] }[] = [
-    ...(inWorkshop ? [{ title: "Operación", items: me?.doesJobs ? [{ href: "/mis-trabajos", label: "Mis trabajos", icon: HardHat }, ...mainNavItems] : mainNavItems }] : []),
+    ...(inWorkshop ? [{ title: "Operación", items: me?.doesJobs && !solo ? [{ href: "/mis-trabajos", label: "Mis trabajos", icon: HardHat }, ...mainNavItems] : mainNavItems }] : []),
     ...(isAdmin ? [{ title: "Administración", items: adminNavItems }] : []),
     ...(isSuperadmin ? [{ title: "Plataforma", items: platformNavItems }] : []),
   ];
