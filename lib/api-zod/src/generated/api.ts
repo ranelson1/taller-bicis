@@ -4273,6 +4273,22 @@ export const UpdateReservationResponse = zod.object({
 
 
 /**
+ * @summary Respuestas recientes de los clientes desde su link
+ */
+export const GetDashboardActivityResponseItem = zod.object({
+  "id": zod.number(),
+  "kind": zod.enum(['item_approved', 'item_rejected', 'quote_approved']),
+  "detail": zod.string().nullish(),
+  "workOrderId": zod.number(),
+  "workOrderNumber": zod.string(),
+  "workCaseId": zod.number().nullish(),
+  "clientName": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const GetDashboardActivityResponse = zod.array(GetDashboardActivityResponseItem)
+
+
+/**
  * @summary Mis números - resumen del taller en un período (solo admin)
  */
 export const GetReportSummaryQueryParams = zod.object({

@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './activityItem';
+export * from './activityItemKind';
 export * from './adjustInventoryBody';
 export * from './assignMechanicToWorkOrderBody';
 export * from './authUser';

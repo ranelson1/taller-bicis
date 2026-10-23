@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { paymentReminder } from "@/lib/whatsapp";
+import { ActivityCard } from "@/components/activity-card";
 import { ReservationDialog } from "@/components/reservations/reservation-dialog";
 import { ReservationsSection } from "@/components/reservations/reservations-section";
 import { FollowupsSection } from "@/components/followups/followups-section";
@@ -136,6 +137,7 @@ export default function Dashboard() {
 
       {(me?.role === "admin" || me?.role === "superadmin") && <OnboardingCard />}
 
+      <ActivityCard />
       <ReservationsSection />
       <FollowupsSection />
       <ReservationDialog open={reserveOpen} onOpenChange={setReserveOpen} />

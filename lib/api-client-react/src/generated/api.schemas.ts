@@ -1988,6 +1988,29 @@ export interface WorkOrderPhoto {
   url: string;
 }
 
+export type ActivityItemKind = typeof ActivityItemKind[keyof typeof ActivityItemKind];
+
+
+export const ActivityItemKind = {
+  item_approved: 'item_approved',
+  item_rejected: 'item_rejected',
+  quote_approved: 'quote_approved',
+} as const;
+
+export interface ActivityItem {
+  id: number;
+  kind: ActivityItemKind;
+  /** @nullable */
+  detail?: string | null;
+  workOrderId: number;
+  workOrderNumber: string;
+  /** @nullable */
+  workCaseId?: number | null;
+  /** @nullable */
+  clientName?: string | null;
+  createdAt: string;
+}
+
 export type ReportSummaryJobs = {
   count: number;
   billed: number;

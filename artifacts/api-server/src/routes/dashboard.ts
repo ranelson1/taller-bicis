@@ -1,11 +1,44 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { clientsTable, bicyclesTable, servicesTable, usersTable, quotesTable, receptionsTable, workOrdersTable } from "@workspace/db";
-import { and, eq, count, inArray, isNull } from "drizzle-orm";
+import { clientsTable, bicyclesTable, servicesTable, usersTable, quotesTable, receptionsTable, workOrdersTable, timelineEventsTable } from "@workspace/db";
+import { and, desc, eq, count, inArray, isNull, or, gte } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 router.use(requireAuth);
+
+// GET /dashboard/activity — lo que respondieron los clientes desde su link (aprobaron o rechazaron un adicional, aprobaron
+// la cotización), de los últimos 14 días, para enterarse sin revisar el chat.
+router.get("/activity", async (_req, res) => {
+  try {
+    const since = new Date(Date.now() - 14 * 86_400_000);
+    const rows = await db.select({
+      id: timelineEventsTable.id, action: timelineEventsTable.action, newStatus: timelineEventsTable.newStatus,
+      comment: timelineEventsTable.comment, createdAt: timelineEventsTable.createdAt,
+      workOrderId: workOrdersTable.id, workOrderNumber: workOrdersTable.workOrderNumber, workCaseId: workOrdersTable.workCaseId,
+      clientName: clientsTable.name,
+    }).from(timelineEventsTable)
+      .innerJoin(workOrdersTable, eq(workOrdersTable.id, timelineEventsTable.entityId))
+      .leftJoin(clientsTable, eq(clientsTable.id, workOrdersTable.clientId))
+      .where(and(
+        eq(timelineEventsTable.entityType, "work_order"),
+        eq(timelineEventsTable.previousStatus, "client"),
+        or(eq(timelineEventsTable.action, "item_decision"), eq(timelineEventsTable.action, "quote_approved")),
+        gte(timelineEventsTable.createdAt, since),
+      ))
+      .orderBy(desc(timelineEventsTable.createdAt)).limit(15);
+    res.json(rows.map(r => ({
+      id: r.id,
+      kind: r.action === "quote_approved" ? "quote_approved" : r.newStatus === "approved" ? "item_approved" : "item_rejected",
+      detail: r.action === "quote_approved" ? null : r.comment,
+      workOrderId: r.workOrderId, workOrderNumber: r.workOrderNumber, workCaseId: r.workCaseId,
+      clientName: r.clientName, createdAt: r.createdAt.toISOString(),
+    })));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.get("/summary", async (_req, res) => {
   try {

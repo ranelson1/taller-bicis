@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActivityItem,
   AdjustInventoryBody,
   AssignMechanicToWorkOrderBody,
   AuthUser,
@@ -10840,6 +10841,83 @@ export const useUpdateReservation = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getUpdateReservationMutationOptions(options));
     }
+
+export const getGetDashboardActivityUrl = () => {
+
+
+
+
+  return `/api/dashboard/activity`
+}
+
+/**
+ * @summary Respuestas recientes de los clientes desde su link
+ */
+export const getDashboardActivity = async ( options?: RequestInit): Promise<ActivityItem[]> => {
+
+  return customFetch<ActivityItem[]>(getGetDashboardActivityUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDashboardActivityQueryKey = () => {
+    return [
+    `/api/dashboard/activity`
+    ] as const;
+    }
+
+
+export const getGetDashboardActivityQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardActivity>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDashboardActivityQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardActivity>>> = ({ signal }) => getDashboardActivity({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDashboardActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardActivity>>>
+export type GetDashboardActivityQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Respuestas recientes de los clientes desde su link
+ */
+
+export function useGetDashboardActivity<TData = Awaited<ReturnType<typeof getDashboardActivity>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDashboardActivityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetReportSummaryUrl = (params?: GetReportSummaryParams,) => {
   const normalizedParams = new URLSearchParams();

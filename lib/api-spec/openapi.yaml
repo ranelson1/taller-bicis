@@ -3162,6 +3162,21 @@ paths:
               schema:
                 $ref: "#/components/schemas/Reservation"
 
+  /dashboard/activity:
+    get:
+      operationId: getDashboardActivity
+      tags: [health]
+      summary: Respuestas recientes de los clientes desde su link
+      responses:
+        "200":
+          description: Actividad reciente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
   /reports/summary:
     get:
       operationId: getReportSummary
@@ -5681,6 +5696,19 @@ components:
           type: string
         url:
           type: string
+
+    ActivityItem:
+      type: object
+      required: [id, kind, workOrderId, workOrderNumber, createdAt]
+      properties:
+        id: { type: integer }
+        kind: { type: string, enum: [item_approved, item_rejected, quote_approved] }
+        detail: { type: ["string", "null"] }
+        workOrderId: { type: integer }
+        workOrderNumber: { type: string }
+        workCaseId: { type: ["integer", "null"] }
+        clientName: { type: ["string", "null"] }
+        createdAt: { type: string }
 
     ReportSummary:
       type: object
