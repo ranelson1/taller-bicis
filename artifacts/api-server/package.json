@@ -13,7 +13,8 @@
     "load-demo": "tsx src/scripts/load-demo.ts",
     "check-isolation": "tsx src/scripts/check-isolation.ts",
     "seed-inventario": "tsx src/scripts/seed-inventario.ts && tsx src/scripts/seed-recetas.ts",
-    "seed-recetas": "tsx src/scripts/seed-recetas.ts"
+    "seed-recetas": "tsx src/scripts/seed-recetas.ts",
+    "load-catalogo": "tsx src/scripts/load-catalogo.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.137.0",

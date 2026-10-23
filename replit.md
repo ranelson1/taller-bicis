@@ -278,6 +278,15 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
 - `GET /api/public/ot/:token/pdf` (cliente) y `GET /api/work-orders/:id/pdf` (taller). Botón en el link del cliente, en el menú
   del trabajo y en el diálogo de envío.
 
+## Novedades, catálogo inicial y app instalable
+
+- `GET /api/dashboard/activity` y la tarjeta "Novedades" de Inicio: lo que respondieron los clientes desde su link (adicionales
+  aprobados o rechazados, cotización aprobada) de los últimos 14 días; "visto" se guarda en el dispositivo.
+- `pnpm --filter @workspace/api-server run load-catalogo seed/catalogo-ridemec.json` (con `CATALOG_ADMIN="email:clave"`) carga servicios,
+  pasos y repuestos con precio desde un JSON, sin duplicar lo que ya existe.
+- PWA: `public/manifest.webmanifest`, `public/sw.js` (sin caché de datos, solo aviso sin conexión) e iconos; `capture-buttons.tsx`
+  abre la cámara del celular para foto o video y `lib/media-upload.ts` sube con progreso y un reintento (videos hasta 100 MB).
+
 ## Fotos y videos de la OT
 
 - `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.

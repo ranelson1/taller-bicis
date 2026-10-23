@@ -1,0 +1,46 @@
+{
+  "_nota": "Servicios y repuestos con los precios que hoy usa el taller en sus cotizaciones (CLP, IVA incluido). Las horas son estimadas: se ajustan desde Servicios y precios. Formato reutilizable para cargar el catálogo de otro taller.",
+  "categories": ["Frenos", "Suspensión", "Ruedas", "Mantención general"],
+  "services": [
+    {
+      "name": "Purgado de freno", "category": "Frenos", "price": 15000, "hours": 0.5,
+      "steps": ["Proteger discos y pastillas", "Purgar el circuito hasta que salga sin burbujas", "Limpiar y revisar pastillas", "Probar la palanca"]
+    },
+    {
+      "name": "Servicio full horquilla", "category": "Suspensión", "price": 70000, "hours": 3.5,
+      "steps": ["Desarmar la horquilla", "Cambiar sellos, espumas y aceites de las botellas", "Servicio del amortiguador y del resorte de aire", "Armar, purgar y ajustar presiones"]
+    },
+    {
+      "name": "Servicio full shock", "category": "Suspensión", "price": 70000, "hours": 2.5,
+      "steps": ["Desmontar el shock", "Cambiar sellos y aceites de la cámara de aire y del amortiguador", "Armar y probar", "Montar y ajustar presión"]
+    },
+    {
+      "name": "Servicio preventivo horquilla", "category": "Suspensión", "price": 40000, "hours": 1.5,
+      "steps": ["Retirar las botellas", "Limpiar, cambiar aceite y espumas", "Montar y revisar recorrido"]
+    },
+    {
+      "name": "Servicio preventivo shock", "category": "Suspensión", "price": 30000, "hours": 1,
+      "steps": ["Desmontar el shock", "Servicio de la cámara de aire", "Montar y ajustar presión"]
+    },
+    {
+      "name": "Mantenimiento básico", "category": "Mantención general", "price": 30000, "hours": 1.5,
+      "steps": ["Lavado y desengrase", "Revisión y lubricación de transmisión", "Ajuste de frenos y cambios", "Revisión de presión y apriete de pernos"]
+    },
+    {
+      "name": "Instalación de neumático + recarga tubeless", "category": "Ruedas", "price": 15000, "hours": 0.5,
+      "steps": ["Retirar neumático y limpiar sellante viejo", "Montar neumático y cinta si hace falta", "Cargar sellante e inflar"]
+    },
+    {
+      "name": "Instalación de protector de llanta", "category": "Ruedas", "price": 15000, "hours": 0.5,
+      "steps": ["Retirar neumático", "Montar el protector", "Montar neumático e inflar"]
+    }
+  ],
+  "parts": [
+    { "name": "Kit sellos shock RacingBros X2", "price": 65000 },
+    { "name": "Pastillas Braking Maven", "price": 17000 },
+    { "name": "Pastillas Magura orgánicas Braking", "price": 25000 },
+    { "name": "Kit retenes horquilla", "price": 55000 },
+    { "name": "Neumático Maxxis Assegai bikepark", "price": 60000 },
+    { "name": "Neumático Maxxis DHR II bikepark", "price": 60000 }
+  ]
+}
