@@ -24,6 +24,7 @@ import type {
   AssignMechanicToWorkOrderBody,
   AuthUser,
   Bicycle,
+  BicycleHistoryLink,
   BicycleInput,
   BicycleUpdate,
   CancelWorkOrderBody,
@@ -68,6 +69,7 @@ import type {
   PreviewReservationBody,
   PreviewWorkOrderEstimate200,
   PreviewWorkOrderEstimateBody,
+  PublicBikeHistory,
   PublicWorkOrder,
   Purchase,
   PurchaseInput,
@@ -10101,6 +10103,300 @@ export const useSnoozeFollowup = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getSnoozeFollowupMutationOptions(options));
     }
+
+export const getGetBicycleHistoryLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/bicycles/${id}/history-link`
+}
+
+/**
+ * @summary Link público del historial de mantención de la bicicleta (si se comparte)
+ */
+export const getBicycleHistoryLink = async (id: number, options?: RequestInit): Promise<BicycleHistoryLink> => {
+
+  return customFetch<BicycleHistoryLink>(getGetBicycleHistoryLinkUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBicycleHistoryLinkQueryKey = (id: number,) => {
+    return [
+    `/api/bicycles/${id}/history-link`
+    ] as const;
+    }
+
+
+export const getGetBicycleHistoryLinkQueryOptions = <TData = Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBicycleHistoryLinkQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBicycleHistoryLink>>> = ({ signal }) => getBicycleHistoryLink(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBicycleHistoryLinkQueryResult = NonNullable<Awaited<ReturnType<typeof getBicycleHistoryLink>>>
+export type GetBicycleHistoryLinkQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Link público del historial de mantención de la bicicleta (si se comparte)
+ */
+
+export function useGetBicycleHistoryLink<TData = Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBicycleHistoryLinkQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBicycleHistoryLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/bicycles/${id}/history-link`
+}
+
+/**
+ * @summary Crea el link del historial (o devuelve el existente)
+ */
+export const createBicycleHistoryLink = async (id: number, options?: RequestInit): Promise<BicycleHistoryLink> => {
+
+  return customFetch<BicycleHistoryLink>(getCreateBicycleHistoryLinkUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCreateBicycleHistoryLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBicycleHistoryLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBicycleHistoryLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['createBicycleHistoryLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBicycleHistoryLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  createBicycleHistoryLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBicycleHistoryLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createBicycleHistoryLink>>>
+
+    export type CreateBicycleHistoryLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Crea el link del historial (o devuelve el existente)
+ */
+export const useCreateBicycleHistoryLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBicycleHistoryLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBicycleHistoryLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getCreateBicycleHistoryLinkMutationOptions(options));
+    }
+
+export const getRevokeBicycleHistoryLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/bicycles/${id}/history-link`
+}
+
+/**
+ * @summary Deja de compartir el historial (el link anterior deja de funcionar)
+ */
+export const revokeBicycleHistoryLink = async (id: number, options?: RequestInit): Promise<BicycleHistoryLink> => {
+
+  return customFetch<BicycleHistoryLink>(getRevokeBicycleHistoryLinkUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeBicycleHistoryLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['revokeBicycleHistoryLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeBicycleHistoryLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeBicycleHistoryLinkMutationResult = NonNullable<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>>
+
+    export type RevokeBicycleHistoryLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Deja de compartir el historial (el link anterior deja de funcionar)
+ */
+export const useRevokeBicycleHistoryLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeBicycleHistoryLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRevokeBicycleHistoryLinkMutationOptions(options));
+    }
+
+export const getGetPublicBikeHistoryUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/bikes/${token}/history`
+}
+
+/**
+ * @summary Historial de mantención de una bicicleta (sin login, por token secreto)
+ */
+export const getPublicBikeHistory = async (token: string, options?: RequestInit): Promise<PublicBikeHistory> => {
+
+  return customFetch<PublicBikeHistory>(getGetPublicBikeHistoryUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicBikeHistoryQueryKey = (token: string,) => {
+    return [
+    `/api/public/bikes/${token}/history`
+    ] as const;
+    }
+
+
+export const getGetPublicBikeHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getPublicBikeHistory>>, TError = ErrorType<unknown>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicBikeHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicBikeHistoryQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicBikeHistory>>> = ({ signal }) => getPublicBikeHistory(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicBikeHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicBikeHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicBikeHistory>>>
+export type GetPublicBikeHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Historial de mantención de una bicicleta (sin login, por token secreto)
+ */
+
+export function useGetPublicBikeHistory<TData = Awaited<ReturnType<typeof getPublicBikeHistory>>, TError = ErrorType<unknown>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicBikeHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicBikeHistoryQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListReservationsUrl = () => {
 

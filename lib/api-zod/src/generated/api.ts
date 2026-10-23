@@ -4000,6 +4000,81 @@ export const SnoozeFollowupResponse = zod.object({
 
 
 /**
+ * @summary Link público del historial de mantención de la bicicleta (si se comparte)
+ */
+export const GetBicycleHistoryLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetBicycleHistoryLinkResponse = zod.object({
+  "token": zod.string().nullable(),
+  "path": zod.string().nullable().describe('Ruta relativa de la página pública (\/bici\/:token)')
+})
+
+
+/**
+ * @summary Crea el link del historial (o devuelve el existente)
+ */
+export const CreateBicycleHistoryLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateBicycleHistoryLinkResponse = zod.object({
+  "token": zod.string().nullable(),
+  "path": zod.string().nullable().describe('Ruta relativa de la página pública (\/bici\/:token)')
+})
+
+
+/**
+ * @summary Deja de compartir el historial (el link anterior deja de funcionar)
+ */
+export const RevokeBicycleHistoryLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RevokeBicycleHistoryLinkResponse = zod.object({
+  "token": zod.string().nullable(),
+  "path": zod.string().nullable().describe('Ruta relativa de la página pública (\/bici\/:token)')
+})
+
+
+/**
+ * @summary Historial de mantención de una bicicleta (sin login, por token secreto)
+ */
+export const GetPublicBikeHistoryParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicBikeHistoryResponse = zod.object({
+  "workshopName": zod.string(),
+  "workshopPhone": zod.string().nullish(),
+  "workshopAddress": zod.string().nullish(),
+  "workshopLogoUrl": zod.string().nullish(),
+  "bicycle": zod.object({
+  "brand": zod.string(),
+  "model": zod.string(),
+  "year": zod.number().nullish(),
+  "type": zod.string(),
+  "color": zod.string().nullish(),
+  "rimSize": zod.string().nullish()
+}),
+  "setupNotes": zod.string().nullish(),
+  "setupUpdatedAt": zod.string().nullish(),
+  "serviceCount": zod.number(),
+  "firstServiceOn": zod.string().nullish(),
+  "lastServiceOn": zod.string().nullish(),
+  "entries": zod.array(zod.object({
+  "date": zod.string(),
+  "items": zod.array(zod.object({
+  "kind": zod.enum(['service', 'part']),
+  "description": zod.string(),
+  "quantity": zod.number()
+}))
+}))
+})
+
+
+/**
  * @summary Reservas que esperan al cliente, con fechas de ingreso y entrega estimadas
  */
 export const ListReservationsResponseItem = zod.object({

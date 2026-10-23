@@ -1686,6 +1686,68 @@ export interface FollowupClient {
   items: FollowupItem[];
 }
 
+export interface BicycleHistoryLink {
+  /** @nullable */
+  token: string | null;
+  /**
+     * Ruta relativa de la página pública (/bici/:token)
+     * @nullable
+     */
+  path: string | null;
+}
+
+export type PublicBikeHistoryItemKind = typeof PublicBikeHistoryItemKind[keyof typeof PublicBikeHistoryItemKind];
+
+
+export const PublicBikeHistoryItemKind = {
+  service: 'service',
+  part: 'part',
+} as const;
+
+export interface PublicBikeHistoryItem {
+  kind: PublicBikeHistoryItemKind;
+  description: string;
+  quantity: number;
+}
+
+export interface PublicBikeHistoryEntry {
+  date: string;
+  items: PublicBikeHistoryItem[];
+}
+
+export type PublicBikeHistoryBicycle = {
+  brand: string;
+  model: string;
+  /** @nullable */
+  year?: number | null;
+  type: string;
+  /** @nullable */
+  color?: string | null;
+  /** @nullable */
+  rimSize?: string | null;
+};
+
+export interface PublicBikeHistory {
+  workshopName: string;
+  /** @nullable */
+  workshopPhone?: string | null;
+  /** @nullable */
+  workshopAddress?: string | null;
+  /** @nullable */
+  workshopLogoUrl?: string | null;
+  bicycle: PublicBikeHistoryBicycle;
+  /** @nullable */
+  setupNotes?: string | null;
+  /** @nullable */
+  setupUpdatedAt?: string | null;
+  serviceCount: number;
+  /** @nullable */
+  firstServiceOn?: string | null;
+  /** @nullable */
+  lastServiceOn?: string | null;
+  entries: PublicBikeHistoryEntry[];
+}
+
 export type ReservationStatus = typeof ReservationStatus[keyof typeof ReservationStatus];
 
 
