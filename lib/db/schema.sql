@@ -1297,7 +1297,9 @@ CREATE TABLE public.work_orders (
     payment_method_id integer,
     paid_amount numeric(12,2),
     workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
-    stock_consumed_at timestamp without time zone
+    stock_consumed_at timestamp without time zone,
+    quote_approved_at timestamp without time zone,
+    quote_approved_by text
 );
 
 ALTER TABLE ONLY public.work_orders FORCE ROW LEVEL SECURITY;
