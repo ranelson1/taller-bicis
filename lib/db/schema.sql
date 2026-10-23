@@ -2,12 +2,14 @@
 -- Generado con pg_dump --schema-only desde una base con todas las migraciones aplicadas.
 -- Uso: psql "$DATABASE_URL_ADMIN" -v ON_ERROR_STOP=1 -f lib/db/schema.sql  (luego ver lib/db/scripts/grant-app-role.sql)
 -- Para bases que ya existen, aplicar en cambio las migraciones de lib/db/migrations/ en orden.
-
 --
 -- PostgreSQL database dump
 --
 
+\restrict 2zLTqbtJsqvm0ghWdpCREyMtawGAa9Z5laLhGM7eWhui1jLS1VjgTerhSVNEhPK
 
+-- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
+-- Dumped by pg_dump version 16.15 (Debian 16.15-1.pgdg13+2)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -421,6 +423,49 @@ ALTER SEQUENCE public.inspection_findings_id_seq OWNED BY public.inspection_find
 
 
 --
+-- Name: inventory_movements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventory_movements (
+    id integer NOT NULL,
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    part_id integer NOT NULL,
+    kind text NOT NULL,
+    quantity numeric(12,3) NOT NULL,
+    unit_cost numeric(12,2),
+    work_order_id integer,
+    purchase_id integer,
+    automatic boolean DEFAULT false NOT NULL,
+    note text,
+    user_id integer,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    work_order_item_id integer
+);
+
+ALTER TABLE ONLY public.inventory_movements FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: inventory_movements_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.inventory_movements_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: inventory_movements_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.inventory_movements_id_seq OWNED BY public.inventory_movements.id;
+
+
+--
 -- Name: parts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -434,7 +479,13 @@ CREATE TABLE public.parts (
     active boolean DEFAULT true NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    kind text DEFAULT 'part'::text NOT NULL,
+    unit text DEFAULT 'un'::text NOT NULL,
+    cost_price numeric(12,2),
+    stock numeric(12,3) DEFAULT 0 NOT NULL,
+    min_stock numeric(12,3),
+    CONSTRAINT parts_kind_check CHECK ((kind = ANY (ARRAY['part'::text, 'supply'::text])))
 );
 
 ALTER TABLE ONLY public.parts FORCE ROW LEVEL SECURITY;
@@ -495,6 +546,97 @@ CREATE SEQUENCE public.payment_methods_id_seq
 --
 
 ALTER SEQUENCE public.payment_methods_id_seq OWNED BY public.payment_methods.id;
+
+
+--
+-- Name: purchase_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.purchase_items (
+    id integer NOT NULL,
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    purchase_id integer NOT NULL,
+    part_id integer,
+    description text NOT NULL,
+    supplier_code text,
+    quantity numeric(12,3) DEFAULT 1 NOT NULL,
+    unit text,
+    unit_cost_net numeric(12,2) DEFAULT 0 NOT NULL,
+    work_order_id integer,
+    sale_price numeric(12,2),
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.purchase_items FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: purchase_items_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.purchase_items_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: purchase_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.purchase_items_id_seq OWNED BY public.purchase_items.id;
+
+
+--
+-- Name: purchases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.purchases (
+    id integer NOT NULL,
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    supplier_id integer,
+    doc_type text DEFAULT 'factura'::text NOT NULL,
+    doc_number text,
+    issued_on date,
+    net_total numeric(12,2),
+    tax_total numeric(12,2),
+    total numeric(12,2),
+    status text DEFAULT 'draft'::text NOT NULL,
+    source text DEFAULT 'manual'::text NOT NULL,
+    file_key text,
+    file_mime text,
+    notes text,
+    created_by_user_id integer,
+    confirmed_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.purchases FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: purchases_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.purchases_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: purchases_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.purchases_id_seq OWNED BY public.purchases.id;
 
 
 --
@@ -731,6 +873,41 @@ ALTER SEQUENCE public.service_steps_id_seq OWNED BY public.service_steps.id;
 
 
 --
+-- Name: service_supplies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.service_supplies (
+    id integer NOT NULL,
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    service_id integer NOT NULL,
+    part_id integer NOT NULL,
+    quantity numeric(12,3) NOT NULL
+);
+
+ALTER TABLE ONLY public.service_supplies FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: service_supplies_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.service_supplies_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: service_supplies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.service_supplies_id_seq OWNED BY public.service_supplies.id;
+
+
+--
 -- Name: services; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -780,6 +957,46 @@ CREATE TABLE public.session (
     sess json NOT NULL,
     expire timestamp(6) without time zone NOT NULL
 );
+
+
+--
+-- Name: suppliers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.suppliers (
+    id integer NOT NULL,
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    name text NOT NULL,
+    rut text,
+    phone text,
+    email text,
+    notes text,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.suppliers FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: suppliers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.suppliers_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: suppliers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.suppliers_id_seq OWNED BY public.suppliers.id;
 
 
 --
@@ -838,7 +1055,8 @@ CREATE TABLE public.users (
     active boolean DEFAULT true NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    workshop_id integer DEFAULT public.current_workshop_id()
+    workshop_id integer DEFAULT public.current_workshop_id(),
+    does_jobs boolean DEFAULT false NOT NULL
 );
 
 ALTER TABLE ONLY public.users FORCE ROW LEVEL SECURITY;
@@ -976,7 +1194,11 @@ CREATE TABLE public.work_order_items (
     origin text DEFAULT 'initial'::text NOT NULL,
     approval_decided_at timestamp without time zone,
     approval_decided_by text,
-    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    part_id integer,
+    unit_cost numeric(12,2),
+    stock_consumed boolean DEFAULT false NOT NULL,
+    service_id integer
 );
 
 ALTER TABLE ONLY public.work_order_items FORCE ROW LEVEL SECURITY;
@@ -1075,7 +1297,8 @@ CREATE TABLE public.work_orders (
     paid_at timestamp without time zone,
     payment_method_id integer,
     paid_amount numeric(12,2),
-    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    stock_consumed_at timestamp without time zone
 );
 
 ALTER TABLE ONLY public.work_orders FORCE ROW LEVEL SECURITY;
@@ -1114,7 +1337,14 @@ CREATE TABLE public.workshop_settings (
     schedule jsonb,
     lunch_start text,
     lunch_end text,
-    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    monthly_fixed_costs numeric(12,2),
+    monthly_salary numeric(12,2),
+    monthly_work_hours numeric(6,1),
+    labor_cost_per_hour numeric(12,2),
+    default_parts_margin_pct numeric(5,1) DEFAULT 30 NOT NULL,
+    logo_key text,
+    recovers_vat boolean DEFAULT false NOT NULL
 );
 
 ALTER TABLE ONLY public.workshop_settings FORCE ROW LEVEL SECURITY;
@@ -1184,6 +1414,13 @@ ALTER TABLE ONLY public.inspection_findings ALTER COLUMN id SET DEFAULT nextval(
 
 
 --
+-- Name: inventory_movements id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_movements ALTER COLUMN id SET DEFAULT nextval('public.inventory_movements_id_seq'::regclass);
+
+
+--
 -- Name: parts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1195,6 +1432,20 @@ ALTER TABLE ONLY public.parts ALTER COLUMN id SET DEFAULT nextval('public.parts_
 --
 
 ALTER TABLE ONLY public.payment_methods ALTER COLUMN id SET DEFAULT nextval('public.payment_methods_id_seq'::regclass);
+
+
+--
+-- Name: purchase_items id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_items ALTER COLUMN id SET DEFAULT nextval('public.purchase_items_id_seq'::regclass);
+
+
+--
+-- Name: purchases id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchases ALTER COLUMN id SET DEFAULT nextval('public.purchases_id_seq'::regclass);
 
 
 --
@@ -1233,10 +1484,24 @@ ALTER TABLE ONLY public.service_steps ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
+-- Name: service_supplies id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service_supplies ALTER COLUMN id SET DEFAULT nextval('public.service_supplies_id_seq'::regclass);
+
+
+--
 -- Name: services id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.services ALTER COLUMN id SET DEFAULT nextval('public.services_id_seq'::regclass);
+
+
+--
+-- Name: suppliers id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.suppliers ALTER COLUMN id SET DEFAULT nextval('public.suppliers_id_seq'::regclass);
 
 
 --
@@ -1336,6 +1601,14 @@ ALTER TABLE ONLY public.inspection_findings
 
 
 --
+-- Name: inventory_movements inventory_movements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_movements
+    ADD CONSTRAINT inventory_movements_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: parts parts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1349,6 +1622,22 @@ ALTER TABLE ONLY public.parts
 
 ALTER TABLE ONLY public.payment_methods
     ADD CONSTRAINT payment_methods_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: purchase_items purchase_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_items
+    ADD CONSTRAINT purchase_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: purchases purchases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchases
+    ADD CONSTRAINT purchases_pkey PRIMARY KEY (id);
 
 
 --
@@ -1392,6 +1681,22 @@ ALTER TABLE ONLY public.service_steps
 
 
 --
+-- Name: service_supplies service_supplies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service_supplies
+    ADD CONSTRAINT service_supplies_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: service_supplies service_supplies_service_id_part_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service_supplies
+    ADD CONSTRAINT service_supplies_service_id_part_id_key UNIQUE (service_id, part_id);
+
+
+--
 -- Name: services services_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1405,6 +1710,14 @@ ALTER TABLE ONLY public.services
 
 ALTER TABLE ONLY public.session
     ADD CONSTRAINT session_pkey PRIMARY KEY (sid);
+
+
+--
+-- Name: suppliers suppliers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.suppliers
+    ADD CONSTRAINT suppliers_pkey PRIMARY KEY (id);
 
 
 --
@@ -1539,6 +1852,27 @@ CREATE INDEX inspection_findings_workshop_idx ON public.inspection_findings USIN
 
 
 --
+-- Name: inventory_movements_part_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX inventory_movements_part_idx ON public.inventory_movements USING btree (part_id);
+
+
+--
+-- Name: inventory_movements_wo_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX inventory_movements_wo_idx ON public.inventory_movements USING btree (work_order_id) WHERE (work_order_id IS NOT NULL);
+
+
+--
+-- Name: inventory_movements_workshop_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX inventory_movements_workshop_idx ON public.inventory_movements USING btree (workshop_id);
+
+
+--
 -- Name: parts_workshop_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1550,6 +1884,27 @@ CREATE INDEX parts_workshop_idx ON public.parts USING btree (workshop_id);
 --
 
 CREATE INDEX payment_methods_workshop_idx ON public.payment_methods USING btree (workshop_id);
+
+
+--
+-- Name: purchase_items_purchase_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX purchase_items_purchase_idx ON public.purchase_items USING btree (purchase_id);
+
+
+--
+-- Name: purchase_items_workshop_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX purchase_items_workshop_idx ON public.purchase_items USING btree (workshop_id);
+
+
+--
+-- Name: purchases_workshop_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX purchases_workshop_idx ON public.purchases USING btree (workshop_id);
 
 
 --
@@ -1602,10 +1957,24 @@ CREATE INDEX service_steps_workshop_idx ON public.service_steps USING btree (wor
 
 
 --
+-- Name: service_supplies_workshop_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX service_supplies_workshop_idx ON public.service_supplies USING btree (workshop_id);
+
+
+--
 -- Name: services_workshop_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX services_workshop_idx ON public.services USING btree (workshop_id);
+
+
+--
+-- Name: suppliers_workshop_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX suppliers_workshop_idx ON public.suppliers USING btree (workshop_id);
 
 
 --
@@ -1789,6 +2158,54 @@ ALTER TABLE ONLY public.inspection_findings
 
 
 --
+-- Name: inventory_movements inventory_movements_part_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_movements
+    ADD CONSTRAINT inventory_movements_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.parts(id);
+
+
+--
+-- Name: inventory_movements inventory_movements_purchase_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_movements
+    ADD CONSTRAINT inventory_movements_purchase_id_fkey FOREIGN KEY (purchase_id) REFERENCES public.purchases(id);
+
+
+--
+-- Name: inventory_movements inventory_movements_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_movements
+    ADD CONSTRAINT inventory_movements_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: inventory_movements inventory_movements_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_movements
+    ADD CONSTRAINT inventory_movements_work_order_id_fkey FOREIGN KEY (work_order_id) REFERENCES public.work_orders(id);
+
+
+--
+-- Name: inventory_movements inventory_movements_work_order_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_movements
+    ADD CONSTRAINT inventory_movements_work_order_item_id_fkey FOREIGN KEY (work_order_item_id) REFERENCES public.work_order_items(id);
+
+
+--
+-- Name: inventory_movements inventory_movements_workshop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_movements
+    ADD CONSTRAINT inventory_movements_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
+
+
+--
 -- Name: parts parts_category_id_categories_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1810,6 +2227,62 @@ ALTER TABLE ONLY public.parts
 
 ALTER TABLE ONLY public.payment_methods
     ADD CONSTRAINT payment_methods_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
+
+
+--
+-- Name: purchase_items purchase_items_part_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_items
+    ADD CONSTRAINT purchase_items_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.parts(id);
+
+
+--
+-- Name: purchase_items purchase_items_purchase_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_items
+    ADD CONSTRAINT purchase_items_purchase_id_fkey FOREIGN KEY (purchase_id) REFERENCES public.purchases(id) ON DELETE CASCADE;
+
+
+--
+-- Name: purchase_items purchase_items_work_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_items
+    ADD CONSTRAINT purchase_items_work_order_id_fkey FOREIGN KEY (work_order_id) REFERENCES public.work_orders(id);
+
+
+--
+-- Name: purchase_items purchase_items_workshop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchase_items
+    ADD CONSTRAINT purchase_items_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
+
+
+--
+-- Name: purchases purchases_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchases
+    ADD CONSTRAINT purchases_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: purchases purchases_supplier_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchases
+    ADD CONSTRAINT purchases_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id);
+
+
+--
+-- Name: purchases purchases_workshop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.purchases
+    ADD CONSTRAINT purchases_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
 
 
 --
@@ -1941,6 +2414,30 @@ ALTER TABLE ONLY public.service_steps
 
 
 --
+-- Name: service_supplies service_supplies_part_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service_supplies
+    ADD CONSTRAINT service_supplies_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.parts(id);
+
+
+--
+-- Name: service_supplies service_supplies_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service_supplies
+    ADD CONSTRAINT service_supplies_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id) ON DELETE CASCADE;
+
+
+--
+-- Name: service_supplies service_supplies_workshop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service_supplies
+    ADD CONSTRAINT service_supplies_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
+
+
+--
 -- Name: services services_category_id_categories_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1954,6 +2451,14 @@ ALTER TABLE ONLY public.services
 
 ALTER TABLE ONLY public.services
     ADD CONSTRAINT services_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
+
+
+--
+-- Name: suppliers suppliers_workshop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.suppliers
+    ADD CONSTRAINT suppliers_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
 
 
 --
@@ -2053,11 +2558,27 @@ ALTER TABLE ONLY public.work_order_checklist_items
 
 
 --
+-- Name: work_order_items work_order_items_part_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_order_items
+    ADD CONSTRAINT work_order_items_part_id_fkey FOREIGN KEY (part_id) REFERENCES public.parts(id);
+
+
+--
 -- Name: work_order_items work_order_items_quote_item_id_quote_items_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.work_order_items
     ADD CONSTRAINT work_order_items_quote_item_id_quote_items_id_fk FOREIGN KEY (quote_item_id) REFERENCES public.quote_items(id);
+
+
+--
+-- Name: work_order_items work_order_items_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.work_order_items
+    ADD CONSTRAINT work_order_items_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id);
 
 
 --
@@ -2195,6 +2716,12 @@ ALTER TABLE public.document_counters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inspection_findings ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: inventory_movements; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.inventory_movements ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: parts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -2205,6 +2732,18 @@ ALTER TABLE public.parts ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: purchase_items; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.purchase_items ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: purchases; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.purchases ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: quote_items; Type: ROW SECURITY; Schema: public; Owner: -
@@ -2237,10 +2776,22 @@ ALTER TABLE public.receptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_steps ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: service_supplies; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.service_supplies ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: services; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: suppliers; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: bicycles tenant_isolation; Type: POLICY; Schema: public; Owner: -
@@ -2278,6 +2829,13 @@ CREATE POLICY tenant_isolation ON public.inspection_findings USING ((public.app_
 
 
 --
+-- Name: inventory_movements tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.inventory_movements USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
+
+
+--
 -- Name: parts tenant_isolation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -2289,6 +2847,20 @@ CREATE POLICY tenant_isolation ON public.parts USING ((public.app_bypass() OR (w
 --
 
 CREATE POLICY tenant_isolation ON public.payment_methods USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
+
+
+--
+-- Name: purchase_items tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.purchase_items USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
+
+
+--
+-- Name: purchases tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.purchases USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
 
 
 --
@@ -2327,10 +2899,24 @@ CREATE POLICY tenant_isolation ON public.service_steps USING ((public.app_bypass
 
 
 --
+-- Name: service_supplies tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.service_supplies USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
+
+
+--
 -- Name: services tenant_isolation; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY tenant_isolation ON public.services USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
+
+
+--
+-- Name: suppliers tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.suppliers USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
 
 
 --
@@ -2454,4 +3040,5 @@ ALTER TABLE public.workshops ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
+\unrestrict 2zLTqbtJsqvm0ghWdpCREyMtawGAa9Z5laLhGM7eWhui1jLS1VjgTerhSVNEhPK
 

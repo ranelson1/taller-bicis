@@ -44,9 +44,10 @@ async function login(label: string, creds: string | undefined) {
 const LISTS = [
   "/api/work-orders", "/api/work-cases", "/api/clients", "/api/bicycles", "/api/services", "/api/parts",
   "/api/categories", "/api/payment-methods", "/api/users", "/api/quotes", "/api/receptions",
+  "/api/inventory", "/api/inventory/suppliers", "/api/purchases",
 ];
 // Recursos individuales del otro taller que deben dar 404.
-const DETAIL = ["/api/work-orders", "/api/work-cases", "/api/clients", "/api/bicycles", "/api/services", "/api/quotes", "/api/receptions"];
+const DETAIL = ["/api/work-orders", "/api/work-cases", "/api/clients", "/api/bicycles", "/api/services", "/api/quotes", "/api/receptions", "/api/purchases"];
 
 async function main() {
   const A = await login("ISOLATION_A", process.env.ISOLATION_A);
@@ -95,6 +96,22 @@ async function main() {
   ok(photos.status === 200 && Array.isArray(photos.json) && photos.json.length === 0, `B → fotos de la OT ${woA} de A: ninguna`);
   const status = await B.s.call("POST", `/api/work-orders/${woA}/status`, { status: "cancelled" });
   ok(status.status === 404, `B → cambiar estado de la OT ${woA} de A: ${status.status}`);
+
+  const economics = await B.s.call("GET", `/api/work-orders/${woA}/economics`);
+  ok(economics.status === 404, `B → márgenes de la OT ${woA} de A: ${economics.status}`);
+  const purchaseA = ids[A.workshopId]["/api/purchases"]?.[0];
+  if (purchaseA) {
+    const file = await B.s.call("GET", `/api/purchases/${purchaseA}/file`);
+    const confirm = await B.s.call("POST", `/api/purchases/${purchaseA}/confirm`);
+    const delP = await B.s.call("DELETE", `/api/purchases/${purchaseA}`);
+    ok(file.status === 404 && confirm.status >= 400 && delP.status === 404, `B → archivo/confirmar/borrar compra ${purchaseA} de A: ${file.status}/${confirm.status}/${delP.status}`);
+  }
+  const partA = ids[A.workshopId]["/api/inventory"]?.[0];
+  if (partA) {
+    const adj = await B.s.call("POST", `/api/inventory/${partA}/adjust`, { countedStock: 999 });
+    const moves = await B.s.call("GET", `/api/inventory/${partA}/movements`);
+    ok(adj.status >= 400 && Array.isArray(moves.json) && moves.json.length === 0, `B → ajustar/ver movimientos del artículo ${partA} de A: ${adj.status}, ${moves.json?.length ?? "?"} movimientos`);
+  }
 
   console.log("\n3. Lo que crea un taller no aparece en el otro");
   const created = await B.s.call("POST", "/api/clients", { name: "Cliente prueba aislamiento" });

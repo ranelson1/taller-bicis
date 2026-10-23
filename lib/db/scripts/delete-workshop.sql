@@ -5,6 +5,11 @@ BEGIN;
 SELECT set_config('app.bypass', 'on', true);
 
 DELETE FROM timeline_events WHERE workshop_id = :workshop;
+DELETE FROM inventory_movements WHERE workshop_id = :workshop;
+DELETE FROM purchase_items WHERE workshop_id = :workshop;
+DELETE FROM purchases WHERE workshop_id = :workshop;
+DELETE FROM suppliers WHERE workshop_id = :workshop;
+DELETE FROM service_supplies WHERE workshop_id = :workshop;
 DELETE FROM work_order_photos WHERE workshop_id = :workshop;
 DELETE FROM work_order_checklist_items WHERE workshop_id = :workshop;
 DELETE FROM work_order_items WHERE workshop_id = :workshop;
