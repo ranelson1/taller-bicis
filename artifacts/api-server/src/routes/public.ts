@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { z } from "zod/v4";
 import { db, withBypass, setCurrentWorkshop } from "@workspace/db";
-import { workOrdersTable, workOrderPhotosTable, workshopSettingsTable, timelineEventsTable } from "@workspace/db";
+import { workOrdersTable, workOrderPhotosTable, workshopSettingsTable, timelineEventsTable, bicyclesTable } from "@workspace/db";
 import { photoPath } from "../helpers/photoStorage";
 import { and, eq } from "drizzle-orm";
 import { triggerWorkCaseRecalc } from "../helpers/workCase";
+import { buildBikeHistory } from "../helpers/bikeHistory";
 import { buildPublicWorkOrder, decideWorkOrderItem, ItemDecisionError } from "../helpers/workOrderPublic";
 
 // Vista del cliente sin login. El token secreto de la OT es la única credencial,
@@ -109,6 +110,24 @@ router.post("/ot/:token/approve-quote", async (req, res) => {
     }
     const [fresh] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, wo.id));
     res.json(await buildPublicWorkOrder(fresh!));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /public/bikes/:token/history — historial de mantención de una bicicleta (sin precios ni datos del dueño).
+router.get("/bikes/:token/history", async (req, res) => {
+  const token = req.params.token;
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) { res.status(404).json({ error: "Historial no encontrado" }); return; }
+  try {
+    const bike = await withBypass(async (bypassDb) => {
+      const [row] = await bypassDb.select().from(bicyclesTable).where(and(eq(bicyclesTable.historyToken, token), eq(bicyclesTable.active, true)));
+      return row ?? null;
+    });
+    if (!bike) { res.status(404).json({ error: "Historial no encontrado" }); return; }
+    await setCurrentWorkshop(bike.workshopId);
+    res.set("Cache-Control", "private, no-cache").json(await buildBikeHistory(bike));
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Internal server error" });

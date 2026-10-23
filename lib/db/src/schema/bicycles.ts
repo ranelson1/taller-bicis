@@ -21,6 +21,8 @@ export const bicyclesTable = pgTable("bicycles", {
   // Ficha de ajustes (migración 015): presiones, clicks de suspensión, palancas de freno.
   setupNotes: text("setup_notes"),
   setupUpdatedAt: timestamp("setup_updated_at"),
+  // Link público del historial de mantención (migración 017). null = no se comparte.
+  historyToken: text("history_token"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

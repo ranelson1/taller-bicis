@@ -2932,6 +2932,133 @@ paths:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
 
+  /followups:
+    get:
+      operationId: listFollowups
+      tags: [clients]
+      summary: Clientes a quienes ya les toca repetir un servicio (recontacto)
+      responses:
+        "200":
+          description: Clientes por recontactar, el más vencido primero
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FollowupClient"
+
+  /followups/{clientId}/snooze:
+    post:
+      operationId: snoozeFollowup
+      tags: [clients]
+      summary: Posponer el recontacto de este cliente (ya le escribí)
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days:
+                  type: integer
+      responses:
+        "200":
+          description: Pospuesto
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, untilOn]
+                properties:
+                  ok:
+                    type: boolean
+                  untilOn:
+                    type: string
+
+  /bicycles/{id}/history-link:
+    get:
+      operationId: getBicycleHistoryLink
+      tags: [bicycles]
+      summary: Link público del historial de mantención de la bicicleta (si se comparte)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Link actual
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BicycleHistoryLink"
+    post:
+      operationId: createBicycleHistoryLink
+      tags: [bicycles]
+      summary: Crea el link del historial (o devuelve el existente)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ya existía
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BicycleHistoryLink"
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BicycleHistoryLink"
+    delete:
+      operationId: revokeBicycleHistoryLink
+      tags: [bicycles]
+      summary: Deja de compartir el historial (el link anterior deja de funcionar)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dejó de compartirse
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BicycleHistoryLink"
+
+  /public/bikes/{token}/history:
+    get:
+      operationId: getPublicBikeHistory
+      tags: [public]
+      summary: Historial de mantención de una bicicleta (sin login, por token secreto)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Historial
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicBikeHistory"
+
   /reservations:
     get:
       operationId: listReservations
@@ -3868,6 +3995,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
         active:
           type: boolean
         createdAt:
@@ -3897,6 +4027,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
         active:
           type: boolean
         createdAt:
@@ -3928,6 +4061,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
         active:
           type: boolean
         createdAt:
@@ -3957,6 +4093,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
 
     ServiceUpdate:
       type: object
@@ -3973,6 +4112,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
         active:
           type: boolean
 
@@ -5264,6 +5406,85 @@ components:
           type: number
         unitPrice:
           type: number
+
+    FollowupItem:
+      type: object
+      required: [serviceId, serviceName, bicycleId, bicycleName, lastOn, dueOn, monthsAgo, overdueDays]
+      properties:
+        serviceId: { type: integer }
+        serviceName: { type: string }
+        bicycleId: { type: integer }
+        bicycleName: { type: string }
+        lastOn: { type: string, description: "Última entrega del servicio (YYYY-MM-DD)" }
+        dueOn: { type: string, description: "Cuándo toca repetirlo (YYYY-MM-DD)" }
+        monthsAgo: { type: integer }
+        overdueDays: { type: integer, description: "Días de atraso (negativo = falta poco)" }
+
+    FollowupClient:
+      type: object
+      required: [clientId, clientName, items, mostOverdueDays]
+      properties:
+        clientId: { type: integer }
+        clientName: { type: string }
+        clientPhone: { type: ["string", "null"] }
+        mostOverdueDays: { type: integer }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FollowupItem"
+
+    BicycleHistoryLink:
+      type: object
+      required: [token, path]
+      properties:
+        token: { type: ["string", "null"] }
+        path: { type: ["string", "null"], description: "Ruta relativa de la página pública (/bici/:token)" }
+
+    PublicBikeHistoryItem:
+      type: object
+      required: [kind, description, quantity]
+      properties:
+        kind: { type: string, enum: [service, part] }
+        description: { type: string }
+        quantity: { type: number }
+
+    PublicBikeHistoryEntry:
+      type: object
+      required: [date, items]
+      properties:
+        date: { type: string }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicBikeHistoryItem"
+
+    PublicBikeHistory:
+      type: object
+      required: [workshopName, bicycle, serviceCount, entries]
+      properties:
+        workshopName: { type: string }
+        workshopPhone: { type: ["string", "null"] }
+        workshopAddress: { type: ["string", "null"] }
+        workshopLogoUrl: { type: ["string", "null"] }
+        bicycle:
+          type: object
+          required: [brand, model, type]
+          properties:
+            brand: { type: string }
+            model: { type: string }
+            year: { type: ["integer", "null"] }
+            type: { type: string }
+            color: { type: ["string", "null"] }
+            rimSize: { type: ["string", "null"] }
+        setupNotes: { type: ["string", "null"] }
+        setupUpdatedAt: { type: ["string", "null"] }
+        serviceCount: { type: integer }
+        firstServiceOn: { type: ["string", "null"] }
+        lastServiceOn: { type: ["string", "null"] }
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicBikeHistoryEntry"
 
     Reservation:
       type: object

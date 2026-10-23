@@ -2,18 +2,19 @@ import { useState } from "react";
 import { Link, useParams } from "wouter";
 import {
   useGetClient, getGetClientQueryKey, useListBicycles, getListBicyclesQueryKey,
-  useUpdateClient, getListClientsQueryKey,
+  useUpdateClient, getListClientsQueryKey, type Bicycle,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Phone, Mail, FileText, Bike, Pencil } from "lucide-react";
+import { Phone, Mail, FileText, Bike, Pencil, ScrollText } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { ClientFormDialog, type ClientFormData } from "@/components/client-form-dialog";
 import { WhatsAppButton } from "@/components/whatsapp-button";
+import { HistoryLinkDialog } from "@/components/bicycles/history-link-dialog";
 
 export default function ClientDetail() {
   const params = useParams();
@@ -34,6 +35,8 @@ export default function ClientDetail() {
       onError: () => toast({ variant: "destructive", title: "Error al actualizar" }),
     });
   };
+
+  const [historyBike, setHistoryBike] = useState<Bicycle | null>(null);
 
   const { data: client, isLoading: isClientLoading } = useGetClient(id, {
     query: { enabled: !!id, queryKey: getGetClientQueryKey(id) }
@@ -118,6 +121,7 @@ export default function ClientDetail() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Color / Rodado</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead className="w-24" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,11 +144,18 @@ export default function ClientDetail() {
                     <TableCell>
                       {!bike.active && <Badge variant="destructive">Inactiva</Badge>}
                     </TableCell>
+                    <TableCell className="text-right">
+                      {bike.active && (
+                        <Button variant="ghost" size="sm" className="text-primary" onClick={() => setHistoryBike(bike)} data-testid={`button-history-${bike.id}`}>
+                          <ScrollText className="h-4 w-4 mr-1" />Historial
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
                 {bicycles?.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       El cliente no tiene bicicletas registradas.
                     </TableCell>
                   </TableRow>
@@ -162,6 +173,8 @@ export default function ClientDetail() {
         pending={updateMutation.isPending}
         onSubmit={onSubmit}
       />
+
+      <HistoryLinkDialog bike={historyBike} phone={client.phone} onOpenChange={(o) => !o && setHistoryBike(null)} />
     </div>
   );
 }

@@ -29,6 +29,8 @@ import CompraDetail from "@/pages/compra-detail";
 import MisNumeros from "@/pages/mis-numeros";
 import MisTrabajos from "@/pages/mis-trabajos";
 import BicicletaDetail from "@/pages/bicicleta-detail";
+import Seguimiento from "@/pages/seguimiento";
+import HistorialPublico from "@/pages/historial-publico";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -95,6 +97,7 @@ function Router() {
       <Route path="/login" component={Login} />
       {/* Vista pública del cliente: sin login, por token secreto */}
       <Route path="/ot/:token" component={OtPublica} />
+      <Route path="/bici/:token" component={HistorialPublico} />
 
       <Route path="/plataforma">
         <SuperadminGate><Platform /></SuperadminGate>
@@ -116,6 +119,9 @@ function Router() {
         <AuthGate><BicicletaDetail /></AuthGate>
       </Route>
 
+      <Route path="/seguimiento">
+        <AuthGate><Seguimiento /></AuthGate>
+      </Route>
       <Route path="/mis-trabajos">
         <AuthGate><MisTrabajos /></AuthGate>
       </Route>

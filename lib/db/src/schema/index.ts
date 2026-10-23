@@ -15,3 +15,4 @@ export * from "./workshopSettings";
 export * from "./workOrderPhotos";
 export * from "./inventory";
 export * from "./reservations";
+export * from "./followups";

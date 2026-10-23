@@ -29,9 +29,10 @@ const schema = z.object({
   estimatedHours: z.coerce.number().min(0).optional().nullable(),
   clientDescription: z.string().optional().nullable(),
   internalDescription: z.string().optional().nullable(),
+  followupMonths: z.coerce.number().int().min(0).max(60).optional().nullable(),
 });
 type SvcForm = z.infer<typeof schema>;
-type SvcRow = { id: number; name: string; categoryId?: number | null; categoryName?: string | null; basePrice?: number | string | null; estimatedHours?: number | string | null; clientDescription?: string | null; internalDescription?: string | null; active: boolean; stepCount: number };
+type SvcRow = { id: number; name: string; categoryId?: number | null; categoryName?: string | null; basePrice?: number | string | null; estimatedHours?: number | string | null; clientDescription?: string | null; internalDescription?: string | null; followupMonths?: number | null; active: boolean; stepCount: number };
 
 export default function Services() {
   const [, navigate] = useLocation();
@@ -50,14 +51,14 @@ export default function Services() {
 
   const form = useForm<SvcForm>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", categoryId: null, basePrice: null, estimatedHours: null, clientDescription: "", internalDescription: "" },
+    defaultValues: { name: "", categoryId: null, basePrice: null, estimatedHours: null, clientDescription: "", internalDescription: "", followupMonths: null },
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListServicesQueryKey() });
 
   const openCreate = () => {
     setEditing(null);
-    form.reset({ name: "", categoryId: null, basePrice: null, estimatedHours: null, clientDescription: "", internalDescription: "" });
+    form.reset({ name: "", categoryId: null, basePrice: null, estimatedHours: null, clientDescription: "", internalDescription: "", followupMonths: null });
     setDialogOpen(true);
   };
 
@@ -70,6 +71,7 @@ export default function Services() {
       estimatedHours: s.estimatedHours != null ? Number(s.estimatedHours) : null,
       clientDescription: s.clientDescription ?? "",
       internalDescription: s.internalDescription ?? "",
+      followupMonths: s.followupMonths ?? null,
     });
     setDialogOpen(true);
   };
@@ -82,6 +84,7 @@ export default function Services() {
       estimatedHours: values.estimatedHours ?? null,
       clientDescription: values.clientDescription || null,
       internalDescription: values.internalDescription || null,
+      followupMonths: values.followupMonths ?? null,
     };
     if (editing) {
       updateMutation.mutate({ id: editing.id, data }, {
@@ -267,6 +270,14 @@ export default function Services() {
                   <FormItem><FormLabel>Horas estimadas</FormLabel><FormControl><Input type="number" min={0} step={0.5} {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? null : Number(e.target.value))} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
+              <FormField control={form.control} name="followupMonths" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Recordar al cliente cada (meses)</FormLabel>
+                  <FormControl><Input type="number" min={0} max={60} placeholder="Automático" {...field} value={field.value ?? ""} onChange={e => field.onChange(e.target.value === "" ? null : Number(e.target.value))} data-testid="input-service-followup" /></FormControl>
+                  <p className="text-xs text-muted-foreground">Cuándo te sugerimos escribirle para repetir este servicio. Vacío = automático según el nombre; 0 = nunca.</p>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <FormField control={form.control} name="clientDescription" render={({ field }) => (
                 <FormItem><FormLabel>Descripción para el cliente</FormLabel><FormControl><Textarea rows={2} {...field} value={field.value ?? ""} /></FormControl><FormMessage /></FormItem>
               )} />

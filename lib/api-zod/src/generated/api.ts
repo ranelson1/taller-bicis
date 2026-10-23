@@ -656,6 +656,7 @@ export const ListServicesResponseItem = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
@@ -673,7 +674,8 @@ export const CreateServiceBody = zod.object({
   "basePrice": zod.number().nullish(),
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
-  "internalDescription": zod.string().nullish()
+  "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)')
 })
 
 export const CreateServiceResponse = zod.object({
@@ -685,6 +687,7 @@ export const CreateServiceResponse = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -707,6 +710,7 @@ export const GetServiceResponse = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
@@ -736,6 +740,7 @@ export const UpdateServiceBody = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean().optional()
 })
 
@@ -748,6 +753,7 @@ export const UpdateServiceResponse = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -4005,6 +4011,120 @@ export const GetDashboardSummaryResponse = zod.object({
   "workOrdersQualityControl": zod.number(),
   "workOrdersReadyForPickup": zod.number(),
   "workOrdersNoMechanic": zod.number()
+})
+
+
+/**
+ * @summary Clientes a quienes ya les toca repetir un servicio (recontacto)
+ */
+export const ListFollowupsResponseItem = zod.object({
+  "clientId": zod.number(),
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "mostOverdueDays": zod.number(),
+  "items": zod.array(zod.object({
+  "serviceId": zod.number(),
+  "serviceName": zod.string(),
+  "bicycleId": zod.number(),
+  "bicycleName": zod.string(),
+  "lastOn": zod.string().describe('Última entrega del servicio (YYYY-MM-DD)'),
+  "dueOn": zod.string().describe('Cuándo toca repetirlo (YYYY-MM-DD)'),
+  "monthsAgo": zod.number(),
+  "overdueDays": zod.number().describe('Días de atraso (negativo = falta poco)')
+}))
+})
+export const ListFollowupsResponse = zod.array(ListFollowupsResponseItem)
+
+
+/**
+ * @summary Posponer el recontacto de este cliente (ya le escribí)
+ */
+export const SnoozeFollowupParams = zod.object({
+  "clientId": zod.coerce.number()
+})
+
+export const SnoozeFollowupBody = zod.object({
+  "days": zod.number().optional()
+})
+
+export const SnoozeFollowupResponse = zod.object({
+  "ok": zod.boolean(),
+  "untilOn": zod.string()
+})
+
+
+/**
+ * @summary Link público del historial de mantención de la bicicleta (si se comparte)
+ */
+export const GetBicycleHistoryLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetBicycleHistoryLinkResponse = zod.object({
+  "token": zod.string().nullable(),
+  "path": zod.string().nullable().describe('Ruta relativa de la página pública (\/bici\/:token)')
+})
+
+
+/**
+ * @summary Crea el link del historial (o devuelve el existente)
+ */
+export const CreateBicycleHistoryLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateBicycleHistoryLinkResponse = zod.object({
+  "token": zod.string().nullable(),
+  "path": zod.string().nullable().describe('Ruta relativa de la página pública (\/bici\/:token)')
+})
+
+
+/**
+ * @summary Deja de compartir el historial (el link anterior deja de funcionar)
+ */
+export const RevokeBicycleHistoryLinkParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RevokeBicycleHistoryLinkResponse = zod.object({
+  "token": zod.string().nullable(),
+  "path": zod.string().nullable().describe('Ruta relativa de la página pública (\/bici\/:token)')
+})
+
+
+/**
+ * @summary Historial de mantención de una bicicleta (sin login, por token secreto)
+ */
+export const GetPublicBikeHistoryParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const GetPublicBikeHistoryResponse = zod.object({
+  "workshopName": zod.string(),
+  "workshopPhone": zod.string().nullish(),
+  "workshopAddress": zod.string().nullish(),
+  "workshopLogoUrl": zod.string().nullish(),
+  "bicycle": zod.object({
+  "brand": zod.string(),
+  "model": zod.string(),
+  "year": zod.number().nullish(),
+  "type": zod.string(),
+  "color": zod.string().nullish(),
+  "rimSize": zod.string().nullish()
+}),
+  "setupNotes": zod.string().nullish(),
+  "setupUpdatedAt": zod.string().nullish(),
+  "serviceCount": zod.number(),
+  "firstServiceOn": zod.string().nullish(),
+  "lastServiceOn": zod.string().nullish(),
+  "entries": zod.array(zod.object({
+  "date": zod.string(),
+  "items": zod.array(zod.object({
+  "kind": zod.enum(['service', 'part']),
+  "description": zod.string(),
+  "quantity": zod.number()
+}))
+}))
 })
 
 

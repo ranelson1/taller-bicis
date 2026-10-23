@@ -256,7 +256,8 @@ CREATE TABLE public.bicycles (
     year integer,
     workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
     setup_notes text,
-    setup_updated_at timestamp without time zone
+    setup_updated_at timestamp without time zone,
+    history_token text
 );
 
 ALTER TABLE ONLY public.bicycles FORCE ROW LEVEL SECURITY;
@@ -369,6 +370,41 @@ CREATE TABLE public.document_counters (
 );
 
 ALTER TABLE ONLY public.document_counters FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: followup_snoozes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.followup_snoozes (
+    id integer NOT NULL,
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    client_id integer NOT NULL,
+    until_on date NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL
+);
+
+ALTER TABLE ONLY public.followup_snoozes FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: followup_snoozes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.followup_snoozes_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: followup_snoozes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.followup_snoozes_id_seq OWNED BY public.followup_snoozes.id;
 
 
 --
@@ -971,7 +1007,9 @@ CREATE TABLE public.services (
     active boolean DEFAULT true NOT NULL,
     created_at timestamp without time zone DEFAULT now() NOT NULL,
     updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    followup_months integer,
+    CONSTRAINT services_followup_months_check CHECK (((followup_months IS NULL) OR ((followup_months >= 0) AND (followup_months <= 60))))
 );
 
 ALTER TABLE ONLY public.services FORCE ROW LEVEL SECURITY;
@@ -1459,6 +1497,13 @@ ALTER TABLE ONLY public.clients ALTER COLUMN id SET DEFAULT nextval('public.clie
 
 
 --
+-- Name: followup_snoozes id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.followup_snoozes ALTER COLUMN id SET DEFAULT nextval('public.followup_snoozes_id_seq'::regclass);
+
+
+--
 -- Name: inspection_findings id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1649,6 +1694,22 @@ ALTER TABLE ONLY public.clients
 
 ALTER TABLE ONLY public.document_counters
     ADD CONSTRAINT document_counters_pkey PRIMARY KEY (workshop_id, kind);
+
+
+--
+-- Name: followup_snoozes followup_snoozes_client_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.followup_snoozes
+    ADD CONSTRAINT followup_snoozes_client_id_key UNIQUE (client_id);
+
+
+--
+-- Name: followup_snoozes followup_snoozes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.followup_snoozes
+    ADD CONSTRAINT followup_snoozes_pkey PRIMARY KEY (id);
 
 
 --
@@ -1891,6 +1952,13 @@ CREATE INDEX "IDX_session_expire" ON public.session USING btree (expire);
 
 
 --
+-- Name: bicycles_history_token_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX bicycles_history_token_unique ON public.bicycles USING btree (history_token) WHERE (history_token IS NOT NULL);
+
+
+--
 -- Name: bicycles_workshop_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1909,6 +1977,13 @@ CREATE INDEX categories_workshop_idx ON public.categories USING btree (workshop_
 --
 
 CREATE INDEX clients_workshop_idx ON public.clients USING btree (workshop_id);
+
+
+--
+-- Name: followup_snoozes_workshop_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX followup_snoozes_workshop_idx ON public.followup_snoozes USING btree (workshop_id);
 
 
 --
@@ -2180,6 +2255,22 @@ ALTER TABLE ONLY public.clients
 
 ALTER TABLE ONLY public.document_counters
     ADD CONSTRAINT document_counters_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
+
+
+--
+-- Name: followup_snoozes followup_snoozes_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.followup_snoozes
+    ADD CONSTRAINT followup_snoozes_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id);
+
+
+--
+-- Name: followup_snoozes followup_snoozes_workshop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.followup_snoozes
+    ADD CONSTRAINT followup_snoozes_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
 
 
 --
@@ -2823,6 +2914,12 @@ ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.document_counters ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: followup_snoozes; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.followup_snoozes ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: inspection_findings; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -2938,6 +3035,13 @@ CREATE POLICY tenant_isolation ON public.clients USING ((public.app_bypass() OR 
 --
 
 CREATE POLICY tenant_isolation ON public.document_counters USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
+
+
+--
+-- Name: followup_snoozes tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.followup_snoozes USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
 
 
 --

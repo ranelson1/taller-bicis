@@ -25,6 +25,7 @@ import type {
   AuthUser,
   Bicycle,
   BicycleHistory,
+  BicycleHistoryLink,
   BicycleInput,
   BicycleUpdate,
   CancelWorkOrderBody,
@@ -40,6 +41,7 @@ import type {
   CreatePlatformWorkshopBody,
   DashboardSummary,
   DeleteWorkCase200,
+  FollowupClient,
   GetPurchaseReaderStatus200,
   GetReportSummaryParams,
   HealthStatus,
@@ -68,6 +70,7 @@ import type {
   PreviewReservationBody,
   PreviewWorkOrderEstimate200,
   PreviewWorkOrderEstimateBody,
+  PublicBikeHistory,
   PublicWorkOrder,
   Purchase,
   PurchaseInput,
@@ -105,6 +108,8 @@ import type {
   ServiceWithCount,
   ServiceWithSteps,
   SetWorkOrderQuoteApprovalBody,
+  SnoozeFollowup200,
+  SnoozeFollowupBody,
   Supplier,
   TimelineEvent,
   UpdateBicycleSetupBody,
@@ -10017,6 +10022,448 @@ export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDash
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDashboardSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListFollowupsUrl = () => {
+
+
+
+
+  return `/api/followups`
+}
+
+/**
+ * @summary Clientes a quienes ya les toca repetir un servicio (recontacto)
+ */
+export const listFollowups = async ( options?: RequestInit): Promise<FollowupClient[]> => {
+
+  return customFetch<FollowupClient[]>(getListFollowupsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListFollowupsQueryKey = () => {
+    return [
+    `/api/followups`
+    ] as const;
+    }
+
+
+export const getListFollowupsQueryOptions = <TData = Awaited<ReturnType<typeof listFollowups>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFollowupsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFollowups>>> = ({ signal }) => listFollowups({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFollowups>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListFollowupsQueryResult = NonNullable<Awaited<ReturnType<typeof listFollowups>>>
+export type ListFollowupsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Clientes a quienes ya les toca repetir un servicio (recontacto)
+ */
+
+export function useListFollowups<TData = Awaited<ReturnType<typeof listFollowups>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListFollowupsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSnoozeFollowupUrl = (clientId: number,) => {
+
+
+
+
+  return `/api/followups/${clientId}/snooze`
+}
+
+/**
+ * @summary Posponer el recontacto de este cliente (ya le escribí)
+ */
+export const snoozeFollowup = async (clientId: number,
+    snoozeFollowupBody?: SnoozeFollowupBody, options?: RequestInit): Promise<SnoozeFollowup200> => {
+
+  return customFetch<SnoozeFollowup200>(getSnoozeFollowupUrl(clientId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(snoozeFollowupBody)
+  }
+);}
+
+
+
+
+export const getSnoozeFollowupMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof snoozeFollowup>>, TError,{clientId: number;data?: BodyType<SnoozeFollowupBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof snoozeFollowup>>, TError,{clientId: number;data?: BodyType<SnoozeFollowupBody>}, TContext> => {
+
+const mutationKey = ['snoozeFollowup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof snoozeFollowup>>, {clientId: number;data?: BodyType<SnoozeFollowupBody>}> = (props) => {
+          const {clientId,data} = props ?? {};
+
+          return  snoozeFollowup(clientId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SnoozeFollowupMutationResult = NonNullable<Awaited<ReturnType<typeof snoozeFollowup>>>
+    export type SnoozeFollowupMutationBody = BodyType<SnoozeFollowupBody> | undefined
+    export type SnoozeFollowupMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Posponer el recontacto de este cliente (ya le escribí)
+ */
+export const useSnoozeFollowup = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof snoozeFollowup>>, TError,{clientId: number;data?: BodyType<SnoozeFollowupBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof snoozeFollowup>>,
+        TError,
+        {clientId: number;data?: BodyType<SnoozeFollowupBody>},
+        TContext
+      > => {
+      return useMutation(getSnoozeFollowupMutationOptions(options));
+    }
+
+export const getGetBicycleHistoryLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/bicycles/${id}/history-link`
+}
+
+/**
+ * @summary Link público del historial de mantención de la bicicleta (si se comparte)
+ */
+export const getBicycleHistoryLink = async (id: number, options?: RequestInit): Promise<BicycleHistoryLink> => {
+
+  return customFetch<BicycleHistoryLink>(getGetBicycleHistoryLinkUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBicycleHistoryLinkQueryKey = (id: number,) => {
+    return [
+    `/api/bicycles/${id}/history-link`
+    ] as const;
+    }
+
+
+export const getGetBicycleHistoryLinkQueryOptions = <TData = Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBicycleHistoryLinkQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBicycleHistoryLink>>> = ({ signal }) => getBicycleHistoryLink(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBicycleHistoryLinkQueryResult = NonNullable<Awaited<ReturnType<typeof getBicycleHistoryLink>>>
+export type GetBicycleHistoryLinkQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Link público del historial de mantención de la bicicleta (si se comparte)
+ */
+
+export function useGetBicycleHistoryLink<TData = Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistoryLink>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBicycleHistoryLinkQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateBicycleHistoryLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/bicycles/${id}/history-link`
+}
+
+/**
+ * @summary Crea el link del historial (o devuelve el existente)
+ */
+export const createBicycleHistoryLink = async (id: number, options?: RequestInit): Promise<BicycleHistoryLink> => {
+
+  return customFetch<BicycleHistoryLink>(getCreateBicycleHistoryLinkUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getCreateBicycleHistoryLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBicycleHistoryLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBicycleHistoryLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['createBicycleHistoryLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBicycleHistoryLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  createBicycleHistoryLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBicycleHistoryLinkMutationResult = NonNullable<Awaited<ReturnType<typeof createBicycleHistoryLink>>>
+
+    export type CreateBicycleHistoryLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Crea el link del historial (o devuelve el existente)
+ */
+export const useCreateBicycleHistoryLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBicycleHistoryLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBicycleHistoryLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getCreateBicycleHistoryLinkMutationOptions(options));
+    }
+
+export const getRevokeBicycleHistoryLinkUrl = (id: number,) => {
+
+
+
+
+  return `/api/bicycles/${id}/history-link`
+}
+
+/**
+ * @summary Deja de compartir el historial (el link anterior deja de funcionar)
+ */
+export const revokeBicycleHistoryLink = async (id: number, options?: RequestInit): Promise<BicycleHistoryLink> => {
+
+  return customFetch<BicycleHistoryLink>(getRevokeBicycleHistoryLinkUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeBicycleHistoryLinkMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['revokeBicycleHistoryLink'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeBicycleHistoryLink(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeBicycleHistoryLinkMutationResult = NonNullable<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>>
+
+    export type RevokeBicycleHistoryLinkMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Deja de compartir el historial (el link anterior deja de funcionar)
+ */
+export const useRevokeBicycleHistoryLink = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeBicycleHistoryLink>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeBicycleHistoryLink>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getRevokeBicycleHistoryLinkMutationOptions(options));
+    }
+
+export const getGetPublicBikeHistoryUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/bikes/${token}/history`
+}
+
+/**
+ * @summary Historial de mantención de una bicicleta (sin login, por token secreto)
+ */
+export const getPublicBikeHistory = async (token: string, options?: RequestInit): Promise<PublicBikeHistory> => {
+
+  return customFetch<PublicBikeHistory>(getGetPublicBikeHistoryUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicBikeHistoryQueryKey = (token: string,) => {
+    return [
+    `/api/public/bikes/${token}/history`
+    ] as const;
+    }
+
+
+export const getGetPublicBikeHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getPublicBikeHistory>>, TError = ErrorType<unknown>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicBikeHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicBikeHistoryQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicBikeHistory>>> = ({ signal }) => getPublicBikeHistory(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicBikeHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicBikeHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicBikeHistory>>>
+export type GetPublicBikeHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Historial de mantención de una bicicleta (sin login, por token secreto)
+ */
+
+export function useGetPublicBikeHistory<TData = Awaited<ReturnType<typeof getPublicBikeHistory>>, TError = ErrorType<unknown>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicBikeHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicBikeHistoryQueryOptions(token,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

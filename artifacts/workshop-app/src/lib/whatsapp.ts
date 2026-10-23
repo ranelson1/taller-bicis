@@ -42,3 +42,18 @@ export function reservationMessage(
     : "";
   return `Hola ${first}, te esperamos el ${day}${r.expectedTime ? ` a las ${r.expectedTime}` : ""} en ${shopName || "el taller"}${r.bicycleText ? ` con tu ${r.bicycleText}` : ""}.${ready} ¡Nos vemos!`;
 }
+
+// Recontacto: ya le toca repetir un servicio. Un servicio => lo nombra; varios => los lista.
+export function followupMessage(
+  client: { clientName: string; items: { serviceName: string; bicycleName: string; monthsAgo: number }[] },
+  shopName: string | null | undefined,
+): string {
+  const first = client.clientName.split(" ")[0];
+  const lead = client.items[0];
+  const bikes = [...new Set(client.items.map(i => i.bicycleName))];
+  const months = `${lead.monthsAgo} mes${lead.monthsAgo === 1 ? "" : "es"}`;
+  const what = client.items.length === 1
+    ? `el ${lead.serviceName.charAt(0).toLowerCase()}${lead.serviceName.slice(1)} de tu ${lead.bicycleName}`
+    : `los servicios de tu ${bikes.join(" y ")} (${client.items.map(i => i.serviceName.toLowerCase()).join(", ")})`;
+  return `Hola ${first}, te escribimos de ${shopName || "el taller"}. Hace ${months} hicimos ${what} y ya toca repetirlo. ¿Te reservamos un día esta semana?`;
+}

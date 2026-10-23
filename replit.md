@@ -260,6 +260,15 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
 - `GET /api/bicycles/:id/history`: trabajos de la bici con sus servicios, último servicio de cada tipo (solo trabajos terminados),
   total invertido y entregados. Página `/bicicletas/:id` (desde la lista de bicis, la ficha del cliente y la ficha del trabajo)
   con la ficha de ajustes. Base para los recordatorios de próxima mantención.
+## Recontacto e historial de bicicleta (migraciones 016 y 017)
+
+- Recontacto (`helpers/followups.ts`, `GET /api/followups`): por bicicleta y servicio se mira la última entrega; vence a los
+  `services.followup_months` (null = sugerido según el nombre, 0 = nunca). Excluye clientes con trabajo abierto, reserva
+  pendiente o "ya le escribí" (`followup_snoozes`). Inicio muestra "A quién escribirle" y `/seguimiento` la lista completa;
+  el botón abre WhatsApp con el mensaje armado y marca al cliente como contactado por 30 días.
+- Historial de bici (`helpers/bikeHistory.ts`): `bicycles.history_token`; el taller lo crea o revoca desde la ficha del cliente
+  (`/api/bicycles/:id/history-link`) y la página pública `/bici/:token` (`GET /api/public/bikes/:token/history`) muestra los
+  servicios entregados y la ficha de ajustes, sin precios ni datos del dueño.
 
 ## Fotos y videos de la OT
 

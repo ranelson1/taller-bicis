@@ -6,6 +6,7 @@ import categoriesRouter from "./categories";
 import paymentMethodsRouter from "./paymentMethods";
 import clientsRouter from "./clients";
 import bicyclesRouter from "./bicycles";
+import bicycleHistoryRouter from "./bicycle-history";
 import servicesRouter from "./services";
 import serviceStepsRouter from "./serviceSteps";
 import partsRouter from "./parts";
@@ -21,6 +22,7 @@ import inventoryRouter from "./inventory";
 import purchasesRouter from "./purchases";
 import reportsRouter from "./reports";
 import reservationsRouter from "./reservations";
+import followupsRouter from "./followups";
 
 const router: IRouter = Router();
 
@@ -31,6 +33,7 @@ router.use("/users", usersRouter);
 router.use("/categories", categoriesRouter);
 router.use("/payment-methods", paymentMethodsRouter);
 router.use("/clients", clientsRouter);
+router.use("/bicycles", bicycleHistoryRouter);
 router.use("/bicycles", bicyclesRouter);
 router.use("/services", servicesRouter);
 router.use("/service-steps", serviceStepsRouter);
@@ -46,5 +49,6 @@ router.use("/inventory", inventoryRouter);
 router.use("/purchases", purchasesRouter);
 router.use("/reports", reportsRouter);
 router.use("/reservations", reservationsRouter);
+router.use("/followups", followupsRouter);
 
 export default router;

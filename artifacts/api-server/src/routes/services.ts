@@ -15,6 +15,7 @@ const createServiceSchema = z.object({
   estimatedHours: z.union([z.number().min(0), z.string()]).optional().nullable(),
   clientDescription: z.string().optional().nullable(),
   internalDescription: z.string().optional().nullable(),
+  followupMonths: z.number().int().min(0).max(60).optional().nullable(),
 });
 const updateServiceSchema = createServiceSchema.partial().extend({
   active: z.boolean().optional(),
@@ -31,6 +32,7 @@ router.get("/", async (_req, res) => {
       estimatedHours: servicesTable.estimatedHours,
       clientDescription: servicesTable.clientDescription,
       internalDescription: servicesTable.internalDescription,
+      followupMonths: servicesTable.followupMonths,
       active: servicesTable.active,
       createdAt: servicesTable.createdAt,
       updatedAt: servicesTable.updatedAt,
@@ -50,7 +52,7 @@ router.post("/", async (req, res) => {
   if (!parsed.success) {
     res.status(400).json({ error: "Validation error", details: parsed.error.issues }); return;
   }
-  const { name, categoryId, basePrice, estimatedHours, clientDescription, internalDescription } = parsed.data;
+  const { name, categoryId, basePrice, estimatedHours, clientDescription, internalDescription, followupMonths } = parsed.data;
   try {
     const [row] = await db.insert(servicesTable).values({
       name,
@@ -59,6 +61,7 @@ router.post("/", async (req, res) => {
       estimatedHours: estimatedHours != null ? String(estimatedHours) : null,
       clientDescription: clientDescription ?? null,
       internalDescription: internalDescription ?? null,
+      followupMonths: followupMonths ?? null,
     }).returning();
     res.status(201).json(row);
   } catch { res.status(500).json({ error: "Internal server error" }); }
@@ -109,6 +112,7 @@ router.patch("/:id", async (req, res) => {
     if (data.estimatedHours !== undefined) updates.estimatedHours = data.estimatedHours != null ? String(data.estimatedHours) : null;
     if (data.clientDescription !== undefined) updates.clientDescription = data.clientDescription;
     if (data.internalDescription !== undefined) updates.internalDescription = data.internalDescription;
+    if (data.followupMonths !== undefined) updates.followupMonths = data.followupMonths;
     if (data.active !== undefined) updates.active = data.active;
     const [row] = await db.update(servicesTable).set(updates).where(eq(servicesTable.id, id)).returning();
     if (!row) { res.status(404).json({ error: "Not found" }); return; }
