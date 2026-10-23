@@ -43,8 +43,15 @@ const SUPPLIES = [
   { name: "Desengrasante biodegradable", unit: "ml", costPrice: 4, minStock: 1500 },
   { name: "Limpia discos", unit: "ml", costPrice: 7, minStock: 600 },
   { name: "Paños de taller", unit: "un", costPrice: 540, minStock: 10 },
+  { name: "Lubricante cadena", unit: "ml", costPrice: 28, minStock: 200 },
 ];
 let inventory: any[] = await call("GET", "/api/inventory");
+// Versiones anteriores de este seed lo crearon como "(prueba)".
+const legacyLube = inventory.find(i => i.name === "Lubricante cadena (prueba)");
+if (legacyLube) {
+  await call("PATCH", `/api/parts/${legacyLube.id}`, { name: "Lubricante cadena" });
+  inventory = await call("GET", "/api/inventory");
+}
 for (const s of SUPPLIES) {
   if (inventory.some(i => i.name === s.name)) continue;
   await call("POST", "/api/parts", { name: s.name, kind: "supply", unit: s.unit, costPrice: s.costPrice, minStock: s.minStock });
@@ -92,7 +99,7 @@ const PURCHASES: { supplierName: string; supplierRut: string; docNumber: string;
   },
   {
     supplierName: "Lubricantes y Químicos Sur Ltda", supplierRut: "76.552.008-3", docNumber: "20933", ago: 6,
-    lines: [["Grasa multiuso", 500], ["Desengrasante biodegradable", 5000], ["Limpia discos", 2000], ["Paños de taller", 40], ["Lubricante cadena (prueba)", 500]],
+    lines: [["Grasa multiuso", 500], ["Desengrasante biodegradable", 5000], ["Limpia discos", 2000], ["Paños de taller", 40], ["Lubricante cadena", 500]],
   },
 ];
 
@@ -114,28 +121,8 @@ for (const p of PURCHASES) {
   console.log(`Compra ${p.docNumber} (${p.supplierName}) confirmada: ${items.length} líneas.`);
 }
 
-// 5. Recetas: qué insumos gasta cada servicio.
+// 5. Las recetas de insumos están en seed-recetas.ts (corre a continuación).
 inventory = await call("GET", "/api/inventory");
-const services: any[] = await call("GET", "/api/services");
-const svc = (name: string) => services.find(s => s.name === name)?.id as number | undefined;
-const RECIPES: Record<string, [string, number][]> = {
-  "Mantención general": [["Grasa multiuso", 20], ["Desengrasante biodegradable", 150], ["Lubricante cadena (prueba)", 30], ["Paños de taller", 2]],
-  "Mantención full bicicleta": [["Grasa multiuso", 50], ["Desengrasante biodegradable", 300], ["Lubricante cadena (prueba)", 40], ["Limpia discos", 50], ["Paños de taller", 4]],
-  "Ajuste de transmisión": [["Lubricante cadena (prueba)", 10], ["Paños de taller", 1]],
-  "Instalación de cadena": [["Lubricante cadena (prueba)", 20], ["Desengrasante biodegradable", 40], ["Paños de taller", 1]],
-  "Instalación pastillas de freno": [["Limpia discos", 30], ["Paños de taller", 1]],
-  "Sangrado freno individual": [["Limpia discos", 30], ["Paños de taller", 1]],
-  "Sangrado frenos pareja": [["Limpia discos", 60], ["Paños de taller", 2]],
-  "Montaje tubeless por rueda": [["Paños de taller", 1], ["Desengrasante biodegradable", 30]],
-  "Servicio horquilla full": [["Grasa multiuso", 10], ["Desengrasante biodegradable", 50], ["Paños de taller", 2]],
-  "Servicio shock completo": [["Grasa multiuso", 10], ["Desengrasante biodegradable", 50], ["Paños de taller", 2]],
-};
-for (const [service, list] of Object.entries(RECIPES)) {
-  const id = svc(service);
-  if (!id) continue;
-  await call("PUT", `/api/services/${id}/supplies`, { supplies: list.map(([name, quantity]) => ({ partId: byName(name).id, quantity })) });
-}
-console.log("Recetas de insumos cargadas.");
 
 const toBuy = inventory.filter(i => i.needsReorder);
 console.log(`Listo. Artículos: ${inventory.length}. Por comprar: ${toBuy.length} (${toBuy.map(i => i.name).slice(0, 5).join(", ")}…).`);
