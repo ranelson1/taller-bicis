@@ -1,3 +1,4 @@
+import { Link } from "wouter";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -139,8 +140,10 @@ export default function Bicycles() {
                 {visible.map((b) => (
                   <TableRow key={b.id} data-testid={`row-bicycle-${b.id}`} className={!b.active ? "opacity-60" : ""}>
                     <TableCell>
-                      <div className="font-medium">{b.brand}</div>
-                      <div className="text-sm text-muted-foreground">{b.model}</div>
+                      <Link href={`/bicicletas/${b.id}`} className="block hover:underline" data-testid={`link-bicycle-${b.id}`}>
+                        <div className="font-medium">{b.brand}</div>
+                        <div className="text-sm text-muted-foreground">{b.model}</div>
+                      </Link>
                     </TableCell>
                     <TableCell><Badge variant="outline">{BIKE_TYPE_LABELS[b.type] ?? b.type}</Badge></TableCell>
                     <TableCell className="text-sm">{b.clientName || "—"}</TableCell>

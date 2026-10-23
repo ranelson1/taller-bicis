@@ -492,6 +492,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/Bicycle"
 
+  /bicycles/{id}/history:
+    get:
+      operationId: getBicycleHistory
+      tags: [bicycles]
+      summary: Historial de trabajos de la bicicleta y último servicio de cada tipo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Historial
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BicycleHistory"
+
   /bicycles/{id}/setup:
     put:
       operationId: updateBicycleSetup
@@ -3734,6 +3753,50 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    BicycleHistory:
+      type: object
+      required: [bicycle, jobs, lastServices, totalSpent, deliveredCount]
+      properties:
+        bicycle:
+          $ref: "#/components/schemas/Bicycle"
+        totalSpent: { type: number }
+        deliveredCount: { type: integer }
+        lastServices:
+          type: array
+          items:
+            type: object
+            required: [label, count, lastOn, daysAgo]
+            properties:
+              label: { type: string }
+              serviceId: { type: ["integer", "null"] }
+              count: { type: integer }
+              lastOn: { type: string }
+              daysAgo: { type: integer }
+        jobs:
+          type: array
+          items:
+            type: object
+            required: [workOrderId, workOrderNumber, status, receivedAt, total, items]
+            properties:
+              workOrderId: { type: integer }
+              workCaseId: { type: ["integer", "null"] }
+              workOrderNumber: { type: string }
+              status: { type: string }
+              receivedAt: { type: string }
+              deliveredAt: { type: ["string", "null"] }
+              total: { type: number }
+              mechanicName: { type: ["string", "null"] }
+              items:
+                type: array
+                items:
+                  type: object
+                  required: [description, itemType, total]
+                  properties:
+                    description: { type: string }
+                    itemType: { type: string }
+                    total: { type: number }
+                    serviceId: { type: ["integer", "null"] }
 
     BicycleInput:
       type: object

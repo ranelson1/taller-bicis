@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { z } from "zod/v4";
 import { db } from "@workspace/db";
-import { bicyclesTable, clientsTable } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { bicyclesTable, clientsTable, workOrdersTable, workOrderItemsTable, usersTable } from "@workspace/db";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
@@ -87,6 +87,69 @@ router.get("/:id", async (req, res) => {
     if (!row) { res.status(404).json({ error: "Not found" }); return; }
     res.json(row);
   } catch { res.status(500).json({ error: "Internal server error" }); }
+});
+
+// GET /bicycles/:id/history — trabajos de la bici, con sus servicios, y cuándo fue el último de cada tipo.
+router.get("/:id/history", async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+  try {
+    const [bike] = await db.select(BIKE_FIELDS).from(bicyclesTable)
+      .leftJoin(clientsTable, eq(clientsTable.id, bicyclesTable.clientId)).where(eq(bicyclesTable.id, id));
+    if (!bike) { res.status(404).json({ error: "Not found" }); return; }
+
+    const orders = await db.select({
+      id: workOrdersTable.id, number: workOrdersTable.workOrderNumber, workCaseId: workOrdersTable.workCaseId, status: workOrdersTable.status,
+      createdAt: workOrdersTable.createdAt, completedAt: workOrdersTable.completedAt, deliveredAt: workOrdersTable.deliveredAt,
+      total: workOrdersTable.total, mechanicName: usersTable.name,
+    }).from(workOrdersTable).leftJoin(usersTable, eq(usersTable.id, workOrdersTable.mechanicId))
+      .where(and(eq(workOrdersTable.bicycleId, id), eq(workOrdersTable.active, true)))
+      .orderBy(desc(workOrdersTable.createdAt));
+
+    const items = orders.length ? await db.select({
+      workOrderId: workOrderItemsTable.workOrderId, description: workOrderItemsTable.description, itemType: workOrderItemsTable.itemType,
+      total: workOrderItemsTable.total, serviceId: workOrderItemsTable.serviceId,
+    }).from(workOrderItemsTable).where(and(
+      inArray(workOrderItemsTable.workOrderId, orders.map(o => o.id)),
+      eq(workOrderItemsTable.active, true), eq(workOrderItemsTable.approvalStatus, "approved"),
+    )).orderBy(asc(workOrderItemsTable.sortOrder), asc(workOrderItemsTable.id)) : [];
+    const live = items.filter(i => Number(i.total) >= 0);
+
+    const jobs = orders.filter(o => o.status !== "cancelled").map(o => ({
+      workOrderId: o.id, workCaseId: o.workCaseId, workOrderNumber: o.number, status: o.status,
+      receivedAt: o.createdAt.toISOString(), deliveredAt: o.deliveredAt?.toISOString() ?? null,
+      total: Number(o.total ?? 0), mechanicName: o.mechanicName ?? null,
+      items: live.filter(i => i.workOrderId === o.id).map(i => ({ description: i.description, itemType: i.itemType, total: Number(i.total), serviceId: i.serviceId })),
+    }));
+
+    // Último servicio de cada tipo, solo de trabajos ya terminados (lista para retiro o entregada).
+    const done = new Map(orders.filter(o => o.status === "delivered" || o.status === "ready_for_pickup")
+      .map(o => [o.id, (o.deliveredAt ?? o.completedAt ?? o.createdAt) as Date]));
+    const byKey = new Map<string, { label: string; serviceId: number | null; lastOn: Date; count: number }>();
+    for (const i of live) {
+      const when = done.get(i.workOrderId);
+      if (!when || i.itemType !== "service") continue;
+      const label = i.description.split(" · ")[0].trim();
+      const key = i.serviceId ? `s${i.serviceId}` : label.toLowerCase();
+      const cur = byKey.get(key);
+      if (!cur) byKey.set(key, { label, serviceId: i.serviceId ?? null, lastOn: when, count: 1 });
+      else { cur.count += 1; if (when > cur.lastOn) cur.lastOn = when; }
+    }
+    const now = Date.now();
+    const lastServices = [...byKey.values()].sort((a, b) => b.lastOn.getTime() - a.lastOn.getTime()).map(s => ({
+      label: s.label, serviceId: s.serviceId, count: s.count, lastOn: s.lastOn.toISOString(),
+      daysAgo: Math.max(0, Math.floor((now - s.lastOn.getTime()) / 86_400_000)),
+    }));
+
+    res.json({
+      bicycle: bike, jobs, lastServices,
+      totalSpent: jobs.filter(j => j.status === "delivered").reduce((s, j) => s + j.total, 0),
+      deliveredCount: jobs.filter(j => j.status === "delivered").length,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 // PUT /bicycles/:id/setup — ficha de ajustes de la bici (queda como punto de partida del próximo servicio).

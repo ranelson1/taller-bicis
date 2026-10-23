@@ -644,7 +644,7 @@ export default function TrabajoDetail() {
                 <WhatsAppButton phone={wo.clientPhone} text={chatGreeting} label="Chat" className="ml-auto h-7" />
               </div>
               {workCase.bicycleName && (
-                <div className="flex items-center gap-2"><Bike className="h-4 w-4 text-muted-foreground shrink-0" /><span>{workCase.bicycleName}</span></div>
+                <div className="flex items-center gap-2"><Bike className="h-4 w-4 text-muted-foreground shrink-0" /><Link href={`/bicicletas/${wo.bicycleId}`} className="hover:underline text-primary" data-testid="link-bike-history">{workCase.bicycleName}</Link><span className="text-xs text-muted-foreground">· ver historial</span></div>
               )}
               {!solo && (
                 <div className="flex items-center gap-2">

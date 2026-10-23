@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { Link, useParams } from "wouter";
 import {
   useGetClient, getGetClientQueryKey, useListBicycles, getListBicyclesQueryKey,
   useUpdateClient, getListClientsQueryKey,
@@ -124,8 +124,10 @@ export default function ClientDetail() {
                 {bicycles?.map((bike) => (
                   <TableRow key={bike.id} className={!bike.active ? "opacity-60" : ""}>
                     <TableCell>
-                      <div className="font-medium">{bike.brand}</div>
-                      <div className="text-sm text-muted-foreground">{bike.model}</div>
+                      <Link href={`/bicicletas/${bike.id}`} className="block hover:underline" data-testid={`link-bicycle-${bike.id}`}>
+                        <div className="font-medium">{bike.brand}</div>
+                        <div className="text-sm text-muted-foreground">{bike.model}</div>
+                      </Link>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">{bike.type}</Badge>

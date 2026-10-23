@@ -255,6 +255,12 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
   `PUT /api/bicycles/:id/setup`; tarjeta "Ajustes de la bici" en la ficha del trabajo (con plantilla). El link del cliente la
   muestra solo con la bici lista o entregada; queda en la bici como punto de partida del siguiente servicio.
 
+## Historial por bicicleta
+
+- `GET /api/bicycles/:id/history`: trabajos de la bici con sus servicios, último servicio de cada tipo (solo trabajos terminados),
+  total invertido y entregados. Página `/bicicletas/:id` (desde la lista de bicis, la ficha del cliente y la ficha del trabajo)
+  con la ficha de ajustes. Base para los recordatorios de próxima mantención.
+
 ## Fotos y videos de la OT
 
 - `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.

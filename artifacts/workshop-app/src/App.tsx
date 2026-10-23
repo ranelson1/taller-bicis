@@ -28,6 +28,7 @@ import Inventario from "@/pages/inventario";
 import CompraDetail from "@/pages/compra-detail";
 import MisNumeros from "@/pages/mis-numeros";
 import MisTrabajos from "@/pages/mis-trabajos";
+import BicicletaDetail from "@/pages/bicicleta-detail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -110,6 +111,9 @@ function Router() {
       </Route>
       <Route path="/bicicletas">
         <AuthGate><Bicycles /></AuthGate>
+      </Route>
+      <Route path="/bicicletas/:id">
+        <AuthGate><BicicletaDetail /></AuthGate>
       </Route>
 
       <Route path="/mis-trabajos">

@@ -258,6 +258,46 @@ export interface Bicycle {
   updatedAt: string;
 }
 
+export type BicycleHistoryLastServicesItem = {
+  label: string;
+  /** @nullable */
+  serviceId?: number | null;
+  count: number;
+  lastOn: string;
+  daysAgo: number;
+};
+
+export type BicycleHistoryJobsItemItemsItem = {
+  description: string;
+  itemType: string;
+  total: number;
+  /** @nullable */
+  serviceId?: number | null;
+};
+
+export type BicycleHistoryJobsItem = {
+  workOrderId: number;
+  /** @nullable */
+  workCaseId?: number | null;
+  workOrderNumber: string;
+  status: string;
+  receivedAt: string;
+  /** @nullable */
+  deliveredAt?: string | null;
+  total: number;
+  /** @nullable */
+  mechanicName?: string | null;
+  items: BicycleHistoryJobsItemItemsItem[];
+};
+
+export interface BicycleHistory {
+  bicycle: Bicycle;
+  totalSpent: number;
+  deliveredCount: number;
+  lastServices: BicycleHistoryLastServicesItem[];
+  jobs: BicycleHistoryJobsItem[];
+}
+
 export type BicycleInputType = typeof BicycleInputType[keyof typeof BicycleInputType];
 
 

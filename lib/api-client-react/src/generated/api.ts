@@ -24,6 +24,7 @@ import type {
   AssignMechanicToWorkOrderBody,
   AuthUser,
   Bicycle,
+  BicycleHistory,
   BicycleInput,
   BicycleUpdate,
   CancelWorkOrderBody,
@@ -2071,6 +2072,83 @@ export const useCreateBicycle = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCreateBicycleMutationOptions(options));
     }
+
+export const getGetBicycleHistoryUrl = (id: number,) => {
+
+
+
+
+  return `/api/bicycles/${id}/history`
+}
+
+/**
+ * @summary Historial de trabajos de la bicicleta y último servicio de cada tipo
+ */
+export const getBicycleHistory = async (id: number, options?: RequestInit): Promise<BicycleHistory> => {
+
+  return customFetch<BicycleHistory>(getGetBicycleHistoryUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBicycleHistoryQueryKey = (id: number,) => {
+    return [
+    `/api/bicycles/${id}/history`
+    ] as const;
+    }
+
+
+export const getGetBicycleHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getBicycleHistory>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBicycleHistoryQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBicycleHistory>>> = ({ signal }) => getBicycleHistory(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBicycleHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getBicycleHistory>>>
+export type GetBicycleHistoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Historial de trabajos de la bicicleta y último servicio de cada tipo
+ */
+
+export function useGetBicycleHistory<TData = Awaited<ReturnType<typeof getBicycleHistory>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBicycleHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBicycleHistoryQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getUpdateBicycleSetupUrl = (id: number,) => {
 

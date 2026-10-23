@@ -483,6 +483,60 @@ export const CreateBicycleResponse = zod.object({
 
 
 /**
+ * @summary Historial de trabajos de la bicicleta y último servicio de cada tipo
+ */
+export const GetBicycleHistoryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetBicycleHistoryResponse = zod.object({
+  "bicycle": zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "clientName": zod.string().nullish(),
+  "brand": zod.string(),
+  "model": zod.string(),
+  "year": zod.number().nullish(),
+  "type": zod.enum(['mtb', 'road', 'gravel', 'urban', 'ebike', 'kids', 'other']),
+  "color": zod.string().nullish(),
+  "rimSize": zod.string().nullish(),
+  "serialNumber": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "setupNotes": zod.string().nullish().describe('Ficha de ajustes (presiones, clicks, palancas)'),
+  "setupUpdatedAt": zod.coerce.date().nullish(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "totalSpent": zod.number(),
+  "deliveredCount": zod.number(),
+  "lastServices": zod.array(zod.object({
+  "label": zod.string(),
+  "serviceId": zod.number().nullish(),
+  "count": zod.number(),
+  "lastOn": zod.string(),
+  "daysAgo": zod.number()
+})),
+  "jobs": zod.array(zod.object({
+  "workOrderId": zod.number(),
+  "workCaseId": zod.number().nullish(),
+  "workOrderNumber": zod.string(),
+  "status": zod.string(),
+  "receivedAt": zod.string(),
+  "deliveredAt": zod.string().nullish(),
+  "total": zod.number(),
+  "mechanicName": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "description": zod.string(),
+  "itemType": zod.string(),
+  "total": zod.number(),
+  "serviceId": zod.number().nullish()
+}))
+}))
+})
+
+
+/**
  * @summary Guarda la ficha de ajustes de la bicicleta
  */
 export const UpdateBicycleSetupParams = zod.object({
