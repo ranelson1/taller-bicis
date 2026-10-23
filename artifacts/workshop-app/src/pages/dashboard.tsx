@@ -72,10 +72,13 @@ export default function Dashboard() {
   const { data: settings } = useGetWorkshopSettings();
   const { workers: mechanics, solo } = useWorkers();
   const isMechanic = me?.role === "mechanic";
-  const [onlyMine, setOnlyMine] = useState(true);
+  const [onlyMineChoice, setOnlyMineChoice] = useState<boolean | null>(null);
+  // Quien hace trabajos puede alternar entre lo suyo y todo el taller. El mecánico parte viendo lo suyo; el admin, todo.
+  const canScope = !!me?.doesJobs && !solo;
+  const onlyMine = onlyMineChoice ?? isMechanic;
 
   const all = workOrders ?? [];
-  const scoped = isMechanic && !solo && onlyMine ? all.filter(wo => wo.mechanicId === me?.id) : all;
+  const scoped = canScope && onlyMine ? all.filter(wo => wo.mechanicId === me?.id) : all;
   const open = scoped.filter(wo => (BOARD as readonly string[]).includes(wo.status));
   const today = new Date();
 
@@ -108,9 +111,9 @@ export default function Dashboard() {
           <p className="text-muted-foreground first-letter:uppercase">{today.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" })}</p>
         </div>
         <div className="flex items-center gap-3">
-          {isMechanic && !solo && (
+          {canScope && (
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Switch checked={onlyMine} onCheckedChange={setOnlyMine} data-testid="switch-only-mine" />Solo mis trabajos
+              <Switch checked={onlyMine} onCheckedChange={setOnlyMineChoice} data-testid="switch-only-mine" />Solo mis trabajos
             </label>
           )}
           <Link href="/trabajos/nuevo">

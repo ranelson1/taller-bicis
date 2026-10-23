@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Briefcase, Clock, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkers } from "@/hooks/use-workers";
-import { OPEN_WO_STATUSES, WO_STATUS_COLORS, WO_STATUS_LABELS, formatCLP, hasBalanceDue } from "@/lib/work-status";
+import { OPEN_WO_STATUSES, WO_STATUS_COLORS, WO_STATUS_LABELS, balanceDue, formatCLP } from "@/lib/work-status";
 import { EtaBadge } from "@/components/trabajo/eta-badge";
 import { formatDay } from "@/components/trabajo/dates-card";
 
@@ -21,12 +21,24 @@ const FILTERS = [
   { value: "ready_to_work", label: "Recibidos", match: (wo: WorkOrder) => wo.status === "ready_to_work" },
   { value: "in_progress", label: "En reparación", match: (wo: WorkOrder) => wo.status === "in_progress" || wo.status === "quality_control" },
   { value: "ready_for_pickup", label: "Para retiro", match: (wo: WorkOrder) => wo.status === "ready_for_pickup" },
+  { value: "unpaid", label: "Por cobrar", match: (wo: WorkOrder) => balanceDue(wo) > 0 },
   { value: "delivered", label: "Entregados", match: (wo: WorkOrder) => wo.status === "delivered" },
   { value: "cancelled", label: "Cancelados", match: (wo: WorkOrder) => wo.status === "cancelled" },
   { value: "all", label: "Todos", match: () => true },
 ] as const;
 
 const workHref = (wo: WorkOrder) => (wo.workCaseId ? `/trabajos/${wo.workCaseId}` : "/trabajos");
+
+function Progress({ wo }: { wo: WorkOrder }) {
+  if (!OPEN_WO_STATUSES.includes(wo.status) || !(wo.progressPercentage > 0)) return null;
+  const pct = Math.min(100, Math.round(wo.progressPercentage));
+  return (
+    <div className="flex items-center gap-1.5 w-full max-w-32" title={`${pct}% del checklist`}>
+      <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary" style={{ width: `${pct}%` }} /></div>
+      <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
+    </div>
+  );
+}
 
 function StatusPill({ status }: { status: string }) {
   return (
@@ -62,6 +74,8 @@ export default function Trabajos() {
   const active = FILTERS.find(f => f.value === filter) ?? FILTERS[0];
   const visible = base.filter(active.match);
   const countFor = (f: typeof FILTERS[number]) => base.filter(f.match).length;
+  const owed = all.filter(wo => balanceDue(wo) > 0);
+  const owedTotal = owed.reduce((s, wo) => s + balanceDue(wo), 0);
 
   // Trabajos antiguos que nunca llegaron a OT (presupuesto o recepción sueltos).
   const withoutOt = (workCases ?? []).filter(wc => (wc.workOrderCount ?? 0) === 0 && wc.active !== false
@@ -75,6 +89,14 @@ export default function Trabajos() {
           <Button className="h-10" data-testid="button-new-work"><Plus className="h-4 w-4 mr-1" />Nuevo</Button>
         </Link>
       </div>
+
+      {owed.length > 0 && (
+        <button type="button" onClick={() => setFilter("unpaid")} data-testid="banner-unpaid"
+          className="w-full flex items-center justify-between gap-3 rounded-lg border-2 border-sky-200 bg-sky-50/60 px-4 py-2.5 text-left text-sm hover:bg-sky-50">
+          <span className="text-sky-900">Te deben <strong>{formatCLP(owedTotal)}</strong> en {owed.length} trabajo(s) entregado(s)</span>
+          <span className="text-primary text-xs whitespace-nowrap">Ver →</span>
+        </button>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
@@ -140,6 +162,7 @@ export default function Trabajos() {
                           <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-800"><Clock className="h-3 w-3" />{wo.pendingApprovalCount} por aprobar</span>
                         )}
                       </div>
+                      <div className="mt-1"><Progress wo={wo} /></div>
                     </TableCell>
                     {!solo && (
                       <TableCell className={cn("text-sm", !wo.mechanicName && OPEN_WO_STATUSES.includes(wo.status) ? "text-amber-700" : "text-muted-foreground")}>
@@ -154,7 +177,7 @@ export default function Trabajos() {
                     </TableCell>
                     <TableCell className="text-right font-medium whitespace-nowrap">
                       {formatCLP(wo.total)}
-                      {wo.status === "delivered" && hasBalanceDue(wo) && <div className="text-[11px] text-sky-700 font-normal">{wo.paidAt ? "con saldo" : "sin pagar"}</div>}
+                      {balanceDue(wo) > 0 && <div className="text-[11px] text-sky-700 font-normal">{wo.paidAt ? `debe ${formatCLP(balanceDue(wo))}` : "sin pagar"}</div>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -174,6 +197,8 @@ export default function Trabajos() {
                     </div>
                     <p className="font-medium mt-1">{wo.clientName}</p>
                     <p className="text-sm text-muted-foreground">{wo.bicycleName}</p>
+                    <div className="mt-1.5"><Progress wo={wo} /></div>
+                    {balanceDue(wo) > 0 && <p className="text-xs text-sky-700 mt-1">{wo.paidAt ? `Debe ${formatCLP(balanceDue(wo))}` : "Sin pagar"}</p>}
                     <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs">
                       <span className={cn(!wo.mechanicName && OPEN_WO_STATUSES.includes(wo.status) ? "text-amber-700" : "text-muted-foreground")}>
                         {solo ? "" : wo.mechanicName ?? (OPEN_WO_STATUSES.includes(wo.status) ? "Sin mecánico" : "")}

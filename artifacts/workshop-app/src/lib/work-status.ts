@@ -39,6 +39,13 @@ export function hasBalanceDue(wo: { paidAt?: string | null; paidAmount?: number 
   return !wo.paidAt || (wo.paidAmount != null && wo.paidAmount < wo.total);
 }
 
+// Lo que falta cobrar de un trabajo ya entregado (0 si está pagado completo o aún no se entrega).
+export function balanceDue(wo: { status: string; paidAt?: string | null; paidAmount?: number | null; total: number }): number {
+  if (wo.status !== "delivered") return 0;
+  const paid = wo.paidAt ? wo.paidAmount ?? wo.total : 0;
+  return Math.max(0, wo.total - paid);
+}
+
 export function formatCLP(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value);

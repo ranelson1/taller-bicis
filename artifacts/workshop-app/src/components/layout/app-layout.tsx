@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Wrench, Users, Bike, LayoutDashboard, Settings, LogOut, Menu, Briefcase, Plus, Building2, LifeBuoy, Package, TrendingUp } from "lucide-react";
+import { Wrench, Users, Bike, LayoutDashboard, Settings, LogOut, Menu, Briefcase, Plus, Building2, LifeBuoy, Package, TrendingUp, HardHat } from "lucide-react";
 import { useExitPlatformWorkshop, useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -38,6 +38,7 @@ const isActivePath = (location: string, href: string) =>
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { data: user } = useGetMe();
+  const me = user;
   const logoutMutation = useLogout();
   const exitWorkshop = useExitPlatformWorkshop();
   const queryClient = useQueryClient();
@@ -52,7 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const roleLabel = user ? ROLE_LABELS[user.role] ?? user.role : "";
 
   const sections: { title: string; items: NavItem[] }[] = [
-    ...(inWorkshop ? [{ title: "Operación", items: mainNavItems }] : []),
+    ...(inWorkshop ? [{ title: "Operación", items: me?.doesJobs ? [{ href: "/mis-trabajos", label: "Mis trabajos", icon: HardHat }, ...mainNavItems] : mainNavItems }] : []),
     ...(isAdmin ? [{ title: "Administración", items: adminNavItems }] : []),
     ...(isSuperadmin ? [{ title: "Plataforma", items: platformNavItems }] : []),
   ];
