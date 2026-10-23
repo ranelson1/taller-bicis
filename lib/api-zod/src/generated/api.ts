@@ -3759,6 +3759,23 @@ export const GetReportSummaryResponse = zod.object({
   "count": zod.number()
 }),
   "stockValue": zod.number(),
+  "byMechanic": zod.array(zod.object({
+  "mechanicId": zod.number().nullish(),
+  "name": zod.string(),
+  "jobs": zod.number(),
+  "revenue": zod.number(),
+  "materialsCost": zod.number(),
+  "laborCost": zod.number(),
+  "margin": zod.number()
+})),
+  "topServices": zod.array(zod.object({
+  "serviceId": zod.number(),
+  "name": zod.string(),
+  "uses": zod.number(),
+  "revenue": zod.number(),
+  "margin": zod.number(),
+  "marginPct": zod.number().nullish()
+})),
   "lowestMargins": zod.array(zod.object({
   "workOrderId": zod.number(),
   "workCaseId": zod.number().nullish(),

@@ -124,6 +124,41 @@ export default function MisNumeros() {
             </Card>
           </div>
 
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Servicios más usados</CardTitle></CardHeader>
+              <CardContent className="divide-y">
+                {data.topServices.length === 0 ? <p className="text-sm text-muted-foreground">Sin servicios del catálogo en trabajos entregados.</p> : data.topServices.map(sv => (
+                  <div key={sv.serviceId} className="py-2 flex items-center gap-3 text-sm" data-testid={`top-service-${sv.serviceId}`}>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{sv.name}</p>
+                      <p className="text-xs text-muted-foreground">{sv.uses} vez/veces · {formatCLP(sv.revenue)}</p>
+                    </div>
+                    <div className={cn("text-right font-semibold", sv.margin < 0 ? "text-red-600" : "")}>
+                      {formatCLP(sv.margin)}{sv.marginPct != null && <span className="block text-xs font-normal text-muted-foreground">{Math.round(sv.marginPct)} %</span>}
+                    </div>
+                  </div>
+                ))}
+                {data.topServices.length > 0 && <p className="text-xs text-muted-foreground pt-2">Margen estimado: cobrado menos tu hora y los insumos de la receta.</p>}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Por mecánico</CardTitle></CardHeader>
+              <CardContent className="divide-y">
+                {data.byMechanic.length === 0 ? <p className="text-sm text-muted-foreground">Sin trabajos entregados en el período.</p> : data.byMechanic.map(m => (
+                  <div key={m.mechanicId ?? "none"} className="py-2 text-sm" data-testid={`mechanic-${m.mechanicId ?? "none"}`}>
+                    <div className="flex justify-between gap-3">
+                      <span className="font-medium">{m.name} <span className="font-normal text-muted-foreground">· {m.jobs} trabajo(s)</span></span>
+                      <span className={cn("font-semibold", m.margin < 0 ? "text-red-600" : "")}>{formatCLP(m.margin)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Facturó {formatCLP(m.revenue)} · repuestos {formatCLP(m.materialsCost)} · mano de obra {formatCLP(m.laborCost)}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
           {data.receivable.items.length > 0 && (
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-base">Quién te debe</CardTitle></CardHeader>

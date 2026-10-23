@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { and, eq, gte, inArray, isNotNull, lt, sql } from "drizzle-orm";
-import { db, workOrdersTable, purchasesTable, partsTable, clientsTable, bicyclesTable } from "@workspace/db";
+import {
+  db, workOrdersTable, workOrderItemsTable, purchasesTable, partsTable, clientsTable, bicyclesTable, usersTable, servicesTable, serviceSuppliesTable,
+} from "@workspace/db";
 import { requireAuth } from "../middlewares/auth";
 import { workOrderEconomics } from "../helpers/inventory";
 import { getWorkshopSettings } from "../helpers/settings";
@@ -29,7 +31,7 @@ router.get("/summary", async (req, res) => {
     // Trabajos entregados en el período: lo que se facturó y lo que dejó.
     const delivered = await db.select({
       id: workOrdersTable.id, number: workOrdersTable.workOrderNumber, workCaseId: workOrdersTable.workCaseId, total: workOrdersTable.total,
-      clientName: clientsTable.name, bikeBrand: bicyclesTable.brand, bikeModel: bicyclesTable.model,
+      mechanicId: workOrdersTable.mechanicId, clientName: clientsTable.name, bikeBrand: bicyclesTable.brand, bikeModel: bicyclesTable.model,
     }).from(workOrdersTable)
       .leftJoin(clientsTable, eq(clientsTable.id, workOrdersTable.clientId))
       .leftJoin(bicyclesTable, eq(bicyclesTable.id, workOrdersTable.bicycleId))
@@ -77,8 +79,52 @@ router.get("/summary", async (req, res) => {
       value: sql<string>`coalesce(sum(greatest(${partsTable.stock}, 0) * coalesce(${partsTable.costPrice}, 0)), 0)`,
     }).from(partsTable).where(eq(partsTable.active, true));
 
+    // Por mecánico: lo que cerró cada uno y lo que dejó (mano de obra y repuestos separados).
+    const mechNames = new Map((await db.select({ id: usersTable.id, name: usersTable.name }).from(usersTable)).map(u => [u.id, u.name]));
+    const byMech = new Map<number | null, { jobs: number; revenue: number; materialsCost: number; laborCost: number; margin: number }>();
+    for (const { row, e } of eco) {
+      const k = row.mechanicId ?? null;
+      const m = byMech.get(k) ?? { jobs: 0, revenue: 0, materialsCost: 0, laborCost: 0, margin: 0 };
+      m.jobs += 1; m.revenue += e.revenue; m.materialsCost += e.materialsCost; m.laborCost += e.laborCost ?? 0; m.margin += e.margin;
+      byMech.set(k, m);
+    }
+
+    // Servicios más usados y lo que dejan (los insumos de la receta se estiman a costo actual).
+    const rate = settings.laborCostPerHour ?? 0;
+    const vatDiv = settings.recoversVat ? 1.19 : 1;
+    const deliveredIds = eco.map(x => x.row.id);
+    const svcItems = deliveredIds.length ? await db.select({
+      serviceId: workOrderItemsTable.serviceId, total: workOrderItemsTable.total, hours: workOrderItemsTable.estimatedLaborHours,
+    }).from(workOrderItemsTable).where(and(
+      inArray(workOrderItemsTable.workOrderId, deliveredIds), isNotNull(workOrderItemsTable.serviceId),
+      eq(workOrderItemsTable.active, true), eq(workOrderItemsTable.approvalStatus, "approved"),
+    )) : [];
+    const svcIds = [...new Set(svcItems.map(i => i.serviceId!))];
+    const svcNames = new Map(svcIds.length ? (await db.select({ id: servicesTable.id, name: servicesTable.name }).from(servicesTable).where(inArray(servicesTable.id, svcIds))).map(s => [s.id, s.name]) : []);
+    const recipeCost = new Map<number, number>();
+    if (svcIds.length) {
+      const rows = await db.select({ serviceId: serviceSuppliesTable.serviceId, qty: serviceSuppliesTable.quantity, cost: partsTable.costPrice })
+        .from(serviceSuppliesTable).innerJoin(partsTable, eq(partsTable.id, serviceSuppliesTable.partId)).where(inArray(serviceSuppliesTable.serviceId, svcIds));
+      for (const r of rows) recipeCost.set(r.serviceId, (recipeCost.get(r.serviceId) ?? 0) + Number(r.qty) * Number(r.cost ?? 0));
+    }
+    const svc = new Map<number, { uses: number; revenue: number; laborCost: number; suppliesCost: number }>();
+    for (const i of svcItems) {
+      const s = svc.get(i.serviceId!) ?? { uses: 0, revenue: 0, laborCost: 0, suppliesCost: 0 };
+      s.uses += 1; s.revenue += Number(i.total) / vatDiv; s.laborCost += Number(i.hours ?? 0) * rate; s.suppliesCost += recipeCost.get(i.serviceId!) ?? 0;
+      svc.set(i.serviceId!, s);
+    }
+
     res.json({
       from, to,
+      byMechanic: [...byMech.entries()].map(([id, m]) => ({
+        mechanicId: id, name: id == null ? "Sin asignar" : mechNames.get(id) ?? "—", jobs: m.jobs, revenue: round(m.revenue),
+        materialsCost: round(m.materialsCost), laborCost: round(m.laborCost), margin: round(m.margin),
+      })).sort((a, b) => b.margin - a.margin),
+      topServices: [...svc.entries()].map(([id, s]) => ({
+        serviceId: id, name: svcNames.get(id) ?? "Servicio", uses: s.uses, revenue: round(s.revenue),
+        margin: round(s.revenue - s.laborCost - s.suppliesCost),
+        marginPct: s.revenue > 0 ? round(((s.revenue - s.laborCost - s.suppliesCost) / s.revenue) * 100) : null,
+      })).sort((a, b) => b.uses - a.uses).slice(0, 8),
       laborCostPerHour: settings.laborCostPerHour ?? null,
       recoversVat: settings.recoversVat,
       jobs: {

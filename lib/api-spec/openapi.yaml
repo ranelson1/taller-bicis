@@ -5090,7 +5090,7 @@ components:
 
     ReportSummary:
       type: object
-      required: [from, to, recoversVat, jobs, collected, receivable, inProgress, purchases, stockValue, lowestMargins]
+      required: [from, to, recoversVat, jobs, collected, receivable, inProgress, purchases, stockValue, lowestMargins, byMechanic, topServices]
       properties:
         from: { type: string }
         to: { type: string }
@@ -5148,6 +5148,31 @@ components:
             net: { type: number }
             count: { type: integer }
         stockValue: { type: number }
+        byMechanic:
+          type: array
+          items:
+            type: object
+            required: [name, jobs, revenue, materialsCost, laborCost, margin]
+            properties:
+              mechanicId: { type: ["integer", "null"] }
+              name: { type: string }
+              jobs: { type: integer }
+              revenue: { type: number }
+              materialsCost: { type: number }
+              laborCost: { type: number }
+              margin: { type: number }
+        topServices:
+          type: array
+          items:
+            type: object
+            required: [serviceId, name, uses, revenue, margin]
+            properties:
+              serviceId: { type: integer }
+              name: { type: string }
+              uses: { type: integer }
+              revenue: { type: number }
+              margin: { type: number }
+              marginPct: { type: ["number", "null"] }
         lowestMargins:
           type: array
           items:

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { OnboardingCard } from "@/components/onboarding-card";
 import { AlertTriangle, CircleDollarSign, Clock, PackageCheck, Plus, ShoppingCart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkers } from "@/hooks/use-workers";
@@ -121,6 +122,8 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+
+      {(me?.role === "admin" || me?.role === "superadmin") && <OnboardingCard />}
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40" />)}</div>

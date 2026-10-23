@@ -5,12 +5,14 @@
  * API specification for Taller de Bicicletas
  * OpenAPI spec version: 0.1.0
  */
+import type { ReportSummaryByMechanicItem } from './reportSummaryByMechanicItem';
 import type { ReportSummaryCollected } from './reportSummaryCollected';
 import type { ReportSummaryInProgress } from './reportSummaryInProgress';
 import type { ReportSummaryJobs } from './reportSummaryJobs';
 import type { ReportSummaryLowestMarginsItem } from './reportSummaryLowestMarginsItem';
 import type { ReportSummaryPurchases } from './reportSummaryPurchases';
 import type { ReportSummaryReceivable } from './reportSummaryReceivable';
+import type { ReportSummaryTopServicesItem } from './reportSummaryTopServicesItem';
 
 export interface ReportSummary {
   from: string;
@@ -24,5 +26,7 @@ export interface ReportSummary {
   inProgress: ReportSummaryInProgress;
   purchases: ReportSummaryPurchases;
   stockValue: number;
+  byMechanic: ReportSummaryByMechanicItem[];
+  topServices: ReportSummaryTopServicesItem[];
   lowestMargins: ReportSummaryLowestMarginsItem[];
 }

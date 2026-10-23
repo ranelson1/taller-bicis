@@ -1757,6 +1757,27 @@ export type ReportSummaryPurchases = {
   count: number;
 };
 
+export type ReportSummaryByMechanicItem = {
+  /** @nullable */
+  mechanicId?: number | null;
+  name: string;
+  jobs: number;
+  revenue: number;
+  materialsCost: number;
+  laborCost: number;
+  margin: number;
+};
+
+export type ReportSummaryTopServicesItem = {
+  serviceId: number;
+  name: string;
+  uses: number;
+  revenue: number;
+  margin: number;
+  /** @nullable */
+  marginPct?: number | null;
+};
+
 export type ReportSummaryLowestMarginsItem = {
   workOrderId: number;
   /** @nullable */
@@ -1784,6 +1805,8 @@ export interface ReportSummary {
   inProgress: ReportSummaryInProgress;
   purchases: ReportSummaryPurchases;
   stockValue: number;
+  byMechanic: ReportSummaryByMechanicItem[];
+  topServices: ReportSummaryTopServicesItem[];
   lowestMargins: ReportSummaryLowestMarginsItem[];
 }
 
