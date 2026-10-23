@@ -74,6 +74,7 @@ const costsSchema = z.object({
   monthlyWorkHours: z.number().positive().max(744).nullable().optional(),
   laborCostPerHour: z.number().min(0).nullable().optional(),
   defaultPartsMarginPct: z.number().min(0).max(500).optional(),
+  recoversVat: z.boolean().optional(),
 });
 
 router.put("/costs", async (req, res) => {
@@ -93,6 +94,7 @@ router.put("/costs", async (req, res) => {
     monthlyWorkHours: str(d.monthlyWorkHours),
     laborCostPerHour: str(computed),
     ...(d.defaultPartsMarginPct != null ? { defaultPartsMarginPct: String(d.defaultPartsMarginPct) } : {}),
+    ...(d.recoversVat != null ? { recoversVat: d.recoversVat } : {}),
     updatedAt: new Date(),
   };
   try {

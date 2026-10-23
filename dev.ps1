@@ -57,7 +57,7 @@ Write-Host ' listo.'
 
 # 3. Base nueva: esquema, usuario de la app, superadmin y taller demo.
 $hasTables = docker exec taller-db psql -U taller -d taller -t -A -c "select to_regclass('public.workshops') is not null"
-if ($fresh -or $hasTables.Trim() -ne 't') {
+if ($hasTables.Trim() -ne 't') {
   Write-Host 'Base vacia: creando esquema y datos iniciales...'
   Get-Content -Raw 'lib\db\schema.sql' | docker exec -i taller-db psql -U taller -d taller -v ON_ERROR_STOP=1 -q
   if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el esquema.' }

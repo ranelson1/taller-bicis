@@ -33,6 +33,8 @@ export interface WorkshopSettings {
   laborCostPerHour?: number | null;
   /** Margen por defecto sobre repuestos comprados para un trabajo (%) */
   defaultPartsMarginPct: number;
+  /** El taller recupera el IVA de sus compras (costos y márgenes netos) */
+  recoversVat?: boolean;
   /** @nullable */
   logoUrl?: string | null;
 }

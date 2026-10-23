@@ -2081,6 +2081,8 @@ paths:
                   type: ["number", "null"]
                 defaultPartsMarginPct:
                   type: number
+                recoversVat:
+                  type: boolean
       responses:
         "200":
           description: Configuración
@@ -2101,6 +2103,281 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WorkshopSettings"
+
+  /inventory:
+    get:
+      operationId: listInventory
+      tags: [inventory]
+      summary: Stock de cada artículo, lo comprometido por trabajos abiertos y cuánto comprar
+      responses:
+        "200":
+          description: Artículos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+
+  /inventory/suppliers:
+    get:
+      operationId: listSuppliers
+      tags: [inventory]
+      summary: Proveedores del taller
+      responses:
+        "200":
+          description: Proveedores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Supplier"
+
+  /inventory/{partId}/adjust:
+    post:
+      operationId: adjustInventory
+      tags: [inventory]
+      summary: Corrige el stock (conteo físico o diferencia)
+      parameters:
+        - name: partId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                countedStock:
+                  type: number
+                delta:
+                  type: number
+                note:
+                  type: string
+      responses:
+        "200":
+          description: Stock corregido
+
+  /inventory/{partId}/movements:
+    get:
+      operationId: listInventoryMovements
+      tags: [inventory]
+      summary: Entradas y salidas de stock de un artículo
+      parameters:
+        - name: partId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Movimientos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryMovement"
+
+  /purchases:
+    get:
+      operationId: listPurchases
+      tags: [purchases]
+      summary: Compras del taller
+      responses:
+        "200":
+          description: Compras
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PurchaseSummary"
+    post:
+      operationId: createPurchase
+      tags: [purchases]
+      summary: Crea una compra en borrador (ingreso manual)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseInput"
+      responses:
+        "201":
+          description: Compra
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Purchase"
+
+  /purchases/reader-status:
+    get:
+      operationId: getPurchaseReaderStatus
+      tags: [purchases]
+      summary: Qué documentos se pueden leer automáticamente
+      responses:
+        "200":
+          description: Estado del lector
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [xml, pdfAndImages]
+                properties:
+                  xml:
+                    type: boolean
+                  pdfAndImages:
+                    type: boolean
+
+  /purchases/{id}:
+    get:
+      operationId: getPurchase
+      tags: [purchases]
+      summary: Compra con sus líneas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Compra
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Purchase"
+    put:
+      operationId: updatePurchase
+      tags: [purchases]
+      summary: Edita una compra en borrador
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseInput"
+      responses:
+        "200":
+          description: Compra
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Purchase"
+    delete:
+      operationId: deletePurchase
+      tags: [purchases]
+      summary: Borra una compra en borrador
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Borrada
+
+  /purchases/{id}/confirm:
+    post:
+      operationId: confirmPurchase
+      tags: [purchases]
+      summary: Confirma la compra (suma stock y carga repuestos a sus trabajos)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Compra confirmada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Purchase"
+
+  /services/{id}/supplies:
+    get:
+      operationId: listServiceSupplies
+      tags: [services]
+      summary: Insumos que gasta el servicio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Receta
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceSupply"
+    put:
+      operationId: updateServiceSupplies
+      tags: [services]
+      summary: Reemplaza la receta de insumos del servicio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [supplies]
+              properties:
+                supplies:
+                  type: array
+                  items:
+                    type: object
+                    required: [partId, quantity]
+                    properties:
+                      partId:
+                        type: integer
+                      quantity:
+                        type: number
+      responses:
+        "200":
+          description: Receta guardada
+
+  /work-orders/{id}/economics:
+    get:
+      operationId: getWorkOrderEconomics
+      tags: [workOrders]
+      summary: Cobrado, costos y margen de la OT (solo admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Números de la OT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderEconomics"
 
   /work-orders/estimate-preview:
     post:
@@ -3447,6 +3724,18 @@ components:
           type: ["number", "null"]
         sku:
           type: ["string", "null"]
+        kind:
+          type: string
+          enum: [part, supply]
+          description: part = se cobra al cliente; supply = insumo del taller
+        unit:
+          type: string
+        costPrice:
+          type: ["number", "null"]
+        minStock:
+          type: ["number", "null"]
+        stock:
+          type: number
         active:
           type: boolean
         createdAt:
@@ -3470,6 +3759,19 @@ components:
           type: ["number", "null"]
         sku:
           type: ["string", "null"]
+        kind:
+          type: string
+          enum: [part, supply]
+          description: part = se cobra al cliente; supply = insumo del taller
+        unit:
+          type: string
+        costPrice:
+          type: ["number", "null"]
+        minStock:
+          type: ["number", "null"]
+        initialStock:
+          type: ["number", "null"]
+          description: Stock inicial (queda como ajuste)
 
     PartUpdate:
       type: object
@@ -3484,6 +3786,16 @@ components:
           type: ["number", "null"]
         sku:
           type: ["string", "null"]
+        kind:
+          type: string
+          enum: [part, supply]
+          description: part = se cobra al cliente; supply = insumo del taller
+        unit:
+          type: string
+        costPrice:
+          type: ["number", "null"]
+        minStock:
+          type: ["number", "null"]
         active:
           type: boolean
 
@@ -4705,6 +5017,9 @@ components:
         defaultPartsMarginPct:
           type: number
           description: Margen por defecto sobre repuestos comprados para un trabajo (%)
+        recoversVat:
+          type: boolean
+          description: El taller recupera el IVA de sus compras (costos y márgenes netos)
         logoUrl:
           type: ["string", "null"]
 
@@ -4783,6 +5098,288 @@ components:
           type: array
           items:
             type: string
+
+    InventoryItem:
+      type: object
+      required: [id, name, kind, unit, stock, reserved, available, needsReorder, suggestedQuantity]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [part, supply]
+        unit:
+          type: string
+        sku:
+          type: ["string", "null"]
+        brand:
+          type: ["string", "null"]
+        categoryName:
+          type: ["string", "null"]
+        costPrice:
+          type: ["number", "null"]
+        salePrice:
+          type: ["number", "null"]
+        stock:
+          type: number
+        minStock:
+          type: ["number", "null"]
+        reserved:
+          type: number
+          description: Comprometido por trabajos abiertos
+        available:
+          type: number
+        needsReorder:
+          type: boolean
+        suggestedQuantity:
+          type: number
+
+    InventoryMovement:
+      type: object
+      required: [id, kind, quantity, createdAt]
+      properties:
+        id:
+          type: integer
+        kind:
+          type: string
+          enum: [purchase, consumption, return, adjustment]
+        quantity:
+          type: number
+        unitCost:
+          type: ["number", "null"]
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        workOrderId:
+          type: ["integer", "null"]
+        workOrderNumber:
+          type: ["string", "null"]
+        workCaseId:
+          type: ["integer", "null"]
+        purchaseId:
+          type: ["integer", "null"]
+        userName:
+          type: ["string", "null"]
+
+    Supplier:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        rut:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+
+    PurchaseSummary:
+      type: object
+      required: [id, status, source, docType, createdAt, itemCount, forJobs]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [draft, confirmed, cancelled]
+        source:
+          type: string
+        docType:
+          type: string
+        docNumber:
+          type: ["string", "null"]
+        issuedOn:
+          type: ["string", "null"]
+        total:
+          type: ["number", "null"]
+        supplierName:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        itemCount:
+          type: integer
+        forJobs:
+          type: integer
+
+    PurchaseItem:
+      type: object
+      required: [id, description, quantity, unitCostNet]
+      properties:
+        id:
+          type: integer
+        partId:
+          type: ["integer", "null"]
+        partName:
+          type: ["string", "null"]
+        partKind:
+          type: ["string", "null"]
+        partUnit:
+          type: ["string", "null"]
+        partSalePrice:
+          type: ["number", "null"]
+        partCostPrice:
+          type: ["number", "null"]
+        description:
+          type: string
+        supplierCode:
+          type: ["string", "null"]
+        quantity:
+          type: number
+        unit:
+          type: ["string", "null"]
+        unitCostNet:
+          type: number
+        salePrice:
+          type: ["number", "null"]
+        workOrderId:
+          type: ["integer", "null"]
+        workOrderNumber:
+          type: ["string", "null"]
+        workCaseId:
+          type: ["integer", "null"]
+
+    Purchase:
+      type: object
+      required: [id, status, source, docType, createdAt, items]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [draft, confirmed, cancelled]
+        source:
+          type: string
+        docType:
+          type: string
+        docNumber:
+          type: ["string", "null"]
+        issuedOn:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        supplierId:
+          type: ["integer", "null"]
+        supplierName:
+          type: ["string", "null"]
+        supplierRut:
+          type: ["string", "null"]
+        netTotal:
+          type: ["number", "null"]
+        taxTotal:
+          type: ["number", "null"]
+        total:
+          type: ["number", "null"]
+        fileUrl:
+          type: ["string", "null"]
+        fileMime:
+          type: ["string", "null"]
+        confirmedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchaseItem"
+        touchedWorkOrders:
+          type: array
+          items:
+            type: integer
+
+    PurchaseInput:
+      type: object
+      required: [items]
+      properties:
+        supplierName:
+          type: ["string", "null"]
+        supplierRut:
+          type: ["string", "null"]
+        docType:
+          type: string
+          enum: [factura, boleta, guia, otro]
+        docNumber:
+          type: ["string", "null"]
+        issuedOn:
+          type: ["string", "null"]
+        netTotal:
+          type: ["number", "null"]
+        taxTotal:
+          type: ["number", "null"]
+        total:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+        items:
+          type: array
+          items:
+            type: object
+            required: [description, quantity, unitCostNet]
+            properties:
+              partId:
+                type: ["integer", "null"]
+              description:
+                type: string
+              supplierCode:
+                type: ["string", "null"]
+              quantity:
+                type: number
+              unit:
+                type: ["string", "null"]
+              unitCostNet:
+                type: number
+              workOrderId:
+                type: ["integer", "null"]
+              salePrice:
+                type: ["number", "null"]
+
+    ServiceSupply:
+      type: object
+      required: [partId, quantity, name, unit]
+      properties:
+        partId:
+          type: integer
+        quantity:
+          type: number
+        name:
+          type: string
+        unit:
+          type: string
+        costPrice:
+          type: ["number", "null"]
+
+    WorkOrderEconomics:
+      type: object
+      required: [total, revenue, materialsCost, laborHours, margin, recoversVat, missingCosts, missingLaborCost, stockConsumed]
+      properties:
+        total:
+          type: number
+        revenue:
+          type: number
+          description: Lo que queda para el taller (neto si recupera IVA)
+        materialsCost:
+          type: number
+        laborHours:
+          type: number
+        laborCost:
+          type: ["number", "null"]
+        margin:
+          type: number
+        marginPct:
+          type: ["number", "null"]
+        recoversVat:
+          type: boolean
+        missingCosts:
+          type: boolean
+        missingLaborCost:
+          type: boolean
+        stockConsumed:
+          type: boolean
 
     QuickCreateResult:
       type: object

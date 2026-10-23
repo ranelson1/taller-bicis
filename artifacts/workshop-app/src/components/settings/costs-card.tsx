@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { formatCLP } from "@/lib/work-status";
 import { Calculator } from "lucide-react";
@@ -21,7 +22,7 @@ export function CostsCard({ settings }: { settings: WorkshopSettings }) {
   const save = useUpdateWorkshopCosts();
   // Horas al mes que repara: por defecto, el horario neto del taller.
   const scheduleHours = Math.round(settings.weeklyNetHours * WEEKS_PER_MONTH);
-  const [form, setForm] = useState({ fixed: "", salary: "", hours: "", margin: "30" });
+  const [form, setForm] = useState({ fixed: "", salary: "", hours: "", margin: "30", recoversVat: false });
 
   useEffect(() => {
     setForm({
@@ -29,6 +30,7 @@ export function CostsCard({ settings }: { settings: WorkshopSettings }) {
       salary: settings.monthlySalary != null ? String(settings.monthlySalary) : "",
       hours: settings.monthlyWorkHours != null ? String(settings.monthlyWorkHours) : String(scheduleHours),
       margin: String(settings.defaultPartsMarginPct ?? 30),
+      recoversVat: !!settings.recoversVat,
     });
   }, [settings, scheduleHours]);
 
@@ -39,7 +41,7 @@ export function CostsCard({ settings }: { settings: WorkshopSettings }) {
 
   const submit = () => {
     save.mutate({
-      data: { monthlyFixedCosts: fixed, monthlySalary: salary, monthlyWorkHours: hours, defaultPartsMarginPct: margin! },
+      data: { monthlyFixedCosts: fixed, monthlySalary: salary, monthlyWorkHours: hours, defaultPartsMarginPct: margin!, recoversVat: form.recoversVat },
     }, {
       onSuccess: () => { toast({ title: "Costos guardados", description: `Tu hora cuesta ${formatCLP(hourCost)}` }); qc.invalidateQueries({ queryKey: getGetWorkshopSettingsQueryKey() }); },
       onError: (e: any) => toast({ variant: "destructive", title: e?.data?.error ?? "No se pudo guardar" }),
@@ -89,6 +91,14 @@ export function CostsCard({ settings }: { settings: WorkshopSettings }) {
           </div>
           <p className="text-xs text-muted-foreground">Ej.: un retén que te cuesta $10.000 se le cobra al cliente a {formatCLP(10000 * (1 + (margin ?? 0) / 100))}. Si el distribuidor te da un precio de venta, se usa ese.</p>
         </div>
+
+        <label className="flex items-start justify-between gap-3 rounded-md border p-3 cursor-pointer">
+          <span className="space-y-0.5">
+            <span className="block text-sm font-medium">Recupero el IVA de las compras</span>
+            <span className="block text-xs text-muted-foreground">Actívalo si emites factura y descuentas el IVA de lo que compras. Si no, el costo de los repuestos incluye el IVA.</span>
+          </span>
+          <Switch checked={form.recoversVat} onCheckedChange={v => setForm(f => ({ ...f, recoversVat: v }))} data-testid="switch-recovers-vat" />
+        </label>
 
         <Button onClick={submit} disabled={!valid || save.isPending} data-testid="button-save-costs">{save.isPending ? "Guardando…" : "Guardar costos"}</Button>
       </CardContent>

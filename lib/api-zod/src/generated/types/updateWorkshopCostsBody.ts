@@ -16,4 +16,5 @@ export type UpdateWorkshopCostsBody = {
   /** @nullable */
   laborCostPerHour?: number | null;
   defaultPartsMarginPct?: number;
+  recoversVat?: boolean;
 };

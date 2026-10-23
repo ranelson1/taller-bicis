@@ -439,6 +439,17 @@ export interface ServiceStepMoveInput {
   direction: ServiceStepMoveInputDirection;
 }
 
+/**
+ * part = se cobra al cliente; supply = insumo del taller
+ */
+export type PartKind = typeof PartKind[keyof typeof PartKind];
+
+
+export const PartKind = {
+  part: 'part',
+  supply: 'supply',
+} as const;
+
 export interface Part {
   id: number;
   name: string;
@@ -452,10 +463,29 @@ export interface Part {
   suggestedPrice?: number | null;
   /** @nullable */
   sku?: string | null;
+  /** part = se cobra al cliente; supply = insumo del taller */
+  kind?: PartKind;
+  unit?: string;
+  /** @nullable */
+  costPrice?: number | null;
+  /** @nullable */
+  minStock?: number | null;
+  stock?: number;
   active: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * part = se cobra al cliente; supply = insumo del taller
+ */
+export type PartInputKind = typeof PartInputKind[keyof typeof PartInputKind];
+
+
+export const PartInputKind = {
+  part: 'part',
+  supply: 'supply',
+} as const;
 
 export interface PartInput {
   name: string;
@@ -467,7 +497,30 @@ export interface PartInput {
   suggestedPrice?: number | null;
   /** @nullable */
   sku?: string | null;
+  /** part = se cobra al cliente; supply = insumo del taller */
+  kind?: PartInputKind;
+  unit?: string;
+  /** @nullable */
+  costPrice?: number | null;
+  /** @nullable */
+  minStock?: number | null;
+  /**
+     * Stock inicial (queda como ajuste)
+     * @nullable
+     */
+  initialStock?: number | null;
 }
+
+/**
+ * part = se cobra al cliente; supply = insumo del taller
+ */
+export type PartUpdateKind = typeof PartUpdateKind[keyof typeof PartUpdateKind];
+
+
+export const PartUpdateKind = {
+  part: 'part',
+  supply: 'supply',
+} as const;
 
 export interface PartUpdate {
   name?: string;
@@ -479,6 +532,13 @@ export interface PartUpdate {
   suggestedPrice?: number | null;
   /** @nullable */
   sku?: string | null;
+  /** part = se cobra al cliente; supply = insumo del taller */
+  kind?: PartUpdateKind;
+  unit?: string;
+  /** @nullable */
+  costPrice?: number | null;
+  /** @nullable */
+  minStock?: number | null;
   active?: boolean;
 }
 
@@ -1613,6 +1673,8 @@ export interface WorkshopSettings {
   laborCostPerHour?: number | null;
   /** Margen por defecto sobre repuestos comprados para un trabajo (%) */
   defaultPartsMarginPct: number;
+  /** El taller recupera el IVA de sus compras (costos y márgenes netos) */
+  recoversVat?: boolean;
   /** @nullable */
   logoUrl?: string | null;
 }
@@ -1652,6 +1714,255 @@ export interface PlatformWorkshop {
   /** @nullable */
   lastActivityAt?: string | null;
   adminEmails: string[];
+}
+
+export type InventoryItemKind = typeof InventoryItemKind[keyof typeof InventoryItemKind];
+
+
+export const InventoryItemKind = {
+  part: 'part',
+  supply: 'supply',
+} as const;
+
+export interface InventoryItem {
+  id: number;
+  name: string;
+  kind: InventoryItemKind;
+  unit: string;
+  /** @nullable */
+  sku?: string | null;
+  /** @nullable */
+  brand?: string | null;
+  /** @nullable */
+  categoryName?: string | null;
+  /** @nullable */
+  costPrice?: number | null;
+  /** @nullable */
+  salePrice?: number | null;
+  stock: number;
+  /** @nullable */
+  minStock?: number | null;
+  /** Comprometido por trabajos abiertos */
+  reserved: number;
+  available: number;
+  needsReorder: boolean;
+  suggestedQuantity: number;
+}
+
+export type InventoryMovementKind = typeof InventoryMovementKind[keyof typeof InventoryMovementKind];
+
+
+export const InventoryMovementKind = {
+  purchase: 'purchase',
+  consumption: 'consumption',
+  return: 'return',
+  adjustment: 'adjustment',
+} as const;
+
+export interface InventoryMovement {
+  id: number;
+  kind: InventoryMovementKind;
+  quantity: number;
+  /** @nullable */
+  unitCost?: number | null;
+  /** @nullable */
+  note?: string | null;
+  createdAt: string;
+  /** @nullable */
+  workOrderId?: number | null;
+  /** @nullable */
+  workOrderNumber?: string | null;
+  /** @nullable */
+  workCaseId?: number | null;
+  /** @nullable */
+  purchaseId?: number | null;
+  /** @nullable */
+  userName?: string | null;
+}
+
+export interface Supplier {
+  id: number;
+  name: string;
+  /** @nullable */
+  rut?: string | null;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  email?: string | null;
+}
+
+export type PurchaseSummaryStatus = typeof PurchaseSummaryStatus[keyof typeof PurchaseSummaryStatus];
+
+
+export const PurchaseSummaryStatus = {
+  draft: 'draft',
+  confirmed: 'confirmed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface PurchaseSummary {
+  id: number;
+  status: PurchaseSummaryStatus;
+  source: string;
+  docType: string;
+  /** @nullable */
+  docNumber?: string | null;
+  /** @nullable */
+  issuedOn?: string | null;
+  /** @nullable */
+  total?: number | null;
+  /** @nullable */
+  supplierName?: string | null;
+  createdAt: string;
+  itemCount: number;
+  forJobs: number;
+}
+
+export interface PurchaseItem {
+  id: number;
+  /** @nullable */
+  partId?: number | null;
+  /** @nullable */
+  partName?: string | null;
+  /** @nullable */
+  partKind?: string | null;
+  /** @nullable */
+  partUnit?: string | null;
+  /** @nullable */
+  partSalePrice?: number | null;
+  /** @nullable */
+  partCostPrice?: number | null;
+  description: string;
+  /** @nullable */
+  supplierCode?: string | null;
+  quantity: number;
+  /** @nullable */
+  unit?: string | null;
+  unitCostNet: number;
+  /** @nullable */
+  salePrice?: number | null;
+  /** @nullable */
+  workOrderId?: number | null;
+  /** @nullable */
+  workOrderNumber?: string | null;
+  /** @nullable */
+  workCaseId?: number | null;
+}
+
+export type PurchaseStatus = typeof PurchaseStatus[keyof typeof PurchaseStatus];
+
+
+export const PurchaseStatus = {
+  draft: 'draft',
+  confirmed: 'confirmed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface Purchase {
+  id: number;
+  status: PurchaseStatus;
+  source: string;
+  docType: string;
+  /** @nullable */
+  docNumber?: string | null;
+  /** @nullable */
+  issuedOn?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  supplierId?: number | null;
+  /** @nullable */
+  supplierName?: string | null;
+  /** @nullable */
+  supplierRut?: string | null;
+  /** @nullable */
+  netTotal?: number | null;
+  /** @nullable */
+  taxTotal?: number | null;
+  /** @nullable */
+  total?: number | null;
+  /** @nullable */
+  fileUrl?: string | null;
+  /** @nullable */
+  fileMime?: string | null;
+  /** @nullable */
+  confirmedAt?: string | null;
+  createdAt: string;
+  items: PurchaseItem[];
+  touchedWorkOrders?: number[];
+}
+
+export type PurchaseInputDocType = typeof PurchaseInputDocType[keyof typeof PurchaseInputDocType];
+
+
+export const PurchaseInputDocType = {
+  factura: 'factura',
+  boleta: 'boleta',
+  guia: 'guia',
+  otro: 'otro',
+} as const;
+
+export type PurchaseInputItemsItem = {
+  /** @nullable */
+  partId?: number | null;
+  description: string;
+  /** @nullable */
+  supplierCode?: string | null;
+  quantity: number;
+  /** @nullable */
+  unit?: string | null;
+  unitCostNet: number;
+  /** @nullable */
+  workOrderId?: number | null;
+  /** @nullable */
+  salePrice?: number | null;
+};
+
+export interface PurchaseInput {
+  /** @nullable */
+  supplierName?: string | null;
+  /** @nullable */
+  supplierRut?: string | null;
+  docType?: PurchaseInputDocType;
+  /** @nullable */
+  docNumber?: string | null;
+  /** @nullable */
+  issuedOn?: string | null;
+  /** @nullable */
+  netTotal?: number | null;
+  /** @nullable */
+  taxTotal?: number | null;
+  /** @nullable */
+  total?: number | null;
+  /** @nullable */
+  notes?: string | null;
+  items: PurchaseInputItemsItem[];
+}
+
+export interface ServiceSupply {
+  partId: number;
+  quantity: number;
+  name: string;
+  unit: string;
+  /** @nullable */
+  costPrice?: number | null;
+}
+
+export interface WorkOrderEconomics {
+  total: number;
+  /** Lo que queda para el taller (neto si recupera IVA) */
+  revenue: number;
+  materialsCost: number;
+  laborHours: number;
+  /** @nullable */
+  laborCost?: number | null;
+  margin: number;
+  /** @nullable */
+  marginPct?: number | null;
+  recoversVat: boolean;
+  missingCosts: boolean;
+  missingLaborCost: boolean;
+  stockConsumed: boolean;
 }
 
 export interface QuickCreateResult {
@@ -1797,6 +2108,27 @@ export type UpdateWorkshopCostsBody = {
   /** @nullable */
   laborCostPerHour?: number | null;
   defaultPartsMarginPct?: number;
+  recoversVat?: boolean;
+};
+
+export type AdjustInventoryBody = {
+  countedStock?: number;
+  delta?: number;
+  note?: string;
+};
+
+export type GetPurchaseReaderStatus200 = {
+  xml: boolean;
+  pdfAndImages: boolean;
+};
+
+export type UpdateServiceSuppliesBodySuppliesItem = {
+  partId: number;
+  quantity: number;
+};
+
+export type UpdateServiceSuppliesBody = {
+  supplies: UpdateServiceSuppliesBodySuppliesItem[];
 };
 
 export type PreviewWorkOrderEstimateBody = {

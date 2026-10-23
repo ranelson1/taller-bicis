@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Wrench, Users, Bike, LayoutDashboard, Settings, LogOut, Menu, Briefcase, Plus, Building2, LifeBuoy } from "lucide-react";
+import { Wrench, Users, Bike, LayoutDashboard, Settings, LogOut, Menu, Briefcase, Plus, Building2, LifeBuoy, Package } from "lucide-react";
 import { useExitPlatformWorkshop, useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -13,6 +13,7 @@ const mainNavItems: NavItem[] = [
   { href: "/trabajos", label: "Trabajos", icon: Briefcase },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/bicicletas", label: "Bicicletas", icon: Bike },
+  { href: "/inventario", label: "Inventario", icon: Package },
 ];
 
 const adminNavItems: NavItem[] = [

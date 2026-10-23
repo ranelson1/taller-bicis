@@ -41,6 +41,7 @@ export async function getWorkshopSettings(exec: Tx | typeof db = db) {
     monthlyWorkHours: num(row?.monthlyWorkHours),
     laborCostPerHour: num(row?.laborCostPerHour),
     defaultPartsMarginPct: num(row?.defaultPartsMarginPct) ?? 30,
+    recoversVat: row?.recoversVat ?? false,
     // El logo se sirve sin login (sale en el link del cliente); `v` cambia al subir uno nuevo.
     logoUrl: row?.logoKey && workshop ? logoUrl(workshop.id, row.logoKey) : null,
   };

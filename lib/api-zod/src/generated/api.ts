@@ -758,6 +758,11 @@ export const ListPartsResponseItem = zod.object({
   "brand": zod.string().nullish(),
   "suggestedPrice": zod.number().nullish(),
   "sku": zod.string().nullish(),
+  "kind": zod.enum(['part', 'supply']).optional().describe('part = se cobra al cliente; supply = insumo del taller'),
+  "unit": zod.string().optional(),
+  "costPrice": zod.number().nullish(),
+  "minStock": zod.number().nullish(),
+  "stock": zod.number().optional(),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -773,7 +778,12 @@ export const CreatePartBody = zod.object({
   "categoryId": zod.number().nullish(),
   "brand": zod.string().nullish(),
   "suggestedPrice": zod.number().nullish(),
-  "sku": zod.string().nullish()
+  "sku": zod.string().nullish(),
+  "kind": zod.enum(['part', 'supply']).optional().describe('part = se cobra al cliente; supply = insumo del taller'),
+  "unit": zod.string().optional(),
+  "costPrice": zod.number().nullish(),
+  "minStock": zod.number().nullish(),
+  "initialStock": zod.number().nullish().describe('Stock inicial (queda como ajuste)')
 })
 
 export const CreatePartResponse = zod.object({
@@ -784,6 +794,11 @@ export const CreatePartResponse = zod.object({
   "brand": zod.string().nullish(),
   "suggestedPrice": zod.number().nullish(),
   "sku": zod.string().nullish(),
+  "kind": zod.enum(['part', 'supply']).optional().describe('part = se cobra al cliente; supply = insumo del taller'),
+  "unit": zod.string().optional(),
+  "costPrice": zod.number().nullish(),
+  "minStock": zod.number().nullish(),
+  "stock": zod.number().optional(),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -805,6 +820,11 @@ export const GetPartResponse = zod.object({
   "brand": zod.string().nullish(),
   "suggestedPrice": zod.number().nullish(),
   "sku": zod.string().nullish(),
+  "kind": zod.enum(['part', 'supply']).optional().describe('part = se cobra al cliente; supply = insumo del taller'),
+  "unit": zod.string().optional(),
+  "costPrice": zod.number().nullish(),
+  "minStock": zod.number().nullish(),
+  "stock": zod.number().optional(),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -824,6 +844,10 @@ export const UpdatePartBody = zod.object({
   "brand": zod.string().nullish(),
   "suggestedPrice": zod.number().nullish(),
   "sku": zod.string().nullish(),
+  "kind": zod.enum(['part', 'supply']).optional().describe('part = se cobra al cliente; supply = insumo del taller'),
+  "unit": zod.string().optional(),
+  "costPrice": zod.number().nullish(),
+  "minStock": zod.number().nullish(),
   "active": zod.boolean().optional()
 })
 
@@ -835,6 +859,11 @@ export const UpdatePartResponse = zod.object({
   "brand": zod.string().nullish(),
   "suggestedPrice": zod.number().nullish(),
   "sku": zod.string().nullish(),
+  "kind": zod.enum(['part', 'supply']).optional().describe('part = se cobra al cliente; supply = insumo del taller'),
+  "unit": zod.string().optional(),
+  "costPrice": zod.number().nullish(),
+  "minStock": zod.number().nullish(),
+  "stock": zod.number().optional(),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -2529,6 +2558,7 @@ export const GetWorkshopSettingsResponse = zod.object({
   "monthlyWorkHours": zod.number().nullish(),
   "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
   "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
   "logoUrl": zod.string().nullish()
 })
 
@@ -2569,6 +2599,7 @@ export const UpdateWorkshopSettingsResponse = zod.object({
   "monthlyWorkHours": zod.number().nullish(),
   "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
   "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
   "logoUrl": zod.string().nullish()
 })
 
@@ -2708,7 +2739,8 @@ export const UpdateWorkshopCostsBody = zod.object({
   "monthlySalary": zod.number().nullish(),
   "monthlyWorkHours": zod.number().nullish(),
   "laborCostPerHour": zod.number().nullish(),
-  "defaultPartsMarginPct": zod.number().optional()
+  "defaultPartsMarginPct": zod.number().optional(),
+  "recoversVat": zod.boolean().optional()
 })
 
 export const UpdateWorkshopCostsResponse = zod.object({
@@ -2731,6 +2763,7 @@ export const UpdateWorkshopCostsResponse = zod.object({
   "monthlyWorkHours": zod.number().nullish(),
   "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
   "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
   "logoUrl": zod.string().nullish()
 })
 
@@ -2758,7 +2791,405 @@ export const DeleteWorkshopLogoResponse = zod.object({
   "monthlyWorkHours": zod.number().nullish(),
   "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
   "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
   "logoUrl": zod.string().nullish()
+})
+
+
+/**
+ * @summary Stock de cada artículo, lo comprometido por trabajos abiertos y cuánto comprar
+ */
+export const ListInventoryResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "kind": zod.enum(['part', 'supply']),
+  "unit": zod.string(),
+  "sku": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "categoryName": zod.string().nullish(),
+  "costPrice": zod.number().nullish(),
+  "salePrice": zod.number().nullish(),
+  "stock": zod.number(),
+  "minStock": zod.number().nullish(),
+  "reserved": zod.number().describe('Comprometido por trabajos abiertos'),
+  "available": zod.number(),
+  "needsReorder": zod.boolean(),
+  "suggestedQuantity": zod.number()
+})
+export const ListInventoryResponse = zod.array(ListInventoryResponseItem)
+
+
+/**
+ * @summary Proveedores del taller
+ */
+export const ListSuppliersResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "rut": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "email": zod.string().nullish()
+})
+export const ListSuppliersResponse = zod.array(ListSuppliersResponseItem)
+
+
+/**
+ * @summary Corrige el stock (conteo físico o diferencia)
+ */
+export const AdjustInventoryParams = zod.object({
+  "partId": zod.coerce.number()
+})
+
+export const AdjustInventoryBody = zod.object({
+  "countedStock": zod.number().optional(),
+  "delta": zod.number().optional(),
+  "note": zod.string().optional()
+})
+
+export const AdjustInventoryResponse = zod.unknown()
+
+
+/**
+ * @summary Entradas y salidas de stock de un artículo
+ */
+export const ListInventoryMovementsParams = zod.object({
+  "partId": zod.coerce.number()
+})
+
+export const ListInventoryMovementsResponseItem = zod.object({
+  "id": zod.number(),
+  "kind": zod.enum(['purchase', 'consumption', 'return', 'adjustment']),
+  "quantity": zod.number(),
+  "unitCost": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "workOrderId": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish(),
+  "workCaseId": zod.number().nullish(),
+  "purchaseId": zod.number().nullish(),
+  "userName": zod.string().nullish()
+})
+export const ListInventoryMovementsResponse = zod.array(ListInventoryMovementsResponseItem)
+
+
+/**
+ * @summary Compras del taller
+ */
+export const ListPurchasesResponseItem = zod.object({
+  "id": zod.number(),
+  "status": zod.enum(['draft', 'confirmed', 'cancelled']),
+  "source": zod.string(),
+  "docType": zod.string(),
+  "docNumber": zod.string().nullish(),
+  "issuedOn": zod.string().nullish(),
+  "total": zod.number().nullish(),
+  "supplierName": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "itemCount": zod.number(),
+  "forJobs": zod.number()
+})
+export const ListPurchasesResponse = zod.array(ListPurchasesResponseItem)
+
+
+/**
+ * @summary Crea una compra en borrador (ingreso manual)
+ */
+export const CreatePurchaseBody = zod.object({
+  "supplierName": zod.string().nullish(),
+  "supplierRut": zod.string().nullish(),
+  "docType": zod.enum(['factura', 'boleta', 'guia', 'otro']).optional(),
+  "docNumber": zod.string().nullish(),
+  "issuedOn": zod.string().nullish(),
+  "netTotal": zod.number().nullish(),
+  "taxTotal": zod.number().nullish(),
+  "total": zod.number().nullish(),
+  "notes": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "partId": zod.number().nullish(),
+  "description": zod.string(),
+  "supplierCode": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string().nullish(),
+  "unitCostNet": zod.number(),
+  "workOrderId": zod.number().nullish(),
+  "salePrice": zod.number().nullish()
+}))
+})
+
+export const CreatePurchaseResponse = zod.object({
+  "id": zod.number(),
+  "status": zod.enum(['draft', 'confirmed', 'cancelled']),
+  "source": zod.string(),
+  "docType": zod.string(),
+  "docNumber": zod.string().nullish(),
+  "issuedOn": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "supplierId": zod.number().nullish(),
+  "supplierName": zod.string().nullish(),
+  "supplierRut": zod.string().nullish(),
+  "netTotal": zod.number().nullish(),
+  "taxTotal": zod.number().nullish(),
+  "total": zod.number().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "fileMime": zod.string().nullish(),
+  "confirmedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "partId": zod.number().nullish(),
+  "partName": zod.string().nullish(),
+  "partKind": zod.string().nullish(),
+  "partUnit": zod.string().nullish(),
+  "partSalePrice": zod.number().nullish(),
+  "partCostPrice": zod.number().nullish(),
+  "description": zod.string(),
+  "supplierCode": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string().nullish(),
+  "unitCostNet": zod.number(),
+  "salePrice": zod.number().nullish(),
+  "workOrderId": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish(),
+  "workCaseId": zod.number().nullish()
+})),
+  "touchedWorkOrders": zod.array(zod.number()).optional()
+})
+
+
+/**
+ * @summary Qué documentos se pueden leer automáticamente
+ */
+export const GetPurchaseReaderStatusResponse = zod.object({
+  "xml": zod.boolean(),
+  "pdfAndImages": zod.boolean()
+})
+
+
+/**
+ * @summary Compra con sus líneas
+ */
+export const GetPurchaseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetPurchaseResponse = zod.object({
+  "id": zod.number(),
+  "status": zod.enum(['draft', 'confirmed', 'cancelled']),
+  "source": zod.string(),
+  "docType": zod.string(),
+  "docNumber": zod.string().nullish(),
+  "issuedOn": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "supplierId": zod.number().nullish(),
+  "supplierName": zod.string().nullish(),
+  "supplierRut": zod.string().nullish(),
+  "netTotal": zod.number().nullish(),
+  "taxTotal": zod.number().nullish(),
+  "total": zod.number().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "fileMime": zod.string().nullish(),
+  "confirmedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "partId": zod.number().nullish(),
+  "partName": zod.string().nullish(),
+  "partKind": zod.string().nullish(),
+  "partUnit": zod.string().nullish(),
+  "partSalePrice": zod.number().nullish(),
+  "partCostPrice": zod.number().nullish(),
+  "description": zod.string(),
+  "supplierCode": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string().nullish(),
+  "unitCostNet": zod.number(),
+  "salePrice": zod.number().nullish(),
+  "workOrderId": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish(),
+  "workCaseId": zod.number().nullish()
+})),
+  "touchedWorkOrders": zod.array(zod.number()).optional()
+})
+
+
+/**
+ * @summary Edita una compra en borrador
+ */
+export const UpdatePurchaseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdatePurchaseBody = zod.object({
+  "supplierName": zod.string().nullish(),
+  "supplierRut": zod.string().nullish(),
+  "docType": zod.enum(['factura', 'boleta', 'guia', 'otro']).optional(),
+  "docNumber": zod.string().nullish(),
+  "issuedOn": zod.string().nullish(),
+  "netTotal": zod.number().nullish(),
+  "taxTotal": zod.number().nullish(),
+  "total": zod.number().nullish(),
+  "notes": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "partId": zod.number().nullish(),
+  "description": zod.string(),
+  "supplierCode": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string().nullish(),
+  "unitCostNet": zod.number(),
+  "workOrderId": zod.number().nullish(),
+  "salePrice": zod.number().nullish()
+}))
+})
+
+export const UpdatePurchaseResponse = zod.object({
+  "id": zod.number(),
+  "status": zod.enum(['draft', 'confirmed', 'cancelled']),
+  "source": zod.string(),
+  "docType": zod.string(),
+  "docNumber": zod.string().nullish(),
+  "issuedOn": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "supplierId": zod.number().nullish(),
+  "supplierName": zod.string().nullish(),
+  "supplierRut": zod.string().nullish(),
+  "netTotal": zod.number().nullish(),
+  "taxTotal": zod.number().nullish(),
+  "total": zod.number().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "fileMime": zod.string().nullish(),
+  "confirmedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "partId": zod.number().nullish(),
+  "partName": zod.string().nullish(),
+  "partKind": zod.string().nullish(),
+  "partUnit": zod.string().nullish(),
+  "partSalePrice": zod.number().nullish(),
+  "partCostPrice": zod.number().nullish(),
+  "description": zod.string(),
+  "supplierCode": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string().nullish(),
+  "unitCostNet": zod.number(),
+  "salePrice": zod.number().nullish(),
+  "workOrderId": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish(),
+  "workCaseId": zod.number().nullish()
+})),
+  "touchedWorkOrders": zod.array(zod.number()).optional()
+})
+
+
+/**
+ * @summary Borra una compra en borrador
+ */
+export const DeletePurchaseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeletePurchaseResponse = zod.unknown()
+
+
+/**
+ * @summary Confirma la compra (suma stock y carga repuestos a sus trabajos)
+ */
+export const ConfirmPurchaseParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ConfirmPurchaseResponse = zod.object({
+  "id": zod.number(),
+  "status": zod.enum(['draft', 'confirmed', 'cancelled']),
+  "source": zod.string(),
+  "docType": zod.string(),
+  "docNumber": zod.string().nullish(),
+  "issuedOn": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "supplierId": zod.number().nullish(),
+  "supplierName": zod.string().nullish(),
+  "supplierRut": zod.string().nullish(),
+  "netTotal": zod.number().nullish(),
+  "taxTotal": zod.number().nullish(),
+  "total": zod.number().nullish(),
+  "fileUrl": zod.string().nullish(),
+  "fileMime": zod.string().nullish(),
+  "confirmedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "partId": zod.number().nullish(),
+  "partName": zod.string().nullish(),
+  "partKind": zod.string().nullish(),
+  "partUnit": zod.string().nullish(),
+  "partSalePrice": zod.number().nullish(),
+  "partCostPrice": zod.number().nullish(),
+  "description": zod.string(),
+  "supplierCode": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string().nullish(),
+  "unitCostNet": zod.number(),
+  "salePrice": zod.number().nullish(),
+  "workOrderId": zod.number().nullish(),
+  "workOrderNumber": zod.string().nullish(),
+  "workCaseId": zod.number().nullish()
+})),
+  "touchedWorkOrders": zod.array(zod.number()).optional()
+})
+
+
+/**
+ * @summary Insumos que gasta el servicio
+ */
+export const ListServiceSuppliesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListServiceSuppliesResponseItem = zod.object({
+  "partId": zod.number(),
+  "quantity": zod.number(),
+  "name": zod.string(),
+  "unit": zod.string(),
+  "costPrice": zod.number().nullish()
+})
+export const ListServiceSuppliesResponse = zod.array(ListServiceSuppliesResponseItem)
+
+
+/**
+ * @summary Reemplaza la receta de insumos del servicio
+ */
+export const UpdateServiceSuppliesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateServiceSuppliesBody = zod.object({
+  "supplies": zod.array(zod.object({
+  "partId": zod.number(),
+  "quantity": zod.number()
+}))
+})
+
+export const UpdateServiceSuppliesResponse = zod.unknown()
+
+
+/**
+ * @summary Cobrado, costos y margen de la OT (solo admin)
+ */
+export const GetWorkOrderEconomicsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetWorkOrderEconomicsResponse = zod.object({
+  "total": zod.number(),
+  "revenue": zod.number().describe('Lo que queda para el taller (neto si recupera IVA)'),
+  "materialsCost": zod.number(),
+  "laborHours": zod.number(),
+  "laborCost": zod.number().nullish(),
+  "margin": zod.number(),
+  "marginPct": zod.number().nullish(),
+  "recoversVat": zod.boolean(),
+  "missingCosts": zod.boolean(),
+  "missingLaborCost": zod.boolean(),
+  "stockConsumed": zod.boolean()
 })
 
 

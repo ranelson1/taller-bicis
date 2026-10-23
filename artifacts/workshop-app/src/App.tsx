@@ -24,6 +24,8 @@ import TrabajoNuevo from "@/pages/trabajo-nuevo";
 import TrabajoDetail from "@/pages/trabajo-detail";
 import OtPublica from "@/pages/ot-publica";
 import Platform from "@/pages/platform";
+import Inventario from "@/pages/inventario";
+import CompraDetail from "@/pages/compra-detail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -106,6 +108,13 @@ function Router() {
       </Route>
       <Route path="/bicicletas">
         <AuthGate><Bicycles /></AuthGate>
+      </Route>
+
+      <Route path="/inventario">
+        <AuthGate><Inventario /></AuthGate>
+      </Route>
+      <Route path="/inventario/compras/:id">
+        <AuthGate><CompraDetail /></AuthGate>
       </Route>
 
       {/* Admin */}

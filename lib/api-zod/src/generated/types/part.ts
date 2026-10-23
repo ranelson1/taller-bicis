@@ -5,6 +5,7 @@
  * API specification for Taller de Bicicletas
  * OpenAPI spec version: 0.1.0
  */
+import type { PartKind } from './partKind';
 
 export interface Part {
   id: number;
@@ -19,6 +20,14 @@ export interface Part {
   suggestedPrice?: number | null;
   /** @nullable */
   sku?: string | null;
+  /** part = se cobra al cliente; supply = insumo del taller */
+  kind?: PartKind;
+  unit?: string;
+  /** @nullable */
+  costPrice?: number | null;
+  /** @nullable */
+  minStock?: number | null;
+  stock?: number;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
