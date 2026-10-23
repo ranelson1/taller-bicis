@@ -14,6 +14,11 @@ export interface QuickCreateInput {
   bicycle: QuickCreateBicycleInput;
   /** @nullable */
   originChannel?: string | null;
+  /**
+     * Reserva que se convierte en este trabajo
+     * @nullable
+     */
+  reservationId?: number | null;
   /** @nullable */
   assignedMechanicId?: number | null;
   /** @nullable */

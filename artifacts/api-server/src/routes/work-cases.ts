@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { db, reservationsTable } from "@workspace/db";
 import {
   workCasesTable,
   quotesTable,
@@ -375,6 +375,8 @@ const quickCreateSchema = z.object({
     notes: z.string().optional().nullable(),
   }),
   originChannel: z.string().optional(),
+  // Reserva que se está convirtiendo en este trabajo: queda enlazada y marcada como "llegó".
+  reservationId: z.number().int().positive().optional().nullable(),
   assignedMechanicId: z.number().int().positive().optional().nullable(),
   customerComment: z.string().optional().nullable(),
   mechanicComment: z.string().optional().nullable(),
@@ -540,7 +542,14 @@ router.post("/quick-create", async (req, res) => {
       // 6. Work order from the approved quote (shared helper, same tx)
       const created = await createWorkOrderFromQuoteInternal(tx, quote.id, {
         mechanicId: body.assignedMechanicId ?? null,
+        reservationId: body.reservationId ?? null,
       }, userId);
+
+      if (body.reservationId) {
+        await tx.update(reservationsTable)
+          .set({ status: "arrived", workCaseId: wc.id, workOrderId: created.id, updatedAt: new Date() })
+          .where(and(eq(reservationsTable.id, body.reservationId), eq(reservationsTable.status, "reserved")));
+      }
 
       return {
         workCaseId: wc.id,

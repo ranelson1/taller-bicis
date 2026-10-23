@@ -231,6 +231,16 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
 - `GET /api/work-orders/:id/economics` y `GET /api/reports/summary` (solo admin): ingresos, repuestos, mano de obra
   (horas × costo de la hora) y margen.
 
+## Reservas (migración 013)
+
+- `reservations`: espacio apartado para una bici que va a llegar (acordado por WhatsApp). No consume número de OT; la OT se
+  crea al llegar el cliente con Nuevo trabajo (`/trabajos/nuevo?reserva=<id>` precarga lo acordado; `quick-create` recibe
+  `reservationId` y deja la reserva `arrived` enlazada a la OT).
+- `helpers/completionEstimate.ts` cuenta las reservas en la carga, en orden de llegada, y devuelve día de inicio y de entrega.
+  `POST /api/reservations/preview` da las fechas de una reserva antes de guardarla.
+- Inicio: botón "Reservar", sección "Reservas" con "Confirmar" (WhatsApp con día, hora y fecha estimada de entrega), "Llegó",
+  "No llegó" y "Cancelar".
+
 ## Fotos y videos de la OT
 
 - `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.

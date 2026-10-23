@@ -7,7 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { paymentReminder } from "@/lib/whatsapp";
+import { ReservationDialog } from "@/components/reservations/reservation-dialog";
+import { ReservationsSection } from "@/components/reservations/reservations-section";
 import { OnboardingCard } from "@/components/onboarding-card";
+import { CalendarClock } from "lucide-react";
 import { AlertTriangle, CircleDollarSign, Clock, PackageCheck, Plus, ShoppingCart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkers } from "@/hooks/use-workers";
@@ -73,6 +76,7 @@ export default function Dashboard() {
   const { data: settings } = useGetWorkshopSettings();
   const { workers: mechanics, solo } = useWorkers();
   const isMechanic = me?.role === "mechanic";
+  const [reserveOpen, setReserveOpen] = useState(false);
   const [onlyMineChoice, setOnlyMineChoice] = useState<boolean | null>(null);
   // Quien hace trabajos puede alternar entre lo suyo y todo el taller. El mecánico parte viendo lo suyo; el admin, todo.
   const canScope = !!me?.doesJobs && !solo;
@@ -120,6 +124,9 @@ export default function Dashboard() {
               <Switch checked={onlyMine} onCheckedChange={setOnlyMineChoice} data-testid="switch-only-mine" />Solo mis trabajos
             </label>
           )}
+          <Button variant="outline" className="h-11" onClick={() => setReserveOpen(true)} data-testid="button-reserve">
+            <CalendarClock className="h-4 w-4 mr-1" />Reservar
+          </Button>
           <Link href="/trabajos/nuevo">
             <Button className="h-11" data-testid="button-new-work"><Plus className="h-4 w-4 mr-1" />Nuevo trabajo</Button>
           </Link>
@@ -127,6 +134,9 @@ export default function Dashboard() {
       </div>
 
       {(me?.role === "admin" || me?.role === "superadmin") && <OnboardingCard />}
+
+      <ReservationsSection />
+      <ReservationDialog open={reserveOpen} onOpenChange={setReserveOpen} />
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40" />)}</div>

@@ -3846,6 +3846,150 @@ export const GetDashboardSummaryResponse = zod.object({
 
 
 /**
+ * @summary Reservas que esperan al cliente, con fechas de ingreso y entrega estimadas
+ */
+export const ListReservationsResponseItem = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number().nullish(),
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "bicycleText": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "serviceId": zod.number().nullish(),
+  "estimatedHours": zod.number().nullish(),
+  "expectedOn": zod.string().describe('Día en que llega la bici (YYYY-MM-DD)'),
+  "expectedTime": zod.string().nullish(),
+  "status": zod.enum(['reserved', 'arrived', 'cancelled', 'no_show']),
+  "workCaseId": zod.number().nullish(),
+  "workOrderId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "startsOn": zod.string().nullish().describe('Día en que el taller puede empezar a trabajar en la bici'),
+  "estimatedDeliveryDate": zod.string().nullish()
+})
+export const ListReservationsResponse = zod.array(ListReservationsResponseItem)
+
+
+/**
+ * @summary Aparta un espacio para una bici que va a llegar (no consume número de OT)
+ */
+export const CreateReservationBody = zod.object({
+  "clientId": zod.number().nullish(),
+  "clientName": zod.string().optional(),
+  "clientPhone": zod.string().nullish(),
+  "bicycleText": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "serviceId": zod.number().nullish(),
+  "estimatedHours": zod.number().nullish(),
+  "expectedOn": zod.string(),
+  "expectedTime": zod.string().nullish()
+})
+
+export const CreateReservationResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number().nullish(),
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "bicycleText": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "serviceId": zod.number().nullish(),
+  "estimatedHours": zod.number().nullish(),
+  "expectedOn": zod.string().describe('Día en que llega la bici (YYYY-MM-DD)'),
+  "expectedTime": zod.string().nullish(),
+  "status": zod.enum(['reserved', 'arrived', 'cancelled', 'no_show']),
+  "workCaseId": zod.number().nullish(),
+  "workOrderId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "startsOn": zod.string().nullish().describe('Día en que el taller puede empezar a trabajar en la bici'),
+  "estimatedDeliveryDate": zod.string().nullish()
+})
+
+
+/**
+ * @summary Fechas estimadas de una reserva que todavía no se guarda
+ */
+export const PreviewReservationBody = zod.object({
+  "expectedOn": zod.string(),
+  "serviceId": zod.number().nullish(),
+  "estimatedHours": zod.number().nullish(),
+  "excludeReservationId": zod.number().optional()
+})
+
+export const PreviewReservationResponse = zod.object({
+  "startsOn": zod.string(),
+  "estimatedDeliveryDate": zod.string(),
+  "jobHours": zod.number(),
+  "backlogHours": zod.number()
+})
+
+
+/**
+ * @summary Una reserva
+ */
+export const GetReservationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetReservationResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number().nullish(),
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "bicycleText": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "serviceId": zod.number().nullish(),
+  "estimatedHours": zod.number().nullish(),
+  "expectedOn": zod.string().describe('Día en que llega la bici (YYYY-MM-DD)'),
+  "expectedTime": zod.string().nullish(),
+  "status": zod.enum(['reserved', 'arrived', 'cancelled', 'no_show']),
+  "workCaseId": zod.number().nullish(),
+  "workOrderId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "startsOn": zod.string().nullish().describe('Día en que el taller puede empezar a trabajar en la bici'),
+  "estimatedDeliveryDate": zod.string().nullish()
+})
+
+
+/**
+ * @summary Cambia lo acordado o cierra la reserva (cancelada / no llegó)
+ */
+export const UpdateReservationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateReservationBody = zod.object({
+  "clientId": zod.number().nullish(),
+  "clientName": zod.string().optional(),
+  "clientPhone": zod.string().nullish(),
+  "bicycleText": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "serviceId": zod.number().nullish(),
+  "estimatedHours": zod.number().nullish(),
+  "expectedOn": zod.string().optional(),
+  "expectedTime": zod.string().nullish(),
+  "status": zod.enum(['reserved', 'cancelled', 'no_show']).optional()
+})
+
+export const UpdateReservationResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number().nullish(),
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "bicycleText": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "serviceId": zod.number().nullish(),
+  "estimatedHours": zod.number().nullish(),
+  "expectedOn": zod.string().describe('Día en que llega la bici (YYYY-MM-DD)'),
+  "expectedTime": zod.string().nullish(),
+  "status": zod.enum(['reserved', 'arrived', 'cancelled', 'no_show']),
+  "workCaseId": zod.number().nullish(),
+  "workOrderId": zod.number().nullish(),
+  "createdAt": zod.string(),
+  "startsOn": zod.string().nullish().describe('Día en que el taller puede empezar a trabajar en la bici'),
+  "estimatedDeliveryDate": zod.string().nullish()
+})
+
+
+/**
  * @summary Mis números - resumen del taller en un período (solo admin)
  */
 export const GetReportSummaryQueryParams = zod.object({
@@ -4218,6 +4362,7 @@ export const QuickCreateWorkCaseBody = zod.object({
   "notes": zod.string().nullish()
 }),
   "originChannel": zod.string().nullish(),
+  "reservationId": zod.number().nullish().describe('Reserva que se convierte en este trabajo'),
   "assignedMechanicId": zod.number().nullish(),
   "customerComment": zod.string().nullish(),
   "mechanicComment": zod.string().nullish(),

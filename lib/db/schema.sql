@@ -833,6 +833,54 @@ ALTER SEQUENCE public.receptions_id_seq OWNED BY public.receptions.id;
 
 
 --
+-- Name: reservations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reservations (
+    id integer NOT NULL,
+    workshop_id integer DEFAULT public.current_workshop_id() NOT NULL,
+    client_id integer,
+    client_name text NOT NULL,
+    client_phone text,
+    bicycle_text text,
+    note text,
+    service_id integer,
+    estimated_hours numeric(6,2),
+    expected_on date NOT NULL,
+    expected_time text,
+    status text DEFAULT 'reserved'::text NOT NULL,
+    work_case_id integer,
+    work_order_id integer,
+    created_by_user_id integer,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT reservations_status_check CHECK ((status = ANY (ARRAY['reserved'::text, 'arrived'::text, 'cancelled'::text, 'no_show'::text])))
+);
+
+ALTER TABLE ONLY public.reservations FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: reservations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.reservations_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: reservations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.reservations_id_seq OWNED BY public.reservations.id;
+
+
+--
 -- Name: service_steps; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1478,6 +1526,13 @@ ALTER TABLE ONLY public.receptions ALTER COLUMN id SET DEFAULT nextval('public.r
 
 
 --
+-- Name: reservations id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations ALTER COLUMN id SET DEFAULT nextval('public.reservations_id_seq'::regclass);
+
+
+--
 -- Name: service_steps id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1671,6 +1726,14 @@ ALTER TABLE ONLY public.quotes
 
 ALTER TABLE ONLY public.receptions
     ADD CONSTRAINT receptions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_pkey PRIMARY KEY (id);
 
 
 --
@@ -1948,6 +2011,20 @@ CREATE UNIQUE INDEX receptions_number_per_workshop ON public.receptions USING bt
 --
 
 CREATE INDEX receptions_workshop_idx ON public.receptions USING btree (workshop_id);
+
+
+--
+-- Name: reservations_open_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reservations_open_idx ON public.reservations USING btree (expected_on) WHERE (status = 'reserved'::text);
+
+
+--
+-- Name: reservations_workshop_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reservations_workshop_idx ON public.reservations USING btree (workshop_id);
 
 
 --
@@ -2399,6 +2476,38 @@ ALTER TABLE ONLY public.receptions
 
 
 --
+-- Name: reservations reservations_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id);
+
+
+--
+-- Name: reservations reservations_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: reservations reservations_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.services(id);
+
+
+--
+-- Name: reservations reservations_workshop_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reservations
+    ADD CONSTRAINT reservations_workshop_id_fkey FOREIGN KEY (workshop_id) REFERENCES public.workshops(id);
+
+
+--
 -- Name: service_steps service_steps_service_id_services_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2771,6 +2880,12 @@ ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.receptions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: reservations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: service_steps; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -2890,6 +3005,13 @@ CREATE POLICY tenant_isolation ON public.quotes USING ((public.app_bypass() OR (
 --
 
 CREATE POLICY tenant_isolation ON public.receptions USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
+
+
+--
+-- Name: reservations tenant_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_isolation ON public.reservations USING ((public.app_bypass() OR (workshop_id = public.current_workshop_id()))) WITH CHECK ((public.app_bypass() OR (workshop_id = public.current_workshop_id())));
 
 
 --

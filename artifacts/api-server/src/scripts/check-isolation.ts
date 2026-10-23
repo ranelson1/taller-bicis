@@ -44,10 +44,10 @@ async function login(label: string, creds: string | undefined) {
 const LISTS = [
   "/api/work-orders", "/api/work-cases", "/api/clients", "/api/bicycles", "/api/services", "/api/parts",
   "/api/categories", "/api/payment-methods", "/api/users", "/api/quotes", "/api/receptions",
-  "/api/inventory", "/api/inventory/suppliers", "/api/purchases",
+  "/api/inventory", "/api/inventory/suppliers", "/api/purchases", "/api/reservations",
 ];
 // Recursos individuales del otro taller que deben dar 404.
-const DETAIL = ["/api/work-orders", "/api/work-cases", "/api/clients", "/api/bicycles", "/api/services", "/api/quotes", "/api/receptions", "/api/purchases"];
+const DETAIL = ["/api/work-orders", "/api/work-cases", "/api/clients", "/api/bicycles", "/api/services", "/api/quotes", "/api/receptions", "/api/purchases", "/api/reservations"];
 
 async function main() {
   const A = await login("ISOLATION_A", process.env.ISOLATION_A);

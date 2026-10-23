@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   useQuickCreateWorkCase,
   usePreviewWorkOrderEstimate,
@@ -8,6 +8,7 @@ import {
   useListUsers,
   useListServices,
   useListParts,
+  useGetReservation,
   getListWorkCasesQueryKey,
   getListWorkOrdersQueryKey,
   type QuickCreateInput,
@@ -84,6 +85,9 @@ function Section({ n, title, icon: Icon, done, children }: { n: number; title: s
 
 export default function TrabajoNuevo() {
   const [, navigate] = useLocation();
+  // /trabajos/nuevo?reserva=12: llegó el cliente de una reserva; se precarga lo acordado.
+  const reservationId = Number(new URLSearchParams(useSearch()).get("reserva")) || null;
+  const { data: reservation } = useGetReservation(reservationId ?? 0, { query: { enabled: !!reservationId, queryKey: ["reservation", reservationId] } });
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -185,6 +189,24 @@ export default function TrabajoNuevo() {
 
   const toggleAccessory = (a: string) => setAccessories(prev => (prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]));
 
+  // Precarga desde la reserva (una sola vez, cuando ya cargaron clientes y servicios).
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (prefilled.current || !reservation || !clients || !services) return;
+    prefilled.current = true;
+    if (reservation.clientId && clients.some(c => c.id === reservation.clientId)) pickClient(reservation.clientId);
+    else {
+      setNewClient({ name: reservation.clientName, phone: reservation.clientPhone ?? "", email: "" });
+      const [brand, ...model] = (reservation.bicycleText ?? "").trim().split(/\s+/);
+      setNewBike({ brand: brand ?? "", model: model.join(" "), type: "mtb", year: "", color: "", serialNumber: "" });
+    }
+    if (reservation.note) setProblem(reservation.note);
+    const svc = reservation.serviceId ? (services as any[]).find(s => s.id === reservation.serviceId) : null;
+    if (svc) toggleService(svc);
+    setChannel("whatsapp");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservation, clients, services]);
+
   const clientDone = !!selectedClient || !!newClient?.name.trim();
   const bikeDone = !!bikeId || (!!newBike?.brand.trim() && !!newBike?.model.trim());
 
@@ -224,6 +246,7 @@ export default function TrabajoNuevo() {
     quickCreate.mutate({
       data: {
         client, bicycle,
+        reservationId,
         originChannel: channel,
         assignedMechanicId: mechanicNum,
         customerComment: problem.trim() || null,

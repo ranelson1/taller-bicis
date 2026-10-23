@@ -24,3 +24,16 @@ export function paymentReminder(clientName: string | null | undefined, shopName:
   const first = (clientName ?? "").split(" ")[0];
   return `Hola${first ? ` ${first}` : ""}, te escribimos de ${shopName || "el taller"}. Queda un saldo de ${amount} de la orden ${orderNumber}. ¿Cuándo podrías pasar a pagarlo? ¡Gracias!`;
 }
+
+// Confirmación de una reserva: día, hora, bici y cuándo estimamos tenerla lista.
+export function reservationMessage(
+  r: { clientName: string; expectedOn: string; expectedTime?: string | null; bicycleText?: string | null; estimatedDeliveryDate?: string | null },
+  shopName: string | null | undefined,
+): string {
+  const first = r.clientName.split(" ")[0];
+  const day = new Date(`${r.expectedOn}T12:00:00`).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const ready = r.estimatedDeliveryDate
+    ? ` Estimamos tenerla lista el ${new Date(r.estimatedDeliveryDate).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" })}.`
+    : "";
+  return `Hola ${first}, te esperamos el ${day}${r.expectedTime ? ` a las ${r.expectedTime}` : ""} en ${shopName || "el taller"}${r.bicycleText ? ` con tu ${r.bicycleText}` : ""}.${ready} ¡Nos vemos!`;
+}

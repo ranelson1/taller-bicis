@@ -197,6 +197,8 @@ export async function createWorkOrderFromQuoteInternal(
     estimatedDeliveryDate?: string | null;
     internalNotes?: string | null;
     customerNotes?: string | null;
+    // Reserva que se convierte en este trabajo (no debe atrasar su propia fecha).
+    reservationId?: number | null;
   },
   userId: number | null,
 ): Promise<{ id: number; workOrderNumber: string; workCaseId: number | null; estimatedDeliveryDate: Date | null }> {
@@ -224,7 +226,7 @@ export async function createWorkOrderFromQuoteInternal(
   // Sin fecha indicada, se estima según la carga actual del taller.
   const estimatedDeliveryDate = opts.estimatedDeliveryDate
     ? new Date(opts.estimatedDeliveryDate)
-    : (await estimateCompletionDate(tx, { laborHours, mechanicId: opts.mechanicId })).date;
+    : (await estimateCompletionDate(tx, { laborHours, mechanicId: opts.mechanicId, excludeReservationId: opts.reservationId ?? undefined })).date;
 
   const [wo] = await tx.insert(workOrdersTable).values({
     workOrderNumber,

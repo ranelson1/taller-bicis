@@ -1622,11 +1622,115 @@ export interface QuickCreateItemInput {
   unitPrice: number;
 }
 
+export type ReservationStatus = typeof ReservationStatus[keyof typeof ReservationStatus];
+
+
+export const ReservationStatus = {
+  reserved: 'reserved',
+  arrived: 'arrived',
+  cancelled: 'cancelled',
+  no_show: 'no_show',
+} as const;
+
+export interface Reservation {
+  id: number;
+  /** @nullable */
+  clientId?: number | null;
+  clientName: string;
+  /** @nullable */
+  clientPhone?: string | null;
+  /** @nullable */
+  bicycleText?: string | null;
+  /** @nullable */
+  note?: string | null;
+  /** @nullable */
+  serviceId?: number | null;
+  /** @nullable */
+  estimatedHours?: number | null;
+  /** Día en que llega la bici (YYYY-MM-DD) */
+  expectedOn: string;
+  /** @nullable */
+  expectedTime?: string | null;
+  status: ReservationStatus;
+  /** @nullable */
+  workCaseId?: number | null;
+  /** @nullable */
+  workOrderId?: number | null;
+  createdAt: string;
+  /**
+     * Día en que el taller puede empezar a trabajar en la bici
+     * @nullable
+     */
+  startsOn?: string | null;
+  /** @nullable */
+  estimatedDeliveryDate?: string | null;
+}
+
+export interface ReservationInput {
+  /** @nullable */
+  clientId?: number | null;
+  clientName?: string;
+  /** @nullable */
+  clientPhone?: string | null;
+  /** @nullable */
+  bicycleText?: string | null;
+  /** @nullable */
+  note?: string | null;
+  /** @nullable */
+  serviceId?: number | null;
+  /** @nullable */
+  estimatedHours?: number | null;
+  expectedOn: string;
+  /** @nullable */
+  expectedTime?: string | null;
+}
+
+export type ReservationUpdateStatus = typeof ReservationUpdateStatus[keyof typeof ReservationUpdateStatus];
+
+
+export const ReservationUpdateStatus = {
+  reserved: 'reserved',
+  cancelled: 'cancelled',
+  no_show: 'no_show',
+} as const;
+
+export interface ReservationUpdate {
+  /** @nullable */
+  clientId?: number | null;
+  clientName?: string;
+  /** @nullable */
+  clientPhone?: string | null;
+  /** @nullable */
+  bicycleText?: string | null;
+  /** @nullable */
+  note?: string | null;
+  /** @nullable */
+  serviceId?: number | null;
+  /** @nullable */
+  estimatedHours?: number | null;
+  expectedOn?: string;
+  /** @nullable */
+  expectedTime?: string | null;
+  status?: ReservationUpdateStatus;
+}
+
+export interface ReservationPreview {
+  startsOn: string;
+  estimatedDeliveryDate: string;
+  jobHours: number;
+  backlogHours: number;
+}
+
 export interface QuickCreateInput {
   client: QuickCreateClientInput;
   bicycle: QuickCreateBicycleInput;
   /** @nullable */
   originChannel?: string | null;
+  /**
+     * Reserva que se convierte en este trabajo
+     * @nullable
+     */
+  reservationId?: number | null;
   /** @nullable */
   assignedMechanicId?: number | null;
   /** @nullable */
@@ -2285,6 +2389,15 @@ export const UpdateWorkOrderItemBodyStatus = {
 
 export type UpdateWorkOrderItemBody = {
   status?: UpdateWorkOrderItemBodyStatus;
+};
+
+export type PreviewReservationBody = {
+  expectedOn: string;
+  /** @nullable */
+  serviceId?: number | null;
+  /** @nullable */
+  estimatedHours?: number | null;
+  excludeReservationId?: number;
 };
 
 export type GetReportSummaryParams = {
