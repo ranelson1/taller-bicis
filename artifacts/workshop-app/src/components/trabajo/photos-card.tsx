@@ -10,53 +10,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { resizeImage } from "@/lib/image";
-import { Camera, EyeOff, ImagePlus, Loader2, Play, Trash2 } from "lucide-react";
+import { uploadWorkOrderMedia } from "@/lib/media-upload";
+import { CaptureButtons } from "@/components/trabajo/capture-buttons";
+import { Camera, EyeOff, Play, Trash2 } from "lucide-react";
 
 // Fotos de la OT: el mecánico las saca desde el celular (cámara o galería), les pone una nota
 // y decide si el cliente las ve en su link.
 
-const MAX_VIDEO_MB = 60;
 const isVideo = (mime?: string | null) => !!mime && mime.startsWith("video/");
-
-async function uploadPhoto(workOrderId: number, file: File): Promise<void> {
-  const video = file.type.startsWith("video/");
-  if (video && file.size > MAX_VIDEO_MB * 1024 * 1024) throw new Error(`El video pesa más de ${MAX_VIDEO_MB} MB`);
-  const blob = video ? file : await resizeImage(file);
-  const res = await fetch(`/api/work-orders/${workOrderId}/photos`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": video ? file.type : "image/jpeg" },
-    body: blob,
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.error ?? "No se pudo subir la foto");
-  }
-}
 
 export function PhotosCard({ workOrderId, readOnly }: { workOrderId: number; readOnly?: boolean }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: photos } = useListWorkOrderPhotos(workOrderId);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
+  const [uploading, setUploading] = useState<{ done: number; total: number; pct: number; name: string } | null>(null);
   const [open, setOpen] = useState<WorkOrderPhoto | null>(null);
 
   const refresh = () => qc.invalidateQueries({ queryKey: getListWorkOrderPhotosQueryKey(workOrderId) });
 
-  const onFiles = async (files: FileList | null) => {
-    const list = Array.from(files ?? []).filter(f => f.type.startsWith("image/") || f.type.startsWith("video/"));
+  const onFiles = async (list: File[]) => {
     if (list.length === 0) return;
-    setUploading({ done: 0, total: list.length });
     let failed = 0;
     let lastError = "";
     for (let i = 0; i < list.length; i++) {
-      try { await uploadPhoto(workOrderId, list[i]); } catch (e) { failed++; lastError = e instanceof Error ? e.message : ""; }
-      setUploading({ done: i + 1, total: list.length });
+      setUploading({ done: i, total: list.length, pct: 0, name: list[i].name });
+      try {
+        await uploadWorkOrderMedia(workOrderId, list[i], { onProgress: pct => setUploading(u => (u ? { ...u, pct } : u)) });
+      } catch (e) { failed++; lastError = e instanceof Error ? e.message : ""; }
     }
     setUploading(null);
-    if (inputRef.current) inputRef.current.value = "";
     refresh();
     toast(failed === 0
       ? { title: list.length === 1 ? "Archivo agregado" : `${list.length} archivos agregados` }
@@ -67,20 +49,19 @@ export function PhotosCard({ workOrderId, readOnly }: { workOrderId: number; rea
 
   return (
     <Card>
-      <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+      <CardHeader className="pb-1 flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2 whitespace-nowrap">
           <Camera className="h-4 w-4" />Fotos y videos {items.length > 0 && <span className="font-normal">({items.length})</span>}
         </CardTitle>
-        {!readOnly && (
-          <Button variant="ghost" size="sm" className="text-primary -mr-2" disabled={!!uploading} onClick={() => inputRef.current?.click()} data-testid="button-add-photos">
-            {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ImagePlus className="h-4 w-4 mr-1" />}
-            {uploading ? `Subiendo ${uploading.done}/${uploading.total}` : "Agregar"}
-          </Button>
-        )}
-        {/* Sin `capture`: en el celular deja elegir entre cámara y galería. */}
-        <input ref={inputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={e => onFiles(e.target.files)} data-testid="input-photos" />
+        {!readOnly && <CaptureButtons onFiles={onFiles} disabled={!!uploading} />}
       </CardHeader>
       <CardContent className="pt-0">
+        {uploading && (
+          <div className="mb-3 rounded-md bg-muted p-2.5" role="status" data-testid="upload-progress">
+            <div className="flex justify-between text-xs mb-1"><span>Subiendo {uploading.done + 1} de {uploading.total}…</span><span>{uploading.pct}%</span></div>
+            <div className="h-1.5 rounded-full bg-background overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${uploading.pct}%` }} /></div>
+          </div>
+        )}
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground py-1">
             {readOnly ? "Sin fotos ni videos." : "Saca fotos o videos de cómo llegó la bici, de lo que encuentres y del trabajo terminado."}

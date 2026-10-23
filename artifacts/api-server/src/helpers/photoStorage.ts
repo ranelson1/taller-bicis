@@ -20,7 +20,7 @@ export const VIDEO_TYPES: Record<string, string> = {
   "video/quicktime": "mov",
   "video/webm": "webm",
 };
-export const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
+export const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 
 // Firma real del video: "ftyp" a partir del byte 4 (mp4/mov) o cabecera EBML (webm).
 export function sniffVideoType(buf: Buffer): string | null {

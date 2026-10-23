@@ -11,6 +11,7 @@ import {
   useGetReservation,
   getListWorkCasesQueryKey,
   getListWorkOrdersQueryKey,
+  getListWorkOrderPhotosQueryKey,
   type QuickCreateInput,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,6 +23,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkers } from "@/hooks/use-workers";
+import { CaptureButtons } from "@/components/trabajo/capture-buttons";
+import { isVideoFile, uploadWorkOrderMedia } from "@/lib/media-upload";
 import { ArrowLeft, Bike, CalendarClock, Check, ChevronDown, ChevronUp, Plus, Search, Trash2, User, Wrench, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCLP } from "@/lib/work-status";
@@ -112,6 +115,10 @@ export default function TrabajoNuevo() {
   const [items, setItems] = useState<Item[]>([]);
   const [extra, setExtra] = useState({ itemType: "part", description: "", unitPrice: "", fromClient: false });
   const [problem, setProblem] = useState("");
+  // Fotos y videos del estado en que llega la bici: se suben al crear el trabajo.
+  const [receptionFiles, setReceptionFiles] = useState<{ file: File; url: string | null }[]>([]);
+  const addReceptionFiles = (files: File[]) => setReceptionFiles(prev => [...prev, ...files.map(file => ({ file, url: isVideoFile(file) ? null : URL.createObjectURL(file) }))]);
+  const removeReceptionFile = (i: number) => setReceptionFiles(prev => { const x = prev[i]; if (x?.url) URL.revokeObjectURL(x.url); return prev.filter((_, k) => k !== i); });
   const [mechanicId, setMechanicId] = useState("none");
   const [accessories, setAccessories] = useState<string[]>([]);
   const [showMore, setShowMore] = useState(false);
@@ -268,6 +275,19 @@ export default function TrabajoNuevo() {
         toast({ title: `Trabajo ${result.workOrderNumber} creado`, description: `Listo para enviar al cliente${etaText}` });
         qc.invalidateQueries({ queryKey: getListWorkCasesQueryKey() });
         qc.invalidateQueries({ queryKey: getListWorkOrdersQueryKey() });
+        // Las fotos se suben en segundo plano: ya quedas en la ficha mientras terminan.
+        if (receptionFiles.length > 0) {
+          const files = receptionFiles.map(r => r.file);
+          toast({ title: `Subiendo ${files.length} archivo${files.length === 1 ? "" : "s"}…`, description: "Puedes seguir trabajando." });
+          void (async () => {
+            let failed = 0;
+            for (const f of files) {
+              try { await uploadWorkOrderMedia(result.workOrderId, f, { note: "Al recibirla" }); } catch { failed++; }
+            }
+            qc.invalidateQueries({ queryKey: getListWorkOrderPhotosQueryKey(result.workOrderId) });
+            toast(failed === 0 ? { title: "Fotos subidas" } : { variant: "destructive", title: `No se pudieron subir ${failed} archivo(s)`, description: "Agrégalos de nuevo desde la ficha del trabajo." });
+          })();
+        }
         navigate(`/trabajos/${result.workCaseId}?avisar=1`);
       },
       onError: (err: any) => toast({ variant: "destructive", title: "No se pudo crear el trabajo", description: err?.data?.error ?? err?.message }),
@@ -391,6 +411,23 @@ export default function TrabajoNuevo() {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Problema que cuenta el cliente</Label>
               <Textarea rows={2} placeholder="Ej: frena mal adelante, cambios saltan" value={problem} onChange={e => setProblem(e.target.value)} data-testid="textarea-problem" />
+            </div>
+
+            <div className="space-y-1.5" data-testid="reception-media">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs text-muted-foreground">Fotos o video de cómo llega (opcional)</Label>
+                <CaptureButtons onFiles={addReceptionFiles} />
+              </div>
+              {receptionFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {receptionFiles.map((r, i) => (
+                    <div key={i} className="relative h-16 w-16 rounded-md border bg-muted overflow-hidden">
+                      {r.url ? <img src={r.url} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">Video</span>}
+                      <button type="button" onClick={() => removeReceptionFile(i)} aria-label="Quitar" className="absolute top-0.5 right-0.5 rounded-full bg-black/60 p-0.5 text-white"><X className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
