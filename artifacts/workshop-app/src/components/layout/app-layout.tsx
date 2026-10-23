@@ -183,7 +183,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Nav: solo dentro de un taller */}
       {inWorkshop && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border flex items-center justify-around p-2 z-50">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border flex items-center justify-around p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50">
           {[
             { href: "/", icon: LayoutDashboard, label: "Inicio" },
             { href: "/trabajos", icon: Briefcase, label: "Trabajos" },

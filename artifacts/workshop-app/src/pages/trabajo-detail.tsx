@@ -498,7 +498,7 @@ export default function TrabajoDetail() {
                 </Button>
               </div>
               {/* Móvil: la acción principal queda fija abajo, sobre la navegación. */}
-              <div className="md:hidden fixed left-0 right-0 bottom-16 z-40 border-t bg-background/95 backdrop-blur px-4 py-2.5 flex gap-2">
+              <div className="md:hidden fixed left-0 right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 border-t bg-background/95 backdrop-blur px-4 py-2.5 flex gap-2">
                 {nextAction ? (
                   <Button onClick={handleAdvance} disabled={updateStatus.isPending} className="h-11 flex-1" data-testid="button-advance-mobile">
                     <Play className="h-4 w-4 mr-2" /> {nextAction.label}

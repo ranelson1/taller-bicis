@@ -1,0 +1,21 @@
+{
+  "name": "Taller de Bicicletas",
+  "short_name": "Taller",
+  "description": "Trabajos, clientes, inventario y cobros de tu taller de bicicletas.",
+  "lang": "es-CL",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafaf9",
+  "theme_color": "#18181b",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nuevo trabajo", "url": "trabajos/nuevo", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Inventario", "url": "inventario", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

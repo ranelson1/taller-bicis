@@ -542,7 +542,7 @@ export default function TrabajoNuevo() {
       )}
 
       {/* Barra inferior: total, término estimado y crear */}
-      <div className="fixed left-0 right-0 bottom-16 md:bottom-0 md:left-64 z-40 border-t bg-background/95 backdrop-blur">
+      <div className="fixed left-0 right-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 md:left-64 z-40 border-t bg-background/95 backdrop-blur">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <p className="text-lg font-bold leading-tight">{formatCLP(total)}</p>

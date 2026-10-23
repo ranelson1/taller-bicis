@@ -87,7 +87,11 @@ app.use("/api", router);
 const webDist = process.env.WEB_DIST ? path.resolve(process.env.WEB_DIST) : null;
 if (webDist && fs.existsSync(path.join(webDist, "index.html"))) {
   app.use("/assets", express.static(path.join(webDist, "assets"), { immutable: true, maxAge: "1y" }));
-  app.use(express.static(webDist, { index: false, maxAge: "1h" }));
+  app.use(express.static(webDist, {
+    index: false, maxAge: "1h",
+    // El service worker y el manifiesto no se cachean: una versión nueva debe llegar al abrir la app.
+    setHeaders: (res, file) => { if (/(sw\.js|manifest\.webmanifest)$/.test(file)) res.setHeader("Cache-Control", "no-cache"); },
+  }));
   app.use((req, res, next) => {
     if (req.method !== "GET" || req.path.startsWith("/api")) return next();
     res.set("Cache-Control", "no-cache").sendFile(path.join(webDist, "index.html"));
