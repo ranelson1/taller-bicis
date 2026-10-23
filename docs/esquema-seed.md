@@ -76,7 +76,7 @@ sirve cualquier día y siempre hay trabajos atrasados, para hoy, etc.
 }
 ```
 
-El demo debe mantenerse chico: como máximo 8 trabajos abiertos (en distintos estados) y 6 reservas pendientes.
+El demo debe mantenerse chico: como máximo 8 trabajos abiertos (en distintos estados), 6 reservas pendientes, 2 mecánicos y 6 clientes en "A quién escribirle".
 
 ### Estados de un trabajo y qué datos deben acompañarlo
 
