@@ -23,6 +23,50 @@ const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 const tomorrow = () => { const d = new Date(); d.setDate(d.getDate() + 1); return ymd(d); };
 const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
 
+const normText = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// Distancia de edición con tope: para tolerar una o dos letras mal escritas ("mantecion", "sangardo").
+function editDistance(a: string, b: string, max: number) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+// Búsqueda difusa liviana (el catálogo es de decenas de servicios): cada palabra escrita debe aparecer en el nombre,
+// en cualquier orden, o parecerse a una de sus palabras; sin eso, las letras escritas en orden dentro del nombre.
+// Mientras más al inicio y más exacta la coincidencia, más arriba sale.
+function rankServices(services: any[], q: string) {
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const scored: { s: any; score: number }[] = [];
+  for (const s of services) {
+    const name = normText(s.name);
+    const words = name.split(/[^a-z0-9]+/).filter(Boolean);
+    let score = 0;
+    let ok = true;
+    for (const t of tokens) {
+      const at = name.indexOf(t);
+      if (at >= 0) { score += words.some(w => w.startsWith(t)) ? 0 : 2; score += at === 0 ? 0 : 1; continue; }
+      const max = t.length >= 7 ? 2 : t.length >= 4 ? 1 : 0;
+      const near = max > 0 && words.some(w => editDistance(t, w.slice(0, Math.max(t.length, 1) + 1), max) <= max || editDistance(t, w, max) <= max);
+      if (near) { score += 4; continue; }
+      ok = false; break;
+    }
+    if (!ok) {
+      const compact = q.replace(/\s+/g, "");
+      let i = 0;
+      for (const ch of name) if (ch === compact[i]) i++;
+      if (compact.length >= 3 && i === compact.length) { ok = true; score = 10; }
+    }
+    if (ok) scored.push({ s, score });
+  }
+  return scored.sort((a, b) => a.score - b.score).map(x => x.s);
+}
+
 export function ReservationDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -35,10 +79,12 @@ export function ReservationDialog({ open, onOpenChange }: { open: boolean; onOpe
   const empty = { name: "", phone: "", bike: "", note: "", hours: "", date: tomorrow(), time: "" };
   const [f, setF] = useState(empty);
   const [items, setItems] = useState<ReservationQuoteItem[]>([]);
-  const [extra, setExtra] = useState({ description: "", price: "" });
+  const [query, setQuery] = useState("");
+  const [listOpen, setListOpen] = useState(false);
+  const [hi, setHi] = useState(0);
   const [saved, setSaved] = useState<Reservation | null>(null);
 
-  useEffect(() => { if (open) { setF({ ...empty, date: tomorrow() }); setItems([]); setExtra({ description: "", price: "" }); setSaved(null); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (open) { setF({ ...empty, date: tomorrow() }); setItems([]); setQuery(""); setListOpen(false); setSaved(null); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeClients = useMemo(() => (clients ?? []).filter(c => c.active), [clients]);
   const activeServices = useMemo(() => (services ?? []).filter((s: any) => s.active !== false), [services]);
@@ -48,16 +94,33 @@ export function ReservationDialog({ open, onOpenChange }: { open: boolean; onOpe
   const itemHours = items.reduce((s, i) => s + (i.quantity ?? 1) * (i.hours ?? 0), 0);
   const hours = f.hours.trim() !== "" ? Number(f.hours.replace(",", ".")) : itemHours;
 
+  const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const serviceOn = (id: number) => items.some(i => i.serviceId === id);
-  const toggleService = (svc: any) => setItems(prev => serviceOn(svc.id)
-    ? prev.filter(i => i.serviceId !== svc.id)
-    : [...prev, { itemType: "service", description: svc.name, quantity: 1, unitPrice: Number(svc.basePrice ?? 0), hours: Number(svc.estimatedHours ?? 0), serviceId: svc.id }]);
-  const addExtra = () => {
-    const description = extra.description.trim();
-    const price = Number(extra.price || 0);
-    if (!description || isNaN(price) || price < 0) return;
-    setItems(prev => [...prev, { itemType: "part", description, quantity: 1, unitPrice: price, hours: 0, serviceId: null }]);
-    setExtra({ description: "", price: "" });
+  const q = norm(query.trim());
+  const matches = q ? rankServices(activeServices, q).slice(0, 8) : activeServices.slice(0, 8);
+  const exact = q !== "" && activeServices.some((s: any) => norm(s.name) === q);
+  // Opciones del buscador: los servicios que calzan y, si lo escrito no existe, agregarlo tal cual como texto libre.
+  const options: ({ svc: any } | { free: string })[] = [
+    ...matches.map((svc: any) => ({ svc })),
+    ...(q && !exact ? [{ free: query.trim() }] : []),
+  ];
+  const addOption = (o: { svc: any } | { free: string }) => {
+    if ("svc" in o) {
+      const svc = o.svc;
+      setItems(prev => serviceOn(svc.id)
+        ? prev.filter(i => i.serviceId !== svc.id)
+        : [...prev, { itemType: "service", description: svc.name, quantity: 1, unitPrice: Number(svc.basePrice ?? 0), hours: Number(svc.estimatedHours ?? 0), serviceId: svc.id }]);
+    } else {
+      setItems(prev => [...prev, { itemType: "service", description: o.free, quantity: 1, unitPrice: 0, hours: 0, serviceId: null }]);
+    }
+    setQuery(""); setHi(0); setListOpen(true);
+  };
+  const setPrice = (k: number, v: string) => setItems(prev => prev.map((i, n) => n === k ? { ...i, unitPrice: Math.max(0, Number(v) || 0) } : i));
+  const onSearchKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setListOpen(true); setHi(h => Math.min(h + 1, options.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHi(h => Math.max(h - 1, 0)); }
+    else if (e.key === "Escape") { if (listOpen) { e.stopPropagation(); setListOpen(false); } }
+    else if (e.key === "Enter") { e.preventDefault(); const o = options[Math.min(hi, options.length - 1)]; if (o) addOption(o); }
   };
 
   // Fechas estimadas en vivo, según la carga del taller y las otras reservas.
@@ -117,27 +180,34 @@ export function ReservationDialog({ open, onOpenChange }: { open: boolean; onOpe
               </div>
 
               <div className="space-y-1.5">
-                <Label>Qué se va a hacer (toca para agregar)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {activeServices.map((s: any) => (
-                    <button key={s.id} type="button" onClick={() => toggleService(s)} data-testid={`reservation-service-${s.id}`}
-                      className={cn("rounded-lg border px-2.5 py-1.5 text-left text-sm transition-colors", serviceOn(s.id) ? "bg-primary/10 border-primary" : "hover:bg-muted")}>
-                      <span className="flex items-center gap-1 font-medium">{serviceOn(s.id) && <Check className="h-3.5 w-3.5 text-primary" />}{s.name}</span>
-                      <span className="text-xs text-muted-foreground">{formatCLP(Number(s.basePrice ?? 0))}</span>
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input className="flex-1" placeholder="Repuesto u otro cobro" value={extra.description} onChange={e => setExtra(x => ({ ...x, description: e.target.value }))} onKeyDown={e => e.key === "Enter" && addExtra()} />
-                  <Input className="w-28" type="number" inputMode="numeric" min="0" placeholder="Precio" value={extra.price} onChange={e => setExtra(x => ({ ...x, price: e.target.value }))} onKeyDown={e => e.key === "Enter" && addExtra()} />
-                  <Button type="button" variant="outline" onClick={addExtra} aria-label="Agregar" data-testid="button-reservation-add-extra"><Plus className="h-4 w-4" /></Button>
-                </div>
+                <Label>Qué se va a hacer</Label>
+                <Input value={query} placeholder="Busca un servicio o escribe uno nuevo y presiona Enter" autoComplete="off" data-testid="input-reservation-service-search"
+                  onChange={e => { setQuery(e.target.value); setHi(0); setListOpen(true); }}
+                  onFocus={() => setListOpen(true)} onBlur={() => setTimeout(() => setListOpen(false), 150)} onKeyDown={onSearchKey} />
+                {listOpen && options.length > 0 && (
+                  <div className="rounded-md border divide-y max-h-52 overflow-y-auto text-sm" role="listbox" data-testid="reservation-service-options">
+                    {options.map((o, k) => (
+                      <button key={"svc" in o ? o.svc.id : "free"} type="button" role="option" aria-selected={k === hi}
+                        onMouseDown={e => e.preventDefault()} onClick={() => addOption(o)} onMouseEnter={() => setHi(k)}
+                        className={cn("flex w-full items-center gap-2 px-2.5 py-2 text-left", k === hi ? "bg-muted" : "hover:bg-muted/60")}>
+                        {"svc" in o ? (
+                          <>
+                            <span className="flex-1 min-w-0 truncate flex items-center gap-1">{serviceOn(o.svc.id) && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}{o.svc.name}</span>
+                            <span className="text-xs text-muted-foreground">{formatCLP(Number(o.svc.basePrice ?? 0))}</span>
+                          </>
+                        ) : (
+                          <span className="flex items-center gap-1.5"><Plus className="h-3.5 w-3.5" />Agregar «{o.free}»</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {items.length > 0 && (
                   <div className="rounded-md border divide-y text-sm" data-testid="reservation-items">
                     {items.map((i, k) => (
                       <div key={k} className="flex items-center gap-2 px-2.5 py-1.5">
                         <span className="flex-1 min-w-0 truncate">{i.description}</span>
-                        <span className="text-muted-foreground">{formatCLP(i.unitPrice)}</span>
+                        <Input className="h-8 w-24 text-right" type="number" inputMode="numeric" min="0" placeholder="Precio" value={i.unitPrice || ""} onChange={e => setPrice(k, e.target.value)} aria-label={`Precio de ${i.description}`} />
                         <button type="button" onClick={() => setItems(prev => prev.filter((_, n) => n !== k))} aria-label="Quitar" className="text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>
                       </div>
                     ))}
