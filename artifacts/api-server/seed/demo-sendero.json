@@ -1519,32 +1519,6 @@
       ]
     },
     {
-      "cliente": "Daniela Paredes",
-      "bici": "Scott Addict Gravel",
-      "estado": "ready_for_pickup",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 7,
-      "mecanico": "valeria.rojas@example.com",
-      "terminadoHaceDias": 1,
-      "items": [
-        {
-          "servicio": "Mantención general"
-        }
-      ],
-      "adicionales": [],
-      "pago": {
-        "metodo": "Efectivo",
-        "monto": 19500,
-        "haceDias": 6
-      },
-      "comentarios": [
-        {
-          "texto": "Se recomienda nueva revisión después de varias salidas.",
-          "visibleCliente": false
-        }
-      ]
-    },
-    {
       "cliente": "Joaquín Silva",
       "bici": "Giant Trance X",
       "estado": "quality_control",
@@ -1575,38 +1549,6 @@
       "comentarios": [
         {
           "texto": "Bicicleta llegó con marcas superficiales de uso en cuadro.",
-          "visibleCliente": false
-        }
-      ]
-    },
-    {
-      "cliente": "Antonia Salazar",
-      "bici": "Rocky Mountain Altitude",
-      "estado": "ready_for_pickup",
-      "problema": "Solicita mantención completa antes de salir a pedalear el fin de semana.",
-      "ingresoHaceDias": 6,
-      "mecanico": "juan.soto@example.com",
-      "terminadoHaceDias": 2,
-      "items": [
-        {
-          "servicio": "Mantención full bicicleta"
-        },
-        {
-          "repuesto": "Pastillas Shimano B05S",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [
-        {
-          "repuesto": "Cadena Shimano SLX M7100 12v",
-          "precio": 35000,
-          "decision": "approved"
-        }
-      ],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Cliente autorizó adicional por WhatsApp.",
           "visibleCliente": false
         }
       ]
@@ -1644,35 +1586,6 @@
           "visibleCliente": true
         }
       ]
-    },
-    {
-      "cliente": "Valentina Castro",
-      "bici": "Polygon Siskiu T8",
-      "estado": "in_progress",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 1,
-      "mecanico": "juan.soto@example.com",
-      "avance": 0.77,
-      "items": [
-        {
-          "servicio": "Mantención general"
-        },
-        {
-          "servicio": "Servicio horquilla lower legs"
-        }
-      ],
-      "adicionales": [
-        {
-          "repuesto": "Cable mando dropper",
-          "precio": 6500,
-          "decision": "rejected"
-        }
-      ],
-      "pago": {
-        "metodo": "Transferencia",
-        "monto": 30500,
-        "haceDias": 0
-      }
     },
     {
       "cliente": "Diego Carrasco",
@@ -1818,38 +1731,6 @@
       }
     },
     {
-      "cliente": "Carolina Bustos",
-      "bici": "Orbea Rise H20",
-      "estado": "in_progress",
-      "problema": "Maneta esponjosa y pérdida de potencia de frenado.",
-      "ingresoHaceDias": 2,
-      "mecanico": "diego.munoz@example.com",
-      "avance": 0.58,
-      "items": [
-        {
-          "servicio": "Sangrado frenos pareja"
-        }
-      ],
-      "adicionales": [
-        {
-          "repuesto": "Kit retenes horquilla 36 mm",
-          "precio": 41000,
-          "decision": "approved"
-        }
-      ],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Cliente solicitó conservar las piezas retiradas.",
-          "visibleCliente": false
-        },
-        {
-          "texto": "Cliente autorizó adicional por WhatsApp.",
-          "visibleCliente": false
-        }
-      ]
-    },
-    {
       "cliente": "Rodrigo Núñez",
       "bici": "Scott Genius 930",
       "estado": "delivered",
@@ -1986,37 +1867,6 @@
       ]
     },
     {
-      "cliente": "Macarena Flores",
-      "bici": "Specialized Diverge E5",
-      "estado": "in_progress",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 3,
-      "mecanico": "valeria.rojas@example.com",
-      "avance": 0.61,
-      "items": [
-        {
-          "servicio": "Mantención general"
-        }
-      ],
-      "adicionales": [
-        {
-          "servicio": "Instalación de cadena",
-          "decision": "approved"
-        }
-      ],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Se recomienda nueva revisión después de varias salidas.",
-          "visibleCliente": true
-        },
-        {
-          "texto": "Cliente autorizó adicional por WhatsApp.",
-          "visibleCliente": false
-        }
-      ]
-    },
-    {
       "cliente": "Pablo Rojas",
       "bici": "Giant Defy Advanced",
       "estado": "delivered",
@@ -2040,33 +1890,6 @@
         {
           "texto": "Se recomienda nueva revisión después de varias salidas.",
           "visibleCliente": false
-        }
-      ]
-    },
-    {
-      "cliente": "Trinidad Cordero",
-      "bici": "Cannondale Topstone 2",
-      "estado": "quality_control",
-      "problema": "Horquilla se siente seca o presenta ruidos en la compresión.",
-      "ingresoHaceDias": 2,
-      "mecanico": "valeria.rojas@example.com",
-      "avance": 0.99,
-      "items": [
-        {
-          "servicio": "Servicio horquilla lower legs"
-        },
-        {
-          "otro": "Instalación de protector cuadro",
-          "precio": 8000,
-          "horas": 0.25
-        }
-      ],
-      "adicionales": [],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Fluido antiguo oscuro; registrar evidencia fotográfica en etapa futura.",
-          "visibleCliente": true
         }
       ]
     },
@@ -2105,65 +1928,6 @@
           "visibleCliente": false
         }
       ]
-    },
-    {
-      "cliente": "María José González",
-      "bici": "Orbea Terra H40",
-      "estado": "in_progress",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 4,
-      "mecanico": "valeria.rojas@example.com",
-      "avance": 0.44,
-      "items": [
-        {
-          "servicio": "Mantención general"
-        },
-        {
-          "servicio": "Ajuste de transmisión"
-        },
-        {
-          "repuesto": "Cable cambio inoxidable",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [
-        {
-          "repuesto": "Kit retenes horquilla 36 mm",
-          "precio": 41000,
-          "decision": "rejected"
-        }
-      ],
-      "pago": {
-        "metodo": "Efectivo",
-        "monto": 22000,
-        "haceDias": 0
-      }
-    },
-    {
-      "cliente": "Emilia Carvajal",
-      "bici": "Merida Big Nine",
-      "estado": "in_progress",
-      "problema": "Solicita mantención completa antes de salir a pedalear el fin de semana.",
-      "ingresoHaceDias": 5,
-      "mecanico": "juan.soto@example.com",
-      "avance": 0.67,
-      "items": [
-        {
-          "servicio": "Mantención full bicicleta"
-        }
-      ],
-      "adicionales": [
-        {
-          "repuesto": "Sellante tubeless 140 ml",
-          "precio": 10500,
-          "decision": "rejected"
-        },
-        {
-          "servicio": "Instalación de cadena",
-          "decision": "rejected"
-        }
-      ],
-      "pago": null
     },
     {
       "cliente": "Andrés Palma",
@@ -2226,26 +1990,6 @@
           "visibleCliente": true
         }
       ]
-    },
-    {
-      "cliente": "Simón Godoy",
-      "bici": "Commencal Meta TR",
-      "estado": "ready_for_pickup",
-      "problema": "Shock perdió sensibilidad y requiere revisión de sellos.",
-      "ingresoHaceDias": 9,
-      "mecanico": "diego.munoz@example.com",
-      "terminadoHaceDias": 3,
-      "items": [
-        {
-          "servicio": "Servicio shock completo"
-        }
-      ],
-      "adicionales": [],
-      "pago": {
-        "metodo": "Débito",
-        "monto": 145000,
-        "haceDias": 3
-      }
     },
     {
       "cliente": "Florencia Torres",
@@ -2341,75 +2085,6 @@
       ]
     },
     {
-      "cliente": "Maximiliano Cárdenas",
-      "bici": "Giant Fathom 2",
-      "estado": "in_progress",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 6,
-      "mecanico": "juan.soto@example.com",
-      "avance": 0.79,
-      "items": [
-        {
-          "servicio": "Mantención general"
-        },
-        {
-          "repuesto": "Funda cambio 1 metro",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [
-        {
-          "servicio": "Sangrado freno individual",
-          "decision": "rejected"
-        }
-      ],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Se recomienda nueva revisión después de varias salidas.",
-          "visibleCliente": true
-        }
-      ]
-    },
-    {
-      "cliente": "Rocío Valenzuela",
-      "bici": "Marin Rift Zone",
-      "estado": "ready_to_work",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 0,
-      "mecanico": "valeria.rojas@example.com",
-      "items": [
-        {
-          "servicio": "Mantención general"
-        },
-        {
-          "servicio": "Sangrado freno individual"
-        }
-      ],
-      "adicionales": [],
-      "pago": null
-    },
-    {
-      "cliente": "Camila Fuentes",
-      "bici": "Trek Slash 9.8",
-      "estado": "ready_for_pickup",
-      "problema": "Shock perdió sensibilidad y requiere revisión de sellos.",
-      "ingresoHaceDias": 8,
-      "mecanico": "valeria.rojas@example.com",
-      "terminadoHaceDias": 6,
-      "items": [
-        {
-          "servicio": "Servicio shock completo"
-        }
-      ],
-      "adicionales": [],
-      "pago": {
-        "metodo": "Débito",
-        "monto": 58000,
-        "haceDias": 3
-      }
-    },
-    {
       "cliente": "Nicolás Sepúlveda",
       "bici": "Merida One-Sixty",
       "estado": "cancelled",
@@ -2441,36 +2116,6 @@
       ]
     },
     {
-      "cliente": "Macarena Flores",
-      "bici": "Specialized Diverge E5",
-      "estado": "in_progress",
-      "problema": "Shock perdió sensibilidad y requiere revisión de sellos.",
-      "ingresoHaceDias": 8,
-      "mecanico": "valeria.rojas@example.com",
-      "avance": 0.39,
-      "items": [
-        {
-          "servicio": "Servicio shock air can"
-        },
-        {
-          "repuesto": "Grasa suspensión 30 g",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [],
-      "pago": {
-        "metodo": "Efectivo",
-        "monto": 24500,
-        "haceDias": 5
-      },
-      "comentarios": [
-        {
-          "texto": "Bicicleta llegó con marcas superficiales de uso en cuadro.",
-          "visibleCliente": true
-        }
-      ]
-    },
-    {
       "cliente": "Rocío Valenzuela",
       "bici": "Marin Rift Zone",
       "estado": "delivered",
@@ -2497,27 +2142,6 @@
       "comentarios": [
         {
           "texto": "Fluido antiguo oscuro; registrar evidencia fotográfica en etapa futura.",
-          "visibleCliente": false
-        }
-      ]
-    },
-    {
-      "cliente": "Antonia Salazar",
-      "bici": "Rocky Mountain Altitude",
-      "estado": "ready_to_work",
-      "problema": "Shock perdió sensibilidad y requiere revisión de sellos.",
-      "ingresoHaceDias": 1,
-      "mecanico": "juan.soto@example.com",
-      "items": [
-        {
-          "servicio": "Servicio shock air can"
-        }
-      ],
-      "adicionales": [],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Cliente solicitó conservar las piezas retiradas.",
           "visibleCliente": false
         }
       ]
@@ -2560,35 +2184,6 @@
       ]
     },
     {
-      "cliente": "Maximiliano Cárdenas",
-      "bici": "Giant Fathom 2",
-      "estado": "ready_for_pickup",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 15,
-      "mecanico": "diego.munoz@example.com",
-      "terminadoHaceDias": 8,
-      "items": [
-        {
-          "servicio": "Mantención general"
-        },
-        {
-          "servicio": "Servicio horquilla lower legs"
-        },
-        {
-          "repuesto": "Pastillas Shimano B05S",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Se recomienda nueva revisión después de varias salidas.",
-          "visibleCliente": true
-        }
-      ]
-    },
-    {
       "cliente": "Joaquín Silva",
       "bici": "Trek Checkpoint ALR",
       "estado": "delivered",
@@ -2619,37 +2214,6 @@
       }
     },
     {
-      "cliente": "Josefa Morales",
-      "bici": "Kona Process 153",
-      "estado": "in_progress",
-      "problema": "Maneta esponjosa y pérdida de potencia de frenado.",
-      "ingresoHaceDias": 11,
-      "mecanico": "valeria.rojas@example.com",
-      "avance": 0.51,
-      "items": [
-        {
-          "servicio": "Sangrado frenos pareja"
-        },
-        {
-          "repuesto": "Pastillas Shimano B05S",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [
-        {
-          "servicio": "Instalación de cadena",
-          "decision": "pending"
-        }
-      ],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Se envió consulta por WhatsApp; esperando confirmación de adicional.",
-          "visibleCliente": false
-        }
-      ]
-    },
-    {
       "cliente": "Natalia Saavedra",
       "bici": "Cube Reaction Hybrid",
       "estado": "delivered",
@@ -2672,31 +2236,6 @@
       "comentarios": [
         {
           "texto": "Se revisó torque final y funcionamiento general.",
-          "visibleCliente": true
-        }
-      ]
-    },
-    {
-      "cliente": "Daniela Paredes",
-      "bici": "Scott Addict Gravel",
-      "estado": "ready_to_work",
-      "problema": "Maneta esponjosa y pérdida de potencia de frenado.",
-      "ingresoHaceDias": 2,
-      "mecanico": null,
-      "items": [
-        {
-          "servicio": "Sangrado freno individual"
-        },
-        {
-          "repuesto": "Disco Shimano RT66 180 mm",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Fluido antiguo oscuro; registrar evidencia fotográfica en etapa futura.",
           "visibleCliente": true
         }
       ]
@@ -2980,32 +2519,6 @@
       }
     },
     {
-      "cliente": "Carolina Bustos",
-      "bici": "Orbea Rise H20",
-      "estado": "ready_for_pickup",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 14,
-      "mecanico": "diego.munoz@example.com",
-      "terminadoHaceDias": 12,
-      "items": [
-        {
-          "servicio": "Mantención general"
-        },
-        {
-          "repuesto": "Pastillas Shimano B05S",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [
-        {
-          "repuesto": "Cadena Shimano SLX M7100 12v",
-          "precio": 35000,
-          "decision": "rejected"
-        }
-      ],
-      "pago": null
-    },
-    {
       "cliente": "Bárbara Olivares",
       "bici": "Propain Spindrift AL",
       "estado": "delivered",
@@ -3025,27 +2538,6 @@
         "monto": 65000,
         "haceDias": 20
       }
-    },
-    {
-      "cliente": "Catalina Muñoz",
-      "bici": "Canyon Neuron",
-      "estado": "ready_to_work",
-      "problema": "Solicita mantenimiento preventivo y ajuste general.",
-      "ingresoHaceDias": 3,
-      "mecanico": "valeria.rojas@example.com",
-      "items": [
-        {
-          "servicio": "Mantención general"
-        }
-      ],
-      "adicionales": [],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Se recomienda nueva revisión después de varias salidas.",
-          "visibleCliente": false
-        }
-      ]
     },
     {
       "cliente": "Vicente Molina",
@@ -3075,37 +2567,6 @@
         {
           "texto": "Cliente confirma disponibilidad para retirar cuando esté lista.",
           "visibleCliente": true
-        }
-      ]
-    },
-    {
-      "cliente": "Andrés Palma",
-      "bici": "Santa Cruz Bronson",
-      "estado": "ready_to_work",
-      "problema": "Horquilla se siente seca o presenta ruidos en la compresión.",
-      "ingresoHaceDias": 5,
-      "mecanico": "valeria.rojas@example.com",
-      "items": [
-        {
-          "servicio": "Servicio horquilla lower legs"
-        }
-      ],
-      "adicionales": [
-        {
-          "repuesto": "Pastillas Shimano B05S",
-          "precio": 16000,
-          "decision": "pending"
-        }
-      ],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Se recomienda nueva revisión después de varias salidas.",
-          "visibleCliente": false
-        },
-        {
-          "texto": "Se envió consulta por WhatsApp; esperando confirmación de adicional.",
-          "visibleCliente": false
         }
       ]
     },
@@ -3331,26 +2792,6 @@
       ]
     },
     {
-      "cliente": "Fernanda Tapia",
-      "bici": "Norco Sight A2",
-      "estado": "quality_control",
-      "problema": "Maneta esponjosa y pérdida de potencia de frenado.",
-      "ingresoHaceDias": 8,
-      "mecanico": "valeria.rojas@example.com",
-      "avance": 0.94,
-      "items": [
-        {
-          "servicio": "Sangrado frenos pareja"
-        },
-        {
-          "repuesto": "Pastillas Shimano B05S",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [],
-      "pago": null
-    },
-    {
       "cliente": "Gabriel Bustamante",
       "bici": "BMC Roadmachine",
       "estado": "delivered",
@@ -3480,40 +2921,6 @@
       ]
     },
     {
-      "cliente": "Valentina Castro",
-      "bici": "Polygon Siskiu T8",
-      "estado": "ready_to_work",
-      "problema": "Solicita mantención completa antes de salir a pedalear el fin de semana.",
-      "ingresoHaceDias": 9,
-      "mecanico": null,
-      "items": [
-        {
-          "servicio": "Mantención full bicicleta"
-        },
-        {
-          "servicio": "Ajuste de transmisión"
-        },
-        {
-          "repuesto": "Pastillas Shimano B05S",
-          "cantidad": 1
-        }
-      ],
-      "adicionales": [
-        {
-          "repuesto": "Kit retenes horquilla 36 mm",
-          "precio": 41000,
-          "decision": "pending"
-        }
-      ],
-      "pago": null,
-      "comentarios": [
-        {
-          "texto": "Se envió consulta por WhatsApp; esperando confirmación de adicional.",
-          "visibleCliente": false
-        }
-      ]
-    },
-    {
       "cliente": "Pablo Rojas",
       "bici": "Giant Defy Advanced",
       "estado": "delivered",
@@ -3538,6 +2945,88 @@
           "visibleCliente": false
         }
       ]
+    }
+  ],
+  "reservas": [
+    {
+      "cliente": "Matías Herrera",
+      "bici": "Trek Marlin 7",
+      "enDias": 0,
+      "hora": "18:00",
+      "nota": "La deja saliendo del trabajo",
+      "items": [
+        {
+          "servicio": "Mantención general"
+        },
+        {
+          "servicio": "Ajuste de transmisión"
+        }
+      ]
+    },
+    {
+      "cliente": "Sofía Valdés",
+      "bici": "Specialized Rockhopper",
+      "enDias": 1,
+      "hora": null,
+      "items": [
+        {
+          "servicio": "Sangrado frenos pareja"
+        },
+        {
+          "otro": "Pastillas Shimano B05S (las trae el cliente)",
+          "precio": 0
+        }
+      ]
+    },
+    {
+      "cliente": "Francisca Medina",
+      "bici": "Giant Talon 3",
+      "enDias": 2,
+      "hora": "18:00",
+      "nota": "Quiere que quede lista el sabado",
+      "items": [
+        {
+          "servicio": "Mantención full bicicleta"
+        }
+      ]
+    },
+    {
+      "cliente": "Tomás Araya",
+      "bici": "Santa Cruz Hightower",
+      "enDias": 3,
+      "hora": null,
+      "items": [
+        {
+          "servicio": "Servicio horquilla full"
+        },
+        {
+          "servicio": "Servicio shock completo"
+        }
+      ]
+    },
+    {
+      "cliente": "Jorge Diaz",
+      "telefono": "+56 9 0000 2001",
+      "bici": "Scott Spark 960",
+      "enDias": 5,
+      "hora": "10:00",
+      "items": [
+        {
+          "servicio": "Diagnóstico y revisión general"
+        },
+        {
+          "otro": "Cadena KMC X12",
+          "precio": 28000
+        }
+      ]
+    },
+    {
+      "cliente": "Ignacio Contreras",
+      "bici": "Trek Fuel EX",
+      "enDias": 6,
+      "hora": null,
+      "nota": "Primero cotizar, todavia no confirma",
+      "items": []
     }
   ]
 }

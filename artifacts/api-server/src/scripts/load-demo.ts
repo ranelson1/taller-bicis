@@ -13,7 +13,7 @@ import {
   db, pool, runWithTenantConnection, withBypass,
   workshopsTable, workshopSettingsTable, usersTable, categoriesTable, servicesTable, serviceStepsTable,
   partsTable, paymentMethodsTable, clientsTable, bicyclesTable, workCasesTable, quotesTable, quoteItemsTable,
-  receptionsTable, workOrdersTable, workOrderItemsTable, workOrderChecklistItemsTable, timelineEventsTable,
+  receptionsTable, reservationsTable, workOrdersTable, workOrderItemsTable, workOrderChecklistItemsTable, timelineEventsTable,
 } from "@workspace/db";
 import { nextDocumentNumber } from "../helpers/numbering";
 import { createWorkOrderFromQuoteInternal, computeWorkOrderTotal, triggerWorkCaseRecalc } from "../helpers/workCase";
@@ -37,6 +37,8 @@ type Seed = {
     pago?: { metodo: string; monto: number; haceDias: number } | null;
     comentarios?: { texto: string; visibleCliente?: boolean }[];
   }[];
+  // Bicis que van a llegar: cotización acordada y día de ingreso ("enDias" desde hoy, saltando días sin atención).
+  reservas?: { cliente: string; telefono?: string | null; bici?: string; items: Item[]; enDias: number; hora?: string | null; nota?: string }[];
 };
 
 const BIKE_TYPES = new Set(["mtb", "road", "gravel", "urban", "ebike", "kids", "other"]);
@@ -287,6 +289,28 @@ async function loadWorkshop(seed: Seed) {
   function methodsByName(name: string) {
     return methods.find(m => m.name.toLowerCase() === name.toLowerCase())?.id ?? null;
   }
+
+  // Reservas (no consumen número de OT).
+  const clientRows = await db.select().from(clientsTable);
+  const workdays = new Set(Object.keys(seed.taller.horario).map(Number));
+  const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  for (const r of seed.reservas ?? []) {
+    const day = new Date();
+    day.setDate(day.getDate() + r.enDias);
+    while (!workdays.has(day.getDay())) day.setDate(day.getDate() + 1);
+    const client = clientRows.find(c => c.name.toLowerCase() === r.cliente.toLowerCase()) ?? null;
+    const items = r.items.map(resolveItem).map(i => ({
+      itemType: i.itemType === "other" ? "part" as const : i.itemType, description: i.description, quantity: 1,
+      unitPrice: i.price, hours: i.hours, serviceId: i.serviceId,
+    }));
+    const hours = items.reduce((s, i) => s + i.hours, 0);
+    await db.insert(reservationsTable).values({
+      clientId: client?.id ?? null, clientName: client?.name ?? r.cliente, clientPhone: r.telefono ?? client?.phone ?? null,
+      bicycleText: r.bici ?? null, note: r.nota ?? null, quoteItems: items, serviceId: items.find(i => i.serviceId)?.serviceId ?? null,
+      estimatedHours: hours > 0 ? String(hours) : null, expectedOn: ymd(day), expectedTime: r.hora ?? null, createdByUserId: staff.id,
+    });
+  }
+  if (seed.reservas?.length) console.log(`Reservas: ${seed.reservas.length}.`);
 
   const byState = works.reduce<Record<string, number>>((acc, t) => ({ ...acc, [t.estado]: (acc[t.estado] ?? 0) + 1 }), {});
   console.log(`Trabajos: ${works.length} (${Object.entries(byState).map(([k, v]) => `${k} ${v}`).join(", ")}).`);

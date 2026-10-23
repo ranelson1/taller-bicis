@@ -67,9 +67,16 @@ sirve cualquier día y siempre hay trabajos atrasados, para hoy, etc.
       "pago": null,                             // o { "metodo": "Débito", "monto": 53000, "haceDias": 0 }
       "comentarios": [ { "texto": "Disco doblado, se endereza", "visibleCliente": true } ]
     }
+  ],
+  "reservas": [                                 // opcional: bicis que van a llegar (no consumen número de OT)
+    { "cliente": "Matías Herrera", "bici": "Trek Marlin 7", "enDias": 1, "hora": "18:00",   // hora puede ser null
+      "items": [ { "servicio": "Mantención general" }, { "otro": "Cadena que trae el cliente", "precio": 0 } ],
+      "nota": "La deja saliendo del trabajo" }      // cliente nuevo: agregar también "telefono"
   ]
 }
 ```
+
+El demo debe mantenerse chico: como máximo 8 trabajos abiertos (en distintos estados) y 6 reservas pendientes.
 
 ### Estados de un trabajo y qué datos deben acompañarlo
 
