@@ -6,18 +6,18 @@ Railway cubre un taller piloto; la base y el volumen se cobran por uso.
 
 ## 1. Preparar el repositorio
 
-1. Sube el repo a GitHub (privado). **Nunca** subas `.env`, respaldos `.dump` ni la carpeta `datos/`
-   (ya están en `.gitignore`).
-2. Opcional pero recomendado: haz el despliegue desde la rama `main` una vez que `mvp-lanzamiento` esté fusionada.
+1. El repo ya está en GitHub (`ranelson1/taller-bicis`, privado). **Nunca** subas `.env`, respaldos `.dump`
+   ni la carpeta `datos/` (ya están en `.gitignore`).
+2. Despliega desde la rama **`main`**: `mvp-lanzamiento` ya está fusionada y ambas apuntan al mismo commit.
 
 ## 2. Crear el proyecto
 
-1. En Railway: **New Project → Deploy from GitHub repo** y elige el repositorio. Railway detecta el
-   `Dockerfile` y `railway.json`.
+1. En Railway: **New Project → Deploy from GitHub repo**, elige el repositorio y la rama `main`. Railway
+   detecta el `Dockerfile` y `railway.json`.
 2. En el mismo proyecto: **New → Database → Add PostgreSQL**.
 3. En el servicio de la app: **Settings → Volumes → New Volume**, punto de montaje `/data`.
-   Ahí se guardan fotos, videos y documentos de compra (`UPLOADS_DIR=/data/uploads`). Sin volumen se
-   pierden en cada despliegue.
+   Ahí se guardan fotos, videos, notas de voz y documentos de compra (`UPLOADS_DIR=/data/uploads`). Sin
+   volumen se pierden en cada despliegue. Los videos pesan: parte con 5 GB y sube si hace falta.
 
 ## 3. Variables del servicio de la app
 
@@ -47,9 +47,37 @@ Luego **Settings → Networking → Generate Domain** para tener la URL pública
 `/api/healthz`. Entra con tu superadmin → `/plataforma` → crea el primer taller (nombre, administrador
 y clave inicial). Ese administrador sigue la guía "Deja tu taller listo" en Inicio.
 
+### Cargar el catálogo del taller (opcional)
+
+Con la URL pública ya funcionando, desde tu computador (el repo con `pnpm install` hecho) puedes cargar los
+servicios y precios reales de Ridemec, con sus pasos, como el administrador del taller:
+
+```bash
+API_URL=https://tu-app.up.railway.app CATALOG_ADMIN="admin@taller.cl:<clave>" \
+  pnpm --filter @workspace/api-server run load-catalogo seed/catalogo-ridemec.json
+```
+
+Es idempotente: lo que ya existe (por nombre) no se duplica. El taller demo (`load-demo`) **no** se
+carga en producción; sirve solo para probar en tu computador.
+
+## 4b. Instalar en el celular y probar cámara y voz
+
+La cámara y el micrófono solo funcionan en HTTPS, y el dominio de Railway ya lo es. Con el celular del mecánico:
+
+1. Abre la URL en Safari (iPhone) o Chrome (Android) → **Compartir / menú → Agregar a la pantalla de inicio**.
+   Queda como app, con icono propio.
+2. Crea un trabajo de prueba y toca **Foto**: debe abrir la cámara trasera. Sube también un video corto
+   (hasta 100 MB).
+3. En la ficha, graba una **nota de voz** (hasta 25 MB) y acepta el permiso del micrófono. Abre el link del
+   cliente (`/ot/<token>`) desde otro teléfono y confirma que se ve la foto y se escucha el audio.
+4. Prueba **Cotizar y reservar**: debe armar el mensaje de WhatsApp con total y fechas.
+
+Si algo de esto falla en el teléfono, anótalo antes de que Ale lo use: es lo único que no se puede probar
+desde el computador.
+
 ## 5. Actualizar
 
-Cada `git push` a la rama conectada despliega de nuevo. Las migraciones nuevas se aplican solas.
+Cada `git push` a `main` (la rama conectada) despliega de nuevo. Las migraciones nuevas se aplican solas.
 Si cambias el esquema, agrega `lib/db/migrations/NNN-nombre.sql` (idempotente) y regenera
 `lib/db/schema.sql` (ver README).
 
