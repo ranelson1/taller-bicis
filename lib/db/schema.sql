@@ -6,7 +6,6 @@
 -- PostgreSQL database dump
 --
 
-\restrict 2zLTqbtJsqvm0ghWdpCREyMtawGAa9Z5laLhGM7eWhui1jLS1VjgTerhSVNEhPK
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Debian 16.15-1.pgdg13+2)
@@ -3040,5 +3039,4 @@ ALTER TABLE public.workshops ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 2zLTqbtJsqvm0ghWdpCREyMtawGAa9Z5laLhGM7eWhui1jLS1VjgTerhSVNEhPK
 

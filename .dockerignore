@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/uploads
+.git
+.env
+.env.*
+*.dump
+*.sql.gz
+datos/
+attached_assets/
+manual-taller.pdf
+**/*.tsbuildinfo
+.local
+.cache

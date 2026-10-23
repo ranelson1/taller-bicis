@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
@@ -9,6 +11,10 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
+const production = process.env.NODE_ENV === "production";
+
+// Detrás del proxy del hosting (Railway, etc.) para que las cookies "secure" y la IP funcionen.
+if (production || process.env.TRUST_PROXY) app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -40,6 +46,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const sessionSecret = process.env.SESSION_SECRET || "taller-bicicleta-dev-secret-change-in-prod";
+if (production && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
+  throw new Error("En producción SESSION_SECRET debe tener al menos 32 caracteres.");
+}
 
 // Sesiones en Postgres: reiniciar la API no cierra la sesión de nadie.
 // La tabla la crea lib/db/migrations/004-sesiones.sql.
@@ -54,7 +63,8 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: false,
+      // "auto": segura cuando la conexión es HTTPS (detrás del proxy); en http local sigue funcionando.
+      secure: production ? "auto" : false,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     },
   }),
@@ -71,5 +81,17 @@ app.use("/api", (req, res, next) => {
 });
 
 app.use("/api", router);
+
+// Producción: la misma app sirve la web ya compilada (WEB_DIST) y deja que el router del navegador
+// resuelva cualquier ruta que no sea /api.
+const webDist = process.env.WEB_DIST ? path.resolve(process.env.WEB_DIST) : null;
+if (webDist && fs.existsSync(path.join(webDist, "index.html"))) {
+  app.use("/assets", express.static(path.join(webDist, "assets"), { immutable: true, maxAge: "1y" }));
+  app.use(express.static(webDist, { index: false, maxAge: "1h" }));
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path.startsWith("/api")) return next();
+    res.set("Cache-Control", "no-cache").sendFile(path.join(webDist, "index.html"));
+  });
+}
 
 export default app;

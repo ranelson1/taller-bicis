@@ -5,13 +5,24 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
+// Usuario de la app: DATABASE_URL directa, o (en hosting con una sola URL de base) la URL de
+// administración con el usuario normal `taller_app` que crea scripts/bootstrap.
+function appDatabaseUrl(): string {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  const admin = process.env.DATABASE_URL_ADMIN;
+  const password = process.env.APP_DB_PASSWORD;
+  if (admin && password) {
+    const url = new URL(admin);
+    url.username = "taller_app";
+    url.password = password;
+    return url.toString();
+  }
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL must be set (or DATABASE_URL_ADMIN + APP_DB_PASSWORD). Did you forget to provision a database?",
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(process.env.DB_POOL_MAX ?? 20) });
+export const pool = new Pool({ connectionString: appDatabaseUrl(), max: Number(process.env.DB_POOL_MAX ?? 20) });
 
 type Db = NodePgDatabase<typeof schema>;
 const baseDb: Db = drizzle(pool, { schema });

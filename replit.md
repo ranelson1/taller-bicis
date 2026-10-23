@@ -209,17 +209,37 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
 
 ## Páginas del Frontend
 
-- `/` — Dashboard (conteos)
-- `/clientes` — Lista + CRUD completo
-- `/clientes/:id` — Detalle + bicicletas del cliente
-- `/bicicletas` — Lista + CRUD completo
-- `/admin/usuarios` — CRUD usuarios
-- `/admin/servicios` — CRUD servicios
-- `/admin/servicios/:id` — Detalle + CRUD pasos (mover/agregar/editar/eliminar)
-- `/admin/repuestos` — CRUD repuestos
-- `/admin/categorias` — CRUD categorías
-- `/admin/metodos-pago` — CRUD métodos de pago
-- `/presupuestos`, `/recepciones`, `/ordenes`, `/agenda`, `/pagos` — Placeholders para futuras etapas
+- `/` — Inicio: guía "Deja tu taller listo" (admin), por comprar, alertas y tablero por estado
+- `/mis-trabajos` — lo que me toca (por empezar, en curso, listos) con botones grandes; "Tomar este trabajo"
+- `/trabajos`, `/trabajos/nuevo`, `/trabajos/:id` — lista (saldo por cobrar, avance), alta rápida y ficha de la OT
+  (fotos y videos, números del trabajo, aviso al cliente por WhatsApp)
+- `/clientes`, `/clientes/:id`, `/bicicletas` — clientes y bicicletas
+- `/inventario?tab=stock|compras|comprar` y `/inventario/compras/:id` — stock, compras (XML/PDF/foto) y lista de compra
+- `/admin/numeros` — Mis números: margen real, cobrado, por cobrar, servicios más usados, por mecánico
+- `/admin/catalogo` (servicios con receta de insumos y categorías), `/admin/usuarios`, `/admin/configuracion`
+  (datos, horario, costo de la hora, margen, IVA, logo, métodos de pago)
+- `/ot/:token` — vista pública del cliente (sin login); `/plataforma` — superadmin
+
+## Inventario, compras y números (migraciones 010 y 011)
+
+- `parts` es el inventario: `kind` repuesto/insumo, `unit`, `cost_price` (costo promedio), `stock`, `min_stock`.
+  Todo movimiento queda en `inventory_movements` (compra, consumo, devolución, ajuste).
+- Compras (`purchases`/`purchase_items`): borrador → confirmar suma stock. `helpers/invoiceReader.ts` lee XML (SII y
+  formatos genéricos) y, con `ANTHROPIC_API_KEY`, PDF/fotos con Claude. Una línea "para un trabajo" entra al stock y se
+  consume al tiro en la OT, con PVP del distribuidor o margen por defecto.
+- Recetas (`service_supplies`): insumos que gasta un servicio; se descuentan al pasar la OT a "lista para retiro".
+- `GET /api/work-orders/:id/economics` y `GET /api/reports/summary` (solo admin): ingresos, repuestos, mano de obra
+  (horas × costo de la hora) y margen.
+
+## Fotos y videos de la OT
+
+- `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.
+  El cliente ve los marcados "visibles" en su link, con reproductor.
+
+## Despliegue
+
+- `Dockerfile` + `railway.json` + `docs/railway.md`; `src/scripts/bootstrap.ts` (esquema/migraciones/rol/superadmin) y
+  `WEB_DIST` para servir la web desde la API.
 
 ## Decisiones de Arquitectura
 

@@ -83,8 +83,11 @@ Para una base nueva basta `lib/db/schema.sql`. Si cambias el esquema con una mig
 
 ## Producción
 
-Build de API y frontend, `/api` hacia el backend, HTTPS, `NODE_ENV=production`, un `SESSION_SECRET`
-largo y `UPLOADS_DIR` en un disco persistente (fotos de las OT) o cambiar `helpers/photoStorage.ts`
-por S3/R2.
+Despliegue en Railway (o cualquier hosting con Docker): ver [docs/railway.md](docs/railway.md). El
+`Dockerfile` arma una sola app que sirve la API y la web; al arrancar, `scripts/bootstrap` crea el
+esquema o aplica las migraciones nuevas, crea el usuario `taller_app` y el superadmin. Variables:
+`DATABASE_URL_ADMIN`, `APP_DB_PASSWORD`, `SESSION_SECRET` (32+ caracteres), `SUPERADMIN_EMAIL`,
+`SUPERADMIN_PASSWORD` y, para leer facturas en PDF o foto, `ANTHROPIC_API_KEY`. Las fotos, videos y
+documentos van a `UPLOADS_DIR` (monta un volumen) o cambia `helpers/photoStorage.ts` por S3/R2.
 
 > ⚠️ Nunca subir respaldos de base de datos ni archivos `.env` a este repositorio.
