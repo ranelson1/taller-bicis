@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Wrench, Users, Bike, LayoutDashboard, Settings, LogOut, Menu, Briefcase, Plus, Building2, LifeBuoy, Package } from "lucide-react";
+import { Wrench, Users, Bike, LayoutDashboard, Settings, LogOut, Menu, Briefcase, Plus, Building2, LifeBuoy, Package, TrendingUp } from "lucide-react";
 import { useExitPlatformWorkshop, useGetMe, useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -17,6 +17,7 @@ const mainNavItems: NavItem[] = [
 ];
 
 const adminNavItems: NavItem[] = [
+  { href: "/admin/numeros", label: "Mis números", icon: TrendingUp },
   { href: "/admin/usuarios", label: "Usuarios", icon: Users },
   { href: "/admin/catalogo", label: "Catálogo", icon: Wrench },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },

@@ -19,6 +19,7 @@ import settingsRouter from "./settings";
 import platformRouter from "./platform";
 import inventoryRouter from "./inventory";
 import purchasesRouter from "./purchases";
+import reportsRouter from "./reports";
 
 const router: IRouter = Router();
 
@@ -42,5 +43,6 @@ router.use("/settings", settingsRouter);
 router.use("/platform", platformRouter);
 router.use("/inventory", inventoryRouter);
 router.use("/purchases", purchasesRouter);
+router.use("/reports", reportsRouter);
 
 export default router;

@@ -2789,6 +2789,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
 
+  /reports/summary:
+    get:
+      operationId: getReportSummary
+      tags: [health]
+      summary: Mis números - resumen del taller en un período (solo admin)
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resumen
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportSummary"
+
   # ── WORK CASES ────────────────────────────────────────────────────────────
   /public/ot/{token}:
     get:
@@ -5063,6 +5087,81 @@ components:
           type: string
         url:
           type: string
+
+    ReportSummary:
+      type: object
+      required: [from, to, recoversVat, jobs, collected, receivable, inProgress, purchases, stockValue, lowestMargins]
+      properties:
+        from: { type: string }
+        to: { type: string }
+        laborCostPerHour: { type: ["number", "null"] }
+        recoversVat: { type: boolean }
+        jobs:
+          type: object
+          required: [count, billed, revenue, materialsCost, laborCost, laborHours, margin]
+          properties:
+            count: { type: integer }
+            billed: { type: number }
+            revenue: { type: number }
+            materialsCost: { type: number }
+            laborCost: { type: number }
+            laborHours: { type: number }
+            margin: { type: number }
+            marginPct: { type: ["number", "null"] }
+            avgTicket: { type: ["number", "null"] }
+            earnedPerHour: { type: ["number", "null"] }
+        collected:
+          type: object
+          required: [amount, count]
+          properties:
+            amount: { type: number }
+            count: { type: integer }
+        receivable:
+          type: object
+          required: [amount, count, items]
+          properties:
+            amount: { type: number }
+            count: { type: integer }
+            items:
+              type: array
+              items:
+                type: object
+                required: [workOrderId, workOrderNumber, balance]
+                properties:
+                  workOrderId: { type: integer }
+                  workCaseId: { type: ["integer", "null"] }
+                  workOrderNumber: { type: string }
+                  clientName: { type: ["string", "null"] }
+                  balance: { type: number }
+                  deliveredAt: { type: ["string", "null"] }
+        inProgress:
+          type: object
+          required: [count, value]
+          properties:
+            count: { type: integer }
+            value: { type: number }
+        purchases:
+          type: object
+          required: [total, net, count]
+          properties:
+            total: { type: number }
+            net: { type: number }
+            count: { type: integer }
+        stockValue: { type: number }
+        lowestMargins:
+          type: array
+          items:
+            type: object
+            required: [workOrderId, workOrderNumber, total, margin]
+            properties:
+              workOrderId: { type: integer }
+              workCaseId: { type: ["integer", "null"] }
+              workOrderNumber: { type: string }
+              clientName: { type: ["string", "null"] }
+              bicycleName: { type: ["string", "null"] }
+              total: { type: number }
+              margin: { type: number }
+              marginPct: { type: ["number", "null"] }
 
     PublicWorkOrderPhoto:
       type: object

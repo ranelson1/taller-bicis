@@ -1707,6 +1707,86 @@ export interface WorkOrderPhoto {
   url: string;
 }
 
+export type ReportSummaryJobs = {
+  count: number;
+  billed: number;
+  revenue: number;
+  materialsCost: number;
+  laborCost: number;
+  laborHours: number;
+  margin: number;
+  /** @nullable */
+  marginPct?: number | null;
+  /** @nullable */
+  avgTicket?: number | null;
+  /** @nullable */
+  earnedPerHour?: number | null;
+};
+
+export type ReportSummaryCollected = {
+  amount: number;
+  count: number;
+};
+
+export type ReportSummaryReceivableItemsItem = {
+  workOrderId: number;
+  /** @nullable */
+  workCaseId?: number | null;
+  workOrderNumber: string;
+  /** @nullable */
+  clientName?: string | null;
+  balance: number;
+  /** @nullable */
+  deliveredAt?: string | null;
+};
+
+export type ReportSummaryReceivable = {
+  amount: number;
+  count: number;
+  items: ReportSummaryReceivableItemsItem[];
+};
+
+export type ReportSummaryInProgress = {
+  count: number;
+  value: number;
+};
+
+export type ReportSummaryPurchases = {
+  total: number;
+  net: number;
+  count: number;
+};
+
+export type ReportSummaryLowestMarginsItem = {
+  workOrderId: number;
+  /** @nullable */
+  workCaseId?: number | null;
+  workOrderNumber: string;
+  /** @nullable */
+  clientName?: string | null;
+  /** @nullable */
+  bicycleName?: string | null;
+  total: number;
+  margin: number;
+  /** @nullable */
+  marginPct?: number | null;
+};
+
+export interface ReportSummary {
+  from: string;
+  to: string;
+  /** @nullable */
+  laborCostPerHour?: number | null;
+  recoversVat: boolean;
+  jobs: ReportSummaryJobs;
+  collected: ReportSummaryCollected;
+  receivable: ReportSummaryReceivable;
+  inProgress: ReportSummaryInProgress;
+  purchases: ReportSummaryPurchases;
+  stockValue: number;
+  lowestMargins: ReportSummaryLowestMarginsItem[];
+}
+
 export interface PlatformWorkshop {
   id: number;
   name: string;
@@ -2170,6 +2250,11 @@ export const UpdateWorkOrderItemBodyStatus = {
 
 export type UpdateWorkOrderItemBody = {
   status?: UpdateWorkOrderItemBodyStatus;
+};
+
+export type GetReportSummaryParams = {
+from?: string;
+to?: string;
 };
 
 export type ListWorkCasesParams = {

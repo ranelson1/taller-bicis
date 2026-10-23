@@ -3709,6 +3709,70 @@ export const GetDashboardSummaryResponse = zod.object({
 
 
 /**
+ * @summary Mis números - resumen del taller en un período (solo admin)
+ */
+export const GetReportSummaryQueryParams = zod.object({
+  "from": zod.coerce.string().optional(),
+  "to": zod.coerce.string().optional()
+})
+
+export const GetReportSummaryResponse = zod.object({
+  "from": zod.string(),
+  "to": zod.string(),
+  "laborCostPerHour": zod.number().nullish(),
+  "recoversVat": zod.boolean(),
+  "jobs": zod.object({
+  "count": zod.number(),
+  "billed": zod.number(),
+  "revenue": zod.number(),
+  "materialsCost": zod.number(),
+  "laborCost": zod.number(),
+  "laborHours": zod.number(),
+  "margin": zod.number(),
+  "marginPct": zod.number().nullish(),
+  "avgTicket": zod.number().nullish(),
+  "earnedPerHour": zod.number().nullish()
+}),
+  "collected": zod.object({
+  "amount": zod.number(),
+  "count": zod.number()
+}),
+  "receivable": zod.object({
+  "amount": zod.number(),
+  "count": zod.number(),
+  "items": zod.array(zod.object({
+  "workOrderId": zod.number(),
+  "workCaseId": zod.number().nullish(),
+  "workOrderNumber": zod.string(),
+  "clientName": zod.string().nullish(),
+  "balance": zod.number(),
+  "deliveredAt": zod.string().nullish()
+}))
+}),
+  "inProgress": zod.object({
+  "count": zod.number(),
+  "value": zod.number()
+}),
+  "purchases": zod.object({
+  "total": zod.number(),
+  "net": zod.number(),
+  "count": zod.number()
+}),
+  "stockValue": zod.number(),
+  "lowestMargins": zod.array(zod.object({
+  "workOrderId": zod.number(),
+  "workCaseId": zod.number().nullish(),
+  "workOrderNumber": zod.string(),
+  "clientName": zod.string().nullish(),
+  "bicycleName": zod.string().nullish(),
+  "total": zod.number(),
+  "margin": zod.number(),
+  "marginPct": zod.number().nullish()
+}))
+})
+
+
+/**
  * @summary Client-facing view of a work order (no login, by secret token)
  */
 export const GetPublicWorkOrderParams = zod.object({

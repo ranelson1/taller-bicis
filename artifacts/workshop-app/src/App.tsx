@@ -26,6 +26,7 @@ import OtPublica from "@/pages/ot-publica";
 import Platform from "@/pages/platform";
 import Inventario from "@/pages/inventario";
 import CompraDetail from "@/pages/compra-detail";
+import MisNumeros from "@/pages/mis-numeros";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -118,6 +119,9 @@ function Router() {
       </Route>
 
       {/* Admin */}
+      <Route path="/admin/numeros">
+        <AdminGate><MisNumeros /></AdminGate>
+      </Route>
       <Route path="/admin/usuarios">
         <AdminGate><Users /></AdminGate>
       </Route>
