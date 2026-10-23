@@ -40,6 +40,7 @@ import type {
   ClientWithCount,
   CreatePlatformWorkshop201,
   CreatePlatformWorkshopBody,
+  CreatePlatformWorkshopUserBody,
   DashboardSummary,
   DeleteWorkCase200,
   FollowupClient,
@@ -67,6 +68,7 @@ import type {
   PaymentMethod,
   PaymentMethodInput,
   PaymentMethodUpdate,
+  PlatformUser,
   PlatformWorkshop,
   PreviewReservationBody,
   PreviewWorkOrderEstimate200,
@@ -114,6 +116,8 @@ import type {
   Supplier,
   TimelineEvent,
   UpdateBicycleSetupBody,
+  UpdateMyAccountBody,
+  UpdatePlatformUserBody,
   UpdatePlatformWorkshopBody,
   UpdateServiceSuppliesBody,
   UpdateWorkOrderItemBody,
@@ -464,6 +468,76 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
 
 
 
+
+export const getUpdateMyAccountUrl = () => {
+
+
+
+
+  return `/api/auth/me`
+}
+
+/**
+ * @summary El usuario cambia su propio nombre, email o contraseña (pide la contraseña actual)
+ */
+export const updateMyAccount = async (updateMyAccountBody: UpdateMyAccountBody, options?: RequestInit): Promise<AuthUser> => {
+
+  return customFetch<AuthUser>(getUpdateMyAccountUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateMyAccountBody)
+  }
+);}
+
+
+
+
+export const getUpdateMyAccountMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyAccount>>, TError,{data: BodyType<UpdateMyAccountBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMyAccount>>, TError,{data: BodyType<UpdateMyAccountBody>}, TContext> => {
+
+const mutationKey = ['updateMyAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMyAccount>>, {data: BodyType<UpdateMyAccountBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMyAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMyAccountMutationResult = NonNullable<Awaited<ReturnType<typeof updateMyAccount>>>
+    export type UpdateMyAccountMutationBody = BodyType<UpdateMyAccountBody>
+    export type UpdateMyAccountMutationError = ErrorType<void>
+
+    /**
+ * @summary El usuario cambia su propio nombre, email o contraseña (pide la contraseña actual)
+ */
+export const useUpdateMyAccount = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMyAccount>>, TError,{data: BodyType<UpdateMyAccountBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMyAccount>>,
+        TError,
+        {data: BodyType<UpdateMyAccountBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateMyAccountMutationOptions(options));
+    }
 
 export const getListUsersUrl = () => {
 
@@ -7335,6 +7409,225 @@ export const useEnterPlatformWorkshop = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getEnterPlatformWorkshopMutationOptions(options));
+    }
+
+export const getListPlatformWorkshopUsersUrl = (id: number,) => {
+
+
+
+
+  return `/api/platform/workshops/${id}/users`
+}
+
+/**
+ * @summary Usuarios de un taller (solo superadmin)
+ */
+export const listPlatformWorkshopUsers = async (id: number, options?: RequestInit): Promise<PlatformUser[]> => {
+
+  return customFetch<PlatformUser[]>(getListPlatformWorkshopUsersUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlatformWorkshopUsersQueryKey = (id: number,) => {
+    return [
+    `/api/platform/workshops/${id}/users`
+    ] as const;
+    }
+
+
+export const getListPlatformWorkshopUsersQueryOptions = <TData = Awaited<ReturnType<typeof listPlatformWorkshopUsers>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformWorkshopUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlatformWorkshopUsersQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlatformWorkshopUsers>>> = ({ signal }) => listPlatformWorkshopUsers(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlatformWorkshopUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlatformWorkshopUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listPlatformWorkshopUsers>>>
+export type ListPlatformWorkshopUsersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Usuarios de un taller (solo superadmin)
+ */
+
+export function useListPlatformWorkshopUsers<TData = Awaited<ReturnType<typeof listPlatformWorkshopUsers>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformWorkshopUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlatformWorkshopUsersQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePlatformWorkshopUserUrl = (id: number,) => {
+
+
+
+
+  return `/api/platform/workshops/${id}/users`
+}
+
+/**
+ * @summary Agrega un usuario a un taller (solo superadmin)
+ */
+export const createPlatformWorkshopUser = async (id: number,
+    createPlatformWorkshopUserBody: CreatePlatformWorkshopUserBody, options?: RequestInit): Promise<PlatformUser> => {
+
+  return customFetch<PlatformUser>(getCreatePlatformWorkshopUserUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createPlatformWorkshopUserBody)
+  }
+);}
+
+
+
+
+export const getCreatePlatformWorkshopUserMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformWorkshopUser>>, TError,{id: number;data: BodyType<CreatePlatformWorkshopUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPlatformWorkshopUser>>, TError,{id: number;data: BodyType<CreatePlatformWorkshopUserBody>}, TContext> => {
+
+const mutationKey = ['createPlatformWorkshopUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPlatformWorkshopUser>>, {id: number;data: BodyType<CreatePlatformWorkshopUserBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createPlatformWorkshopUser(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePlatformWorkshopUserMutationResult = NonNullable<Awaited<ReturnType<typeof createPlatformWorkshopUser>>>
+    export type CreatePlatformWorkshopUserMutationBody = BodyType<CreatePlatformWorkshopUserBody>
+    export type CreatePlatformWorkshopUserMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Agrega un usuario a un taller (solo superadmin)
+ */
+export const useCreatePlatformWorkshopUser = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformWorkshopUser>>, TError,{id: number;data: BodyType<CreatePlatformWorkshopUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPlatformWorkshopUser>>,
+        TError,
+        {id: number;data: BodyType<CreatePlatformWorkshopUserBody>},
+        TContext
+      > => {
+      return useMutation(getCreatePlatformWorkshopUserMutationOptions(options));
+    }
+
+export const getUpdatePlatformUserUrl = (userId: number,) => {
+
+
+
+
+  return `/api/platform/users/${userId}`
+}
+
+/**
+ * @summary Cambia nombre, email, rol, contraseña o estado de un usuario de taller (solo superadmin)
+ */
+export const updatePlatformUser = async (userId: number,
+    updatePlatformUserBody: UpdatePlatformUserBody, options?: RequestInit): Promise<PlatformUser> => {
+
+  return customFetch<PlatformUser>(getUpdatePlatformUserUrl(userId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updatePlatformUserBody)
+  }
+);}
+
+
+
+
+export const getUpdatePlatformUserMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformUser>>, TError,{userId: number;data: BodyType<UpdatePlatformUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlatformUser>>, TError,{userId: number;data: BodyType<UpdatePlatformUserBody>}, TContext> => {
+
+const mutationKey = ['updatePlatformUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlatformUser>>, {userId: number;data: BodyType<UpdatePlatformUserBody>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  updatePlatformUser(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlatformUserMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlatformUser>>>
+    export type UpdatePlatformUserMutationBody = BodyType<UpdatePlatformUserBody>
+    export type UpdatePlatformUserMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Cambia nombre, email, rol, contraseña o estado de un usuario de taller (solo superadmin)
+ */
+export const useUpdatePlatformUser = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformUser>>, TError,{userId: number;data: BodyType<UpdatePlatformUserBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlatformUser>>,
+        TError,
+        {userId: number;data: BodyType<UpdatePlatformUserBody>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlatformUserMutationOptions(options));
     }
 
 export const getExitPlatformWorkshopUrl = () => {

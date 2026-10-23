@@ -2155,6 +2155,24 @@ export interface PlatformWorkshop {
   adminEmails: string[];
 }
 
+export type PlatformUserRole = typeof PlatformUserRole[keyof typeof PlatformUserRole];
+
+
+export const PlatformUserRole = {
+  admin: 'admin',
+  mechanic: 'mechanic',
+  reception: 'reception',
+} as const;
+
+export interface PlatformUser {
+  id: number;
+  name: string;
+  email: string;
+  role: PlatformUserRole;
+  active: boolean;
+  doesJobs?: boolean;
+}
+
 export type InventoryItemKind = typeof InventoryItemKind[keyof typeof InventoryItemKind];
 
 
@@ -2437,6 +2455,13 @@ export interface WorkCaseCommentInput {
   visibleToClient?: boolean;
 }
 
+export type UpdateMyAccountBody = {
+  currentPassword: string;
+  name?: string;
+  email?: string;
+  newPassword?: string;
+};
+
 export type ListBicyclesParams = {
 clientId?: number;
 };
@@ -2539,6 +2564,39 @@ export type CreatePlatformWorkshop201 = {
 
 export type UpdatePlatformWorkshopBody = {
   name?: string;
+  active?: boolean;
+};
+
+export type CreatePlatformWorkshopUserBodyRole = typeof CreatePlatformWorkshopUserBodyRole[keyof typeof CreatePlatformWorkshopUserBodyRole];
+
+
+export const CreatePlatformWorkshopUserBodyRole = {
+  admin: 'admin',
+  mechanic: 'mechanic',
+  reception: 'reception',
+} as const;
+
+export type CreatePlatformWorkshopUserBody = {
+  name: string;
+  email: string;
+  password: string;
+  role: CreatePlatformWorkshopUserBodyRole;
+};
+
+export type UpdatePlatformUserBodyRole = typeof UpdatePlatformUserBodyRole[keyof typeof UpdatePlatformUserBodyRole];
+
+
+export const UpdatePlatformUserBodyRole = {
+  admin: 'admin',
+  mechanic: 'mechanic',
+  reception: 'reception',
+} as const;
+
+export type UpdatePlatformUserBody = {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: UpdatePlatformUserBodyRole;
   active?: boolean;
 };
 

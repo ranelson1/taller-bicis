@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useWorkers } from "@/hooks/use-workers";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useQueryClient } from "@tanstack/react-query";
+import { AccountDialog } from "@/components/account-dialog";
 
 type NavItem = { href: string; label: string; icon: typeof Wrench };
 
@@ -45,6 +46,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const exitWorkshop = useExitPlatformWorkshop();
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   // El menú móvil se cierra al navegar.
   useEffect(() => { setMenuOpen(false); }, [location]);
 
@@ -115,10 +117,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const UserFooter = () => (
     <div className="flex items-center justify-between">
-      <div className="flex flex-col min-w-0 text-sidebar-foreground">
+      <button type="button" onClick={() => { setMenuOpen(false); setAccountOpen(true); }} title="Mi cuenta" data-testid="button-my-account"
+        className="flex flex-col min-w-0 text-left text-sidebar-foreground rounded-md px-1 -mx-1 hover:bg-sidebar-accent">
         <span className="text-sm font-medium truncate">{user?.name}</span>
-        <span className="text-xs opacity-70">{roleLabel}</span>
-      </div>
+        <span className="text-xs opacity-70">{roleLabel} · Mi cuenta</span>
+      </button>
       <Button variant="ghost" size="icon" onClick={handleLogout} className="text-sidebar-foreground hover:bg-sidebar-accent" aria-label="Cerrar sesión">
         <LogOut className="h-4 w-4" />
       </Button>
@@ -180,6 +183,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )}
         {children}
       </main>
+      <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
 
       {/* Mobile Bottom Nav: solo dentro de un taller */}
       {inWorkshop && (

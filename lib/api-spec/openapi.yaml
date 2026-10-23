@@ -98,6 +98,37 @@ paths:
                 $ref: "#/components/schemas/AuthUser"
         "401":
           description: Not authenticated
+    patch:
+      operationId: updateMyAccount
+      tags: [auth]
+      summary: El usuario cambia su propio nombre, email o contraseña (pide la contraseña actual)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword]
+              properties:
+                currentPassword:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+                newPassword:
+                  type: string
+      responses:
+        "200":
+          description: Cuenta actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "400":
+          description: Datos inválidos o contraseña actual incorrecta
+        "409":
+          description: Ese email ya está en uso
 
   # ── USERS ─────────────────────────────────────────────────────────────────
   /users:
@@ -2097,6 +2128,98 @@ paths:
       responses:
         "200":
           description: Sesión dentro del taller
+
+  /platform/workshops/{id}/users:
+    get:
+      operationId: listPlatformWorkshopUsers
+      tags: [platform]
+      summary: Usuarios de un taller (solo superadmin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Usuarios del taller
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlatformUser"
+    post:
+      operationId: createPlatformWorkshopUser
+      tags: [platform]
+      summary: Agrega un usuario a un taller (solo superadmin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, mechanic, reception]
+      responses:
+        "201":
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformUser"
+
+  /platform/users/{userId}:
+    patch:
+      operationId: updatePlatformUser
+      tags: [platform]
+      summary: Cambia nombre, email, rol, contraseña o estado de un usuario de taller (solo superadmin)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, mechanic, reception]
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformUser"
 
   /platform/exit:
     post:
@@ -5876,6 +5999,24 @@ components:
           type: array
           items:
             type: string
+
+    PlatformUser:
+      type: object
+      required: [id, name, email, role, active]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, mechanic, reception]
+        active:
+          type: boolean
+        doesJobs:
+          type: boolean
 
     InventoryItem:
       type: object

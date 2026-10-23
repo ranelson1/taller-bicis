@@ -13,7 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Copy, LogIn, Plus, RefreshCw } from "lucide-react";
+import { WorkshopUsersDialog } from "@/components/platform/workshop-users-dialog";
+import { Building2, Copy, LogIn, Plus, RefreshCw, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Panel de la plataforma: el superadmin crea talleres y entra a uno para dar soporte.
@@ -34,6 +35,7 @@ export default function Platform() {
   const update = useUpdatePlatformWorkshop();
   const enter = useEnterPlatformWorkshop();
   const [creating, setCreating] = useState(false);
+  const [usersOf, setUsersOf] = useState<PlatformWorkshop | null>(null);
 
   const refresh = () => qc.invalidateQueries({ queryKey: getListPlatformWorkshopsQueryKey() });
 
@@ -86,6 +88,9 @@ export default function Platform() {
                     <Switch checked={w.active} onCheckedChange={v => toggleActive(w, v)} aria-label={`Taller ${w.name} activo`} />
                     {w.active ? "Activo" : "Desactivado"}
                   </label>
+                  <Button variant="outline" size="sm" onClick={() => setUsersOf(w)} data-testid={`users-workshop-${w.id}`}>
+                    <Users className="h-4 w-4 mr-1" />Usuarios
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => enterWorkshop(w)} disabled={enter.isPending} data-testid={`enter-workshop-${w.id}`}>
                     <LogIn className="h-4 w-4 mr-1" />Entrar
                   </Button>
@@ -97,6 +102,7 @@ export default function Platform() {
       )}
 
       <CreateWorkshopDialog open={creating} onOpenChange={setCreating} onCreated={refresh} />
+      <WorkshopUsersDialog workshop={usersOf} onClose={() => { setUsersOf(null); refresh(); }} />
     </div>
   );
 }

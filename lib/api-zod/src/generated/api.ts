@@ -58,6 +58,28 @@ export const GetMeResponse = zod.object({
 
 
 /**
+ * @summary El usuario cambia su propio nombre, email o contraseña (pide la contraseña actual)
+ */
+export const UpdateMyAccountBody = zod.object({
+  "currentPassword": zod.string(),
+  "name": zod.string().optional(),
+  "email": zod.string().optional(),
+  "newPassword": zod.string().optional()
+})
+
+export const UpdateMyAccountResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['admin', 'mechanic', 'reception', 'superadmin']),
+  "workshopId": zod.number().nullish().describe('Taller de la sesión (null = superadmin sin taller elegido)'),
+  "workshopName": zod.string().nullish(),
+  "workshopLogoUrl": zod.string().nullish(),
+  "doesJobs": zod.boolean().optional()
+})
+
+
+/**
  * @summary List all users
  */
 export const ListUsersResponseItem = zod.object({
@@ -2841,6 +2863,73 @@ export const EnterPlatformWorkshopParams = zod.object({
 })
 
 export const EnterPlatformWorkshopResponse = zod.unknown()
+
+
+/**
+ * @summary Usuarios de un taller (solo superadmin)
+ */
+export const ListPlatformWorkshopUsersParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListPlatformWorkshopUsersResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['admin', 'mechanic', 'reception']),
+  "active": zod.boolean(),
+  "doesJobs": zod.boolean().optional()
+})
+export const ListPlatformWorkshopUsersResponse = zod.array(ListPlatformWorkshopUsersResponseItem)
+
+
+/**
+ * @summary Agrega un usuario a un taller (solo superadmin)
+ */
+export const CreatePlatformWorkshopUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreatePlatformWorkshopUserBody = zod.object({
+  "name": zod.string(),
+  "email": zod.string(),
+  "password": zod.string(),
+  "role": zod.enum(['admin', 'mechanic', 'reception'])
+})
+
+export const CreatePlatformWorkshopUserResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['admin', 'mechanic', 'reception']),
+  "active": zod.boolean(),
+  "doesJobs": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Cambia nombre, email, rol, contraseña o estado de un usuario de taller (solo superadmin)
+ */
+export const UpdatePlatformUserParams = zod.object({
+  "userId": zod.coerce.number()
+})
+
+export const UpdatePlatformUserBody = zod.object({
+  "name": zod.string().optional(),
+  "email": zod.string().optional(),
+  "password": zod.string().optional(),
+  "role": zod.enum(['admin', 'mechanic', 'reception']).optional(),
+  "active": zod.boolean().optional()
+})
+
+export const UpdatePlatformUserResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['admin', 'mechanic', 'reception']),
+  "active": zod.boolean(),
+  "doesJobs": zod.boolean().optional()
+})
 
 
 /**

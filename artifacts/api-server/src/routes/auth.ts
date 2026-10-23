@@ -86,4 +86,36 @@ router.get("/me", async (req, res) => {
   }
 });
 
+// PATCH /auth/me — cada usuario cambia su nombre, email o contraseña (siempre con su contraseña actual).
+router.patch("/me", async (req, res) => {
+  const parsed = z.object({
+    currentPassword: z.string().min(1),
+    name: z.string().trim().min(2).optional(),
+    email: z.string().trim().email().optional(),
+    newPassword: z.string().min(8, "La contraseña nueva debe tener al menos 8 caracteres").optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }); return; }
+  const d = parsed.data;
+  try {
+    const session = await loadSessionUser(req);
+    if (!session) { res.status(401).json({ error: "Not authenticated" }); return; }
+    const outcome = await withBypass(async (db) => {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, session.id));
+      if (!user || !(await bcrypt.compare(d.currentPassword, user.passwordHash))) return "wrong" as const;
+      const updates: Record<string, unknown> = { updatedAt: new Date() };
+      if (d.name !== undefined) updates.name = d.name;
+      if (d.email !== undefined) updates.email = d.email.toLowerCase();
+      if (d.newPassword !== undefined) updates.passwordHash = await bcrypt.hash(d.newPassword, 10);
+      await db.update(usersTable).set(updates).where(eq(usersTable.id, session.id));
+      return "ok" as const;
+    });
+    if (outcome === "wrong") { res.status(400).json({ error: "La contraseña actual no es correcta" }); return; }
+    res.json((await loadSessionUser(req)) ?? session);
+  } catch (e: any) {
+    if (e?.code === "23505" || /unique/i.test(e?.message ?? "")) { res.status(409).json({ error: "Ese email ya está en uso" }); return; }
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

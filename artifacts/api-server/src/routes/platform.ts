@@ -90,6 +90,89 @@ router.post("/workshops", async (req, res) => {
   }
 });
 
+// ── Usuarios de cada taller ──────────────────────────────────────────────────
+const USER_VIEW = {
+  id: usersTable.id, name: usersTable.name, email: usersTable.email, role: usersTable.role,
+  active: usersTable.active, doesJobs: usersTable.doesJobs,
+} as const;
+const shopRole = z.enum(["admin", "mechanic", "reception"]);
+
+router.get("/workshops/:id/users", async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) { res.status(400).json({ error: "Datos inválidos" }); return; }
+  try {
+    const rows = await withBypass((db) => db.select(USER_VIEW).from(usersTable)
+      .where(eq(usersTable.workshopId, id)).orderBy(usersTable.name));
+    res.json(rows.filter(u => u.role !== "superadmin"));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/workshops/:id/users", async (req, res) => {
+  const id = Number(req.params.id);
+  const parsed = z.object({
+    name: z.string().trim().min(2, "El nombre es obligatorio"), email: z.string().trim().email("Email inválido"),
+    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"), role: shopRole,
+  }).safeParse(req.body);
+  if (!parsed.success || !Number.isInteger(id)) { res.status(400).json({ error: parsed.success ? "Datos inválidos" : parsed.error.issues[0]?.message }); return; }
+  const d = parsed.data;
+  try {
+    const [ws] = await withBypass((db) => db.select().from(workshopsTable).where(eq(workshopsTable.id, id)));
+    if (!ws) { res.status(404).json({ error: "Taller no encontrado" }); return; }
+    const passwordHash = await bcrypt.hash(d.password, 10);
+    const [user] = await withBypass((db) => db.insert(usersTable).values({
+      workshopId: id, name: d.name, email: d.email.toLowerCase(), passwordHash, role: d.role, doesJobs: d.role === "mechanic",
+    }).returning(USER_VIEW));
+    res.status(201).json(user);
+  } catch (e) {
+    if (isUniqueViolation(e)) { res.status(409).json({ error: "Ese email ya está en uso" }); return; }
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Cambia a un usuario de taller (nunca a un superadmin). Un taller no se puede quedar sin administrador activo.
+router.patch("/users/:userId", async (req, res) => {
+  const userId = Number(req.params.userId);
+  const parsed = z.object({
+    name: z.string().trim().min(2).optional(), email: z.string().trim().email("Email inválido").optional(),
+    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").optional(),
+    role: shopRole.optional(), active: z.boolean().optional(),
+  }).safeParse(req.body);
+  if (!parsed.success || !Number.isInteger(userId)) { res.status(400).json({ error: parsed.success ? "Datos inválidos" : parsed.error.issues[0]?.message }); return; }
+  const d = parsed.data;
+  try {
+    const result = await withBypass(async (db) => {
+      const [current] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+      if (!current || current.role === "superadmin" || current.workshopId == null) return { status: 404 as const };
+      const stillAdmin = (d.role ?? current.role) === "admin" && (d.active ?? current.active);
+      if (current.role === "admin" && current.active && !stillAdmin) {
+        const others = await db.select({ id: usersTable.id }).from(usersTable).where(and(
+          eq(usersTable.workshopId, current.workshopId), eq(usersTable.role, "admin"), eq(usersTable.active, true),
+        ));
+        if (others.every(o => o.id === userId)) return { status: 400 as const };
+      }
+      const updates: Record<string, unknown> = { updatedAt: new Date() };
+      if (d.name !== undefined) updates.name = d.name;
+      if (d.email !== undefined) updates.email = d.email.toLowerCase();
+      if (d.password !== undefined) updates.passwordHash = await bcrypt.hash(d.password, 10);
+      if (d.role !== undefined) { updates.role = d.role; updates.doesJobs = d.role === "mechanic" ? true : current.doesJobs; }
+      if (d.active !== undefined) updates.active = d.active;
+      const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, userId)).returning(USER_VIEW);
+      return { status: 200 as const, user };
+    });
+    if (result.status === 404) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
+    if (result.status === 400) { res.status(400).json({ error: "El taller debe tener al menos un administrador activo" }); return; }
+    res.json(result.user);
+  } catch (e) {
+    if (isUniqueViolation(e)) { res.status(409).json({ error: "Ese email ya está en uso" }); return; }
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.patch("/workshops/:id", async (req, res) => {
   const id = Number(req.params.id);
   const parsed = z.object({ name: z.string().trim().min(2).optional(), active: z.boolean().optional() }).safeParse(req.body);
