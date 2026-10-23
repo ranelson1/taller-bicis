@@ -19,7 +19,7 @@ COPY --from=build /app/artifacts/api-server/dist ./dist
 COPY --from=build /app/artifacts/workshop-app/dist/public ./web
 COPY --from=build /app/lib/db/schema.sql ./db/schema.sql
 COPY --from=build /app/lib/db/migrations ./db/migrations
-# Las fotos, videos y facturas se guardan en UPLOADS_DIR: monta un volumen en /data para que sobrevivan a los despliegues.
-VOLUME ["/data"]
+# Las fotos, videos y facturas se guardan en UPLOADS_DIR: monta un volumen en /data para que sobrevivan a los despliegues
+# (Railway rechaza la instruccion VOLUME del Dockerfile; el volumen se crea en la configuracion del servicio).
 # Antes de arrancar: esquema/migraciones, usuario de la app y superadmin (idempotente).
 CMD ["sh", "-c", "node dist/scripts/bootstrap.mjs && node dist/index.mjs"]
