@@ -45,7 +45,11 @@ export function readDteXml(xml: Buffer): ParsedInvoice {
   const dte = tree?.DTE ?? asArray(tree?.EnvioDTE?.SetDTE?.DTE)[0] ?? asArray(tree?.EnvioBOLETA?.SetDTE?.DTE)[0];
   const doc = dte?.Documento ?? dte?.Exportaciones ?? dte?.Liquidacion;
   const enc = doc?.Encabezado;
-  if (!enc?.IdDoc) throw new InvoiceReadError("El XML no parece un documento tributario del SII");
+  if (!enc?.IdDoc) {
+    const generic = readGenericXml(tree);
+    if (generic) return generic;
+    throw new InvoiceReadError("No pude reconocer este XML. Sube el XML del SII, o el PDF o una foto de la factura");
+  }
 
   const tipo = String(enc.IdDoc.TipoDTE ?? "");
   const exempt = EXEMPT.has(tipo);
@@ -82,6 +86,67 @@ export function readDteXml(xml: Buffer): ParsedInvoice {
     supplierRut: emisor.RUTEmisor ?? null,
     netTotal: net,
     taxTotal: num(totales.IVA) ?? (exempt ? 0 : null),
+    total,
+    lines,
+  };
+}
+
+// ── XML que no es del SII (formatos de proveedores o de otros sistemas) ───────────
+// Se busca por nombres de etiqueta habituales: emisor, totales y una o más líneas de detalle.
+const norm = (k: string) => k.toLowerCase().replace(/[^a-z0-9]/g, "");
+function pick(obj: any, names: string[]): any {
+  if (obj == null || typeof obj !== "object") return undefined;
+  const wanted = new Set(names.map(norm));
+  for (const [k, v] of Object.entries(obj)) if (wanted.has(norm(k)) && v != null && typeof v !== "object") return v;
+  return undefined;
+}
+function findKey(obj: any, names: string[], depth = 0): any {
+  if (obj == null || typeof obj !== "object" || depth > 5) return undefined;
+  const wanted = new Set(names.map(norm));
+  for (const [k, v] of Object.entries(obj)) if (wanted.has(norm(k))) return v;
+  for (const v of Object.values(obj)) {
+    const r = findKey(Array.isArray(v) ? v[0] : v, names, depth + 1);
+    if (r !== undefined) return r;
+  }
+  return undefined;
+}
+
+function readGenericXml(tree: any): ParsedInvoice | null {
+  const detail = asArray<any>(findKey(tree, ["Detalle", "Detalles", "Items", "Item", "Lineas", "Linea"]));
+  const rawLines = detail.flatMap((d: any) => (d && typeof d === "object" && Object.keys(d).length === 1 && typeof Object.values(d)[0] === "object" ? asArray<any>(Object.values(d)[0]) : [d]));
+  const lines = rawLines.filter((d: any) => d && typeof d === "object").map((d: any) => {
+    const product = d.Producto ?? d.Product ?? d.Articulo ?? {};
+    const description = pick(d, ["NmbItem", "Nombre", "Descripcion", "Detalle", "Glosa"]) ?? pick(product, ["Nombre", "Descripcion", "Name"]);
+    const code = pick(d, ["Codigo", "Sku", "VlrCodigo"]) ?? pick(product, ["Codigo", "Sku", "Code"]);
+    const qty = num(pick(d, ["Cantidad", "QtyItem", "Qty"])) ?? 1;
+    const lineTotal = num(pick(d, ["MontoItem", "Monto", "Total", "Subtotal"]));
+    const price = num(pick(d, ["PrecioUnitario", "PrcItem", "Precio", "ValorUnitario"]));
+    const unit = price ?? (lineTotal != null && qty > 0 ? lineTotal / qty : 0);
+    return {
+      description: String(description ?? "Ítem").trim(),
+      supplierCode: code != null ? String(code).trim() : null,
+      quantity: qty,
+      unit: null as string | null,
+      unitCostNet: round2(unit),
+    };
+  }).filter((l) => l.description && l.unitCostNet >= 0);
+  if (lines.length === 0) return null;
+
+  const emisor = findKey(tree, ["Emisor", "Proveedor", "Vendedor"]) ?? {};
+  const totales = findKey(tree, ["Totales", "Total", "Resumen"]);
+  const t = totales && typeof totales === "object" ? totales : tree;
+  const total = num(pick(t, ["MntTotal", "Total", "TotalConIVA"]) ?? findKey(tree, ["MntTotal"]));
+  const net = num(pick(t, ["MntNeto", "Neto", "Subtotal"]));
+  const iva = num(pick(t, ["IVA", "Impuesto"]));
+  const rawType = String(findKey(tree, ["TipoDTE", "TipoDocumento", "Tipo"]) ?? "");
+  return {
+    docType: /boleta/i.test(JSON.stringify(Object.keys(tree ?? {}))) ? "boleta" : DTE_TYPES[rawType] ?? "factura",
+    docNumber: (() => { const f = findKey(tree, ["Folio", "Numero", "NroDocumento"]); return f != null && typeof f !== "object" ? String(f) : null; })(),
+    issuedOn: (() => { const f = findKey(tree, ["FchEmis", "Fecha", "FechaEmision"]); return f != null && typeof f !== "object" ? String(f).slice(0, 10) : null; })(),
+    supplierName: pick(emisor, ["RznSoc", "RazonSocial", "Nombre"]) ?? null,
+    supplierRut: pick(emisor, ["RUTEmisor", "RUT", "Rut"]) ?? null,
+    netTotal: net ?? (total != null ? round2(total / (1 + VAT)) : null),
+    taxTotal: iva,
     total,
     lines,
   };
