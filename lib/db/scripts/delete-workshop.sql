@@ -14,6 +14,7 @@ DELETE FROM work_order_photos WHERE workshop_id = :workshop;
 DELETE FROM work_order_checklist_items WHERE workshop_id = :workshop;
 DELETE FROM work_order_items WHERE workshop_id = :workshop;
 DELETE FROM inspection_findings WHERE workshop_id = :workshop;
+DELETE FROM followup_snoozes WHERE workshop_id = :workshop;
 DELETE FROM reservations WHERE workshop_id = :workshop;
 DELETE FROM work_orders WHERE workshop_id = :workshop;
 DELETE FROM receptions WHERE workshop_id = :workshop;
