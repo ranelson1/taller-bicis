@@ -58,3 +58,6 @@ datos/
 
 # Fotos subidas a las OT (datos de clientes)
 uploads/
+
+# Worktrees de Claude Code (copias de trabajo temporales)
+.claude/worktrees/
