@@ -110,7 +110,7 @@ export default function TrabajoNuevo() {
   const [showBikeMore, setShowBikeMore] = useState(false);
   // 3. Trabajo
   const [items, setItems] = useState<Item[]>([]);
-  const [extra, setExtra] = useState({ itemType: "part", description: "", unitPrice: "" });
+  const [extra, setExtra] = useState({ itemType: "part", description: "", unitPrice: "", fromClient: false });
   const [problem, setProblem] = useState("");
   const [mechanicId, setMechanicId] = useState("none");
   const [accessories, setAccessories] = useState<string[]>([]);
@@ -174,15 +174,16 @@ export default function TrabajoNuevo() {
   };
   const addExtra = () => {
     const description = extra.description.trim();
-    const price = Number(extra.unitPrice || 0);
+    const fromClient = extra.fromClient && extra.itemType === "part";
+    const price = fromClient ? 0 : Number(extra.unitPrice || 0);
     if (!description) { setErrors(e => ({ ...e, extra: "Escribe qué es" })); return; }
     if (isNaN(price) || price < 0) { setErrors(e => ({ ...e, extra: "Precio inválido" })); return; }
-    const part = extra.itemType === "part" ? partByName.get(description.toLowerCase()) : undefined;
+    const part = extra.itemType === "part" && !fromClient ? partByName.get(description.toLowerCase()) : undefined;
     setItems(prev => [...prev, {
-      key: `x${Date.now()}`, itemType: extra.itemType, description, quantity: 1, unitPrice: price, hours: 0,
+      key: `x${Date.now()}`, itemType: extra.itemType, description: fromClient ? `${description} · lo trae el cliente` : description, quantity: 1, unitPrice: price, hours: 0,
       partId: part?.id ?? null,
     }]);
-    setExtra(e => ({ ...e, description: "", unitPrice: "" }));
+    setExtra(e => ({ ...e, description: "", unitPrice: "", fromClient: false }));
     setErrors(e => ({ ...e, extra: "", items: "" }));
   };
   const updateItem = (key: string, patch: Partial<Item>) => setItems(prev => prev.map(i => (i.key === key ? { ...i, ...patch } : i)));
@@ -418,6 +419,12 @@ export default function TrabajoNuevo() {
                   onChange={e => setExtra(x => ({ ...x, unitPrice: e.target.value }))} onKeyDown={e => e.key === "Enter" && addExtra()} data-testid="input-extra-price" />
                 <Button variant="outline" onClick={addExtra} data-testid="button-add-extra"><Plus className="h-4 w-4" /></Button>
               </div>
+              {extra.itemType === "part" && (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input type="checkbox" checked={extra.fromClient} onChange={e => setExtra(x => ({ ...x, fromClient: e.target.checked }))} data-testid="checkbox-extra-from-client" />
+                  Lo trae el cliente (sin cobro ni stock)
+                </label>
+              )}
               <datalist id="parts-catalog">{(parts ?? []).map((p: any) => <option key={p.id} value={p.name} />)}</datalist>
               {errors.extra && <p className="text-sm text-destructive">{errors.extra}</p>}
             </div>

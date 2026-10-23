@@ -1193,6 +1193,31 @@ router.post("/:id/items/:itemId/cancel", async (req, res) => {
   }
 });
 
+// ── POST /work-orders/:id/items/:itemId/warranty ───────────────────────────────
+// Pasa el ítem por garantía: queda en $0 para el cliente (el costo de los materiales sigue contando en tus números)
+// y en la descripción queda cuánto valía.
+router.post("/:id/items/:itemId/warranty", async (req, res) => {
+  const workOrderId = parseInt(req.params.id);
+  const itemId = parseInt(req.params.itemId);
+  const userId = (req.session as any)?.userId ?? null;
+  try {
+    const [item] = await db.select().from(workOrderItemsTable)
+      .where(and(eq(workOrderItemsTable.id, itemId), eq(workOrderItemsTable.workOrderId, workOrderId), eq(workOrderItemsTable.active, true)));
+    if (!item) { res.status(404).json({ error: "Ítem no encontrado" }); return; }
+    if (Number(item.total) <= 0) { res.status(400).json({ error: "Este ítem ya está sin cobro" }); return; }
+    const worth = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(Number(item.total));
+    const [updated] = await db.update(workOrderItemsTable)
+      .set({ unitPrice: "0", total: "0", description: `${item.description} · por garantía (valor ${worth})`, updatedAt: new Date() })
+      .where(eq(workOrderItemsTable.id, itemId)).returning();
+    await logEvent(workOrderId, "item_warranty", userId, undefined, undefined, `${item.description} (${worth})`);
+    await recalcOTTotal(workOrderId, userId);
+    res.json({ ...updated, quantity: Number(updated.quantity), unitPrice: Number(updated.unitPrice), total: Number(updated.total) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── PATCH /work-orders/:id/items/:itemId ──────────────────────────────────────
 router.patch("/:id/items/:itemId", async (req, res) => {
   const workOrderId = parseInt(req.params.id);

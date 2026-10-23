@@ -152,6 +152,7 @@ export * from './updateWorkOrderItemBody';
 export * from './updateWorkOrderItemBodyStatus';
 export * from './updateWorkOrderPhotoBody';
 export * from './updateWorkshopCostsBody';
+export * from './updateWorkshopPaymentInfoBody';
 export * from './user';
 export * from './userCapacity';
 export * from './userInput';

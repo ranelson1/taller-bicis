@@ -176,7 +176,7 @@ export default function MisNumeros() {
                     </Link>
                     <span className="font-semibold text-red-600">{formatCLP(r.balance)}</span>
                     <WhatsAppButton phone={r.clientPhone} label="Cobrar" className="h-7"
-                      text={paymentReminder(r.clientName, settings?.name, formatCLP(r.balance), r.workOrderNumber)} />
+                      text={paymentReminder(r.clientName, settings?.name, formatCLP(r.balance), r.workOrderNumber, settings?.paymentInfo)} />
                   </div>
                 ))}
                 {data.receivable.count > data.receivable.items.length && <p className="text-xs text-muted-foreground pt-2">Y {data.receivable.count - data.receivable.items.length} más.</p>}

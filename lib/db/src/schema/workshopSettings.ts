@@ -11,6 +11,8 @@ export const workshopSettingsTable = pgTable("workshop_settings", {
   name: text("name"),
   phone: text("phone"),
   address: text("address"),
+  // Datos para transferir, tal como se muestran al cliente (migración 014).
+  paymentInfo: text("payment_info"),
   // Obsoleto desde 006: los días hábiles salen de `schedule`. Se mantiene sincronizado.
   workdays: text("workdays").notNull().default("1,2,3,4,5"),
   // Horario por día (solo los días que abre). null = horario por defecto.

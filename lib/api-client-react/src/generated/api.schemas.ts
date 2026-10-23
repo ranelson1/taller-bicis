@@ -1305,6 +1305,11 @@ export interface PublicWorkOrder {
   paidAmount?: number | null;
   /** @nullable */
   quoteApprovedAt?: string | null;
+  /**
+     * Datos para transferir (solo cuando la bici está lista o entregada y hay saldo)
+     * @nullable
+     */
+  paymentInfo?: string | null;
   /** @nullable */
   workshopAddress?: string | null;
   clientName: string;
@@ -1789,6 +1794,11 @@ export interface WorkshopSettings {
   recoversVat?: boolean;
   /** @nullable */
   logoUrl?: string | null;
+  /**
+     * Datos para transferir, tal como se muestran al cliente
+     * @nullable
+     */
+  paymentInfo?: string | null;
 }
 
 export interface WorkshopSettingsInput {
@@ -2328,6 +2338,11 @@ export type UpdateWorkshopCostsBody = {
   laborCostPerHour?: number | null;
   defaultPartsMarginPct?: number;
   recoversVat?: boolean;
+};
+
+export type UpdateWorkshopPaymentInfoBody = {
+  /** @nullable */
+  paymentInfo: string | null;
 };
 
 export type AdjustInventoryBody = {

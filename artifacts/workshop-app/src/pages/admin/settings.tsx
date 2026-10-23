@@ -13,6 +13,7 @@ import { Clock, Store } from "lucide-react";
 import PaymentMethods from "./payment-methods";
 import { CostsCard } from "@/components/settings/costs-card";
 import { LogoCard } from "@/components/settings/logo-card";
+import { PaymentInfoCard } from "@/components/settings/payment-info-card";
 
 // Configuración del taller: datos que ve el cliente, horario y colación (de ahí sale la
 // capacidad para estimar el término de cada trabajo) y métodos de pago.
@@ -170,6 +171,7 @@ export default function Settings() {
           <div className="grid gap-6 xl:grid-cols-[2fr_1fr] items-start max-w-2xl xl:max-w-none">
             <CostsCard settings={settings} />
             <LogoCard settings={settings} />
+            <PaymentInfoCard settings={settings} />
           </div>
         )}
       </div>

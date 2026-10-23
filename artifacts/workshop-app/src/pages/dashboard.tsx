@@ -171,7 +171,7 @@ export default function Dashboard() {
                   return (
                     <span className="flex items-center gap-2">
                       <span className="text-xs font-medium whitespace-nowrap">{formatCLP(owed)}</span>
-                      <WhatsAppButton phone={wo.clientPhone} text={paymentReminder(wo.clientName, settings?.name, formatCLP(owed), wo.workOrderNumber)} label="Cobrar" className="h-7" />
+                      <WhatsAppButton phone={wo.clientPhone} text={paymentReminder(wo.clientName, settings?.name, formatCLP(owed), wo.workOrderNumber, settings?.paymentInfo)} label="Cobrar" className="h-7" />
                     </span>
                   );
                 }} />

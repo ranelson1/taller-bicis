@@ -2573,7 +2573,8 @@ export const GetWorkshopSettingsResponse = zod.object({
   "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
   "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
   "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
-  "logoUrl": zod.string().nullish()
+  "logoUrl": zod.string().nullish(),
+  "paymentInfo": zod.string().nullish().describe('Datos para transferir, tal como se muestran al cliente')
 })
 
 
@@ -2614,7 +2615,8 @@ export const UpdateWorkshopSettingsResponse = zod.object({
   "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
   "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
   "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
-  "logoUrl": zod.string().nullish()
+  "logoUrl": zod.string().nullish(),
+  "paymentInfo": zod.string().nullish().describe('Datos para transferir, tal como se muestran al cliente')
 })
 
 
@@ -2781,7 +2783,71 @@ export const UpdateWorkshopCostsResponse = zod.object({
   "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
   "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
   "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
-  "logoUrl": zod.string().nullish()
+  "logoUrl": zod.string().nullish(),
+  "paymentInfo": zod.string().nullish().describe('Datos para transferir, tal como se muestran al cliente')
+})
+
+
+/**
+ * @summary Datos para transferir que ve el cliente cuando hay saldo
+ */
+export const UpdateWorkshopPaymentInfoBody = zod.object({
+  "paymentInfo": zod.string().nullable()
+})
+
+export const UpdateWorkshopPaymentInfoResponse = zod.object({
+  "name": zod.string(),
+  "phone": zod.string().nullish(),
+  "address": zod.string().nullish(),
+  "schedule": zod.array(zod.object({
+  "day": zod.number().describe('0 = domingo … 6 = sábado'),
+  "open": zod.string().describe('HH:MM'),
+  "close": zod.string().describe('HH:MM')
+}).and(zod.object({
+  "netHours": zod.number().describe('Horas de trabajo del día sin la colación')
+}))),
+  "lunchStart": zod.string().nullish(),
+  "lunchEnd": zod.string().nullish(),
+  "workdays": zod.array(zod.number()),
+  "weeklyNetHours": zod.number(),
+  "monthlyFixedCosts": zod.number().nullish(),
+  "monthlySalary": zod.number().nullish(),
+  "monthlyWorkHours": zod.number().nullish(),
+  "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
+  "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
+  "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
+  "logoUrl": zod.string().nullish(),
+  "paymentInfo": zod.string().nullish().describe('Datos para transferir, tal como se muestran al cliente')
+})
+
+
+/**
+ * @summary Pasa un ítem por garantía (queda sin cobro)
+ */
+export const SetWorkOrderItemWarrantyParams = zod.object({
+  "id": zod.coerce.number(),
+  "itemId": zod.coerce.number()
+})
+
+export const SetWorkOrderItemWarrantyResponse = zod.object({
+  "id": zod.number(),
+  "workOrderId": zod.number(),
+  "quoteItemId": zod.number().nullish(),
+  "itemType": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "total": zod.number(),
+  "estimatedLaborHours": zod.number().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']).optional(),
+  "origin": zod.string().optional().describe('initial | additional'),
+  "approvalDecidedAt": zod.string().nullish(),
+  "approvalDecidedBy": zod.string().nullish().describe('client | staff'),
+  "sortOrder": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
 })
 
 
@@ -2809,7 +2875,8 @@ export const DeleteWorkshopLogoResponse = zod.object({
   "laborCostPerHour": zod.number().nullish().describe('Costo de una hora de trabajo del taller'),
   "defaultPartsMarginPct": zod.number().describe('Margen por defecto sobre repuestos comprados para un trabajo (%)'),
   "recoversVat": zod.boolean().optional().describe('El taller recupera el IVA de sus compras (costos y márgenes netos)'),
-  "logoUrl": zod.string().nullish()
+  "logoUrl": zod.string().nullish(),
+  "paymentInfo": zod.string().nullish().describe('Datos para transferir, tal como se muestran al cliente')
 })
 
 
@@ -3282,6 +3349,7 @@ export const ApprovePublicWorkOrderQuoteResponse = zod.object({
   "paidAt": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
   "quoteApprovedAt": zod.string().nullish(),
+  "paymentInfo": zod.string().nullish().describe('Datos para transferir (solo cuando la bici está lista o entregada y hay saldo)'),
   "workshopAddress": zod.string().nullish(),
   "clientName": zod.string(),
   "bicycle": zod.object({
@@ -4092,6 +4160,7 @@ export const GetPublicWorkOrderResponse = zod.object({
   "paidAt": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
   "quoteApprovedAt": zod.string().nullish(),
+  "paymentInfo": zod.string().nullish().describe('Datos para transferir (solo cuando la bici está lista o entregada y hay saldo)'),
   "workshopAddress": zod.string().nullish(),
   "clientName": zod.string(),
   "bicycle": zod.object({
@@ -4163,6 +4232,7 @@ export const DecidePublicWorkOrderItemResponse = zod.object({
   "paidAt": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
   "quoteApprovedAt": zod.string().nullish(),
+  "paymentInfo": zod.string().nullish().describe('Datos para transferir (solo cuando la bici está lista o entregada y hay saldo)'),
   "workshopAddress": zod.string().nullish(),
   "clientName": zod.string(),
   "bicycle": zod.object({

@@ -20,9 +20,14 @@ export function whatsappLink(phone: string | null | undefined, text?: string): s
 }
 
 // Mensaje para cobrar un saldo pendiente (lo envía el taller con un toque, desde su WhatsApp).
-export function paymentReminder(clientName: string | null | undefined, shopName: string | null | undefined, amount: string, orderNumber: string): string {
+export function paymentReminder(
+  clientName: string | null | undefined, shopName: string | null | undefined, amount: string, orderNumber: string, paymentInfo?: string | null,
+): string {
   const first = (clientName ?? "").split(" ")[0];
-  return `Hola${first ? ` ${first}` : ""}, te escribimos de ${shopName || "el taller"}. Queda un saldo de ${amount} de la orden ${orderNumber}. ¿Cuándo podrías pasar a pagarlo? ¡Gracias!`;
+  const base = `Hola${first ? ` ${first}` : ""}, te escribimos de ${shopName || "el taller"}. Queda un saldo de ${amount} de la orden ${orderNumber}.`;
+  return paymentInfo?.trim()
+    ? `${base} Puedes transferir a:\n${paymentInfo.trim()}\n¡Gracias!`
+    : `${base} ¿Cuándo podrías pasar a pagarlo? ¡Gracias!`;
 }
 
 // Confirmación de una reserva: día, hora, bici y cuándo estimamos tenerla lista.

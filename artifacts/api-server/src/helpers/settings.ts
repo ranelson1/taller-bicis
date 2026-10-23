@@ -30,6 +30,7 @@ export async function getWorkshopSettings(exec: Tx | typeof db = db) {
     name: row?.name?.trim() || workshop?.name || "Taller",
     phone: row?.phone?.trim() || null,
     address: row?.address?.trim() || null,
+    paymentInfo: row?.paymentInfo?.trim() || null,
     schedule: schedule.map(d => ({ ...d, netHours: netHours(d, lunch) })),
     lunchStart: lunch?.start ?? null,
     lunchEnd: lunch?.end ?? null,

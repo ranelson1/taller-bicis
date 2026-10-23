@@ -37,4 +37,9 @@ export interface WorkshopSettings {
   recoversVat?: boolean;
   /** @nullable */
   logoUrl?: string | null;
+  /**
+     * Datos para transferir, tal como se muestran al cliente
+     * @nullable
+     */
+  paymentInfo?: string | null;
 }

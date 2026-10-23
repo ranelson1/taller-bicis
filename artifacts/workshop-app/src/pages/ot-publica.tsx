@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Bike, Camera, Check, CheckCircle2, CircleDashed, Clock, FileText, MessageCircle,
-  PackageCheck, Phone, Plus, Wrench, X,
+  Landmark, PackageCheck, Phone, Plus, Wrench, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -391,6 +391,18 @@ export default function OtPublica() {
             <p className="px-4 py-2 text-xs text-stone-500">No incluye los trabajos que aún esperan tu aprobación.</p>
           )}
         </section>
+
+        {/* Datos para transferir (solo si hay saldo) */}
+        {ot.paymentInfo && (
+          <section className="rounded-2xl bg-white shadow-sm border border-stone-100 p-4 space-y-2" data-testid="payment-info">
+            <h2 className="text-sm font-semibold text-stone-800 flex items-center gap-1.5"><Landmark className="h-4 w-4 text-orange-600" />Datos para transferir</h2>
+            <p className="text-sm text-stone-700 whitespace-pre-line break-words">{ot.paymentInfo}</p>
+            <button type="button" className="text-xs font-medium text-orange-700 hover:underline"
+              onClick={() => { void navigator.clipboard?.writeText(ot.paymentInfo ?? ""); }}>
+              Copiar datos
+            </button>
+          </section>
+        )}
 
         {/* Mensaje de retiro */}
         {ot.status === "ready_for_pickup" && (

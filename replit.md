@@ -241,6 +241,14 @@ Todos los endpoints (excepto auth) requieren sesión activa. DELETE hace soft-de
 - Inicio: botón "Reservar", sección "Reservas" con "Confirmar" (WhatsApp con día, hora y fecha estimada de entrega), "Llegó",
   "No llegó" y "Cancelar".
 
+## Cobro y cotización viva (migración 014)
+
+- `workshop_settings.payment_info`: datos para transferir (Configuración). El link del cliente los muestra solo con la bici lista
+  o entregada y saldo pendiente; el mensaje de cobro por WhatsApp (`paymentReminder`) los incluye.
+- `POST /api/work-orders/:id/items/:itemId/warranty`: deja el ítem en $0 conservando su costo y anota "por garantía (valor $X)".
+- En la ficha del trabajo, agregar/quitar/pasar por garantía un ítem ofrece "Avisar por WhatsApp" con el mensaje de cotización
+  actualizada; los repuestos "que trae el cliente" se agregan sin cobro ni stock.
+
 ## Fotos y videos de la OT
 
 - `work_order_photos` guarda imagen o video (`mime_type`); video MP4/MOV/WebM hasta 60 MB, validado por firma.

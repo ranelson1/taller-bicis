@@ -107,6 +107,21 @@ router.put("/costs", async (req, res) => {
   }
 });
 
+// ── Datos para transferir ───────────────────────────────────────────────────
+router.put("/payment-info", async (req, res) => {
+  const parsed = z.object({ paymentInfo: z.string().trim().max(600).nullable() }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Los datos para transferir son demasiado largos (máx. 600 caracteres)" }); return; }
+  const values = { paymentInfo: parsed.data.paymentInfo || null, updatedAt: new Date() };
+  try {
+    await db.insert(workshopSettingsTable).values(values)
+      .onConflictDoUpdate({ target: workshopSettingsTable.workshopId, set: values });
+    res.json(await getWorkshopSettings());
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── Logo ────────────────────────────────────────────────────────────────────
 // El navegador lo reduce antes de subirlo; aquí se valida que sea una imagen real.
 router.post("/logo",

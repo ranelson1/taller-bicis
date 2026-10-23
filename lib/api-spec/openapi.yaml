@@ -2091,6 +2091,53 @@ paths:
               schema:
                 $ref: "#/components/schemas/WorkshopSettings"
 
+  /settings/payment-info:
+    put:
+      operationId: updateWorkshopPaymentInfo
+      tags: [settings]
+      summary: Datos para transferir que ve el cliente cuando hay saldo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentInfo]
+              properties:
+                paymentInfo:
+                  type: ["string", "null"]
+      responses:
+        "200":
+          description: Configuración actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkshopSettings"
+
+  /work-orders/{id}/items/{itemId}/warranty:
+    post:
+      operationId: setWorkOrderItemWarranty
+      tags: [workOrders]
+      summary: Pasa un ítem por garantía (queda sin cobro)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ítem actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderItem"
+
   /settings/logo:
     delete:
       operationId: deleteWorkshopLogo
@@ -4763,6 +4810,9 @@ components:
           type: ["number", "null"]
         quoteApprovedAt:
           type: ["string", "null"]
+        paymentInfo:
+          type: ["string", "null"]
+          description: Datos para transferir (solo cuando la bici está lista o entregada y hay saldo)
         workshopAddress:
           type: ["string", "null"]
         clientName:
@@ -5264,6 +5314,9 @@ components:
           description: El taller recupera el IVA de sus compras (costos y márgenes netos)
         logoUrl:
           type: ["string", "null"]
+        paymentInfo:
+          type: ["string", "null"]
+          description: Datos para transferir, tal como se muestran al cliente
 
     WorkshopSettingsInput:
       type: object

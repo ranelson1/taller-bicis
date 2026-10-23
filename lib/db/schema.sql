@@ -1393,7 +1393,8 @@ CREATE TABLE public.workshop_settings (
     labor_cost_per_hour numeric(12,2),
     default_parts_margin_pct numeric(5,1) DEFAULT 30 NOT NULL,
     logo_key text,
-    recovers_vat boolean DEFAULT false NOT NULL
+    recovers_vat boolean DEFAULT false NOT NULL,
+    payment_info text
 );
 
 ALTER TABLE ONLY public.workshop_settings FORCE ROW LEVEL SECURITY;

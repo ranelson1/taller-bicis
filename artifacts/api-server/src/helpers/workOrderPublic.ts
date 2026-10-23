@@ -183,6 +183,9 @@ export async function buildPublicWorkOrder(wo: WorkOrder) {
     completedAt: wo.completedAt?.toISOString() ?? null,
     paidAt: wo.paidAt?.toISOString() ?? null,
     quoteApprovedAt: wo.quoteApprovedAt?.toISOString() ?? null,
+    paymentInfo: (wo.status === "ready_for_pickup" || wo.status === "delivered")
+      && Number(wo.total) - (wo.paidAt ? Number(wo.paidAmount ?? wo.total) : 0) > 0.5
+      ? (await getWorkshopSettings()).paymentInfo : null,
     paidAmount: wo.paidAt && wo.paidAmount != null ? Number(wo.paidAmount) : null,
     clientName: client?.name ?? "",
     bicycle: bike ? {

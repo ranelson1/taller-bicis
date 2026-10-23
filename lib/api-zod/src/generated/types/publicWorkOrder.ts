@@ -33,6 +33,11 @@ export interface PublicWorkOrder {
   paidAmount?: number | null;
   /** @nullable */
   quoteApprovedAt?: string | null;
+  /**
+     * Datos para transferir (solo cuando la bici está lista o entregada y hay saldo)
+     * @nullable
+     */
+  paymentInfo?: string | null;
   /** @nullable */
   workshopAddress?: string | null;
   clientName: string;

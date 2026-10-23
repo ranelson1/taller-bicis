@@ -111,6 +111,7 @@ import type {
   UpdateWorkOrderItemBody,
   UpdateWorkOrderPhotoBody,
   UpdateWorkshopCostsBody,
+  UpdateWorkshopPaymentInfoBody,
   User,
   UserCapacity,
   UserInput,
@@ -7318,6 +7319,148 @@ export const useUpdateWorkshopCosts = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateWorkshopCostsMutationOptions(options));
+    }
+
+export const getUpdateWorkshopPaymentInfoUrl = () => {
+
+
+
+
+  return `/api/settings/payment-info`
+}
+
+/**
+ * @summary Datos para transferir que ve el cliente cuando hay saldo
+ */
+export const updateWorkshopPaymentInfo = async (updateWorkshopPaymentInfoBody: UpdateWorkshopPaymentInfoBody, options?: RequestInit): Promise<WorkshopSettings> => {
+
+  return customFetch<WorkshopSettings>(getUpdateWorkshopPaymentInfoUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateWorkshopPaymentInfoBody)
+  }
+);}
+
+
+
+
+export const getUpdateWorkshopPaymentInfoMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopPaymentInfo>>, TError,{data: BodyType<UpdateWorkshopPaymentInfoBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopPaymentInfo>>, TError,{data: BodyType<UpdateWorkshopPaymentInfoBody>}, TContext> => {
+
+const mutationKey = ['updateWorkshopPaymentInfo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWorkshopPaymentInfo>>, {data: BodyType<UpdateWorkshopPaymentInfoBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateWorkshopPaymentInfo(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWorkshopPaymentInfoMutationResult = NonNullable<Awaited<ReturnType<typeof updateWorkshopPaymentInfo>>>
+    export type UpdateWorkshopPaymentInfoMutationBody = BodyType<UpdateWorkshopPaymentInfoBody>
+    export type UpdateWorkshopPaymentInfoMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Datos para transferir que ve el cliente cuando hay saldo
+ */
+export const useUpdateWorkshopPaymentInfo = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkshopPaymentInfo>>, TError,{data: BodyType<UpdateWorkshopPaymentInfoBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWorkshopPaymentInfo>>,
+        TError,
+        {data: BodyType<UpdateWorkshopPaymentInfoBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateWorkshopPaymentInfoMutationOptions(options));
+    }
+
+export const getSetWorkOrderItemWarrantyUrl = (id: number,
+    itemId: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/items/${itemId}/warranty`
+}
+
+/**
+ * @summary Pasa un ítem por garantía (queda sin cobro)
+ */
+export const setWorkOrderItemWarranty = async (id: number,
+    itemId: number, options?: RequestInit): Promise<WorkOrderItem> => {
+
+  return customFetch<WorkOrderItem>(getSetWorkOrderItemWarrantyUrl(id,itemId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSetWorkOrderItemWarrantyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setWorkOrderItemWarranty>>, TError,{id: number;itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setWorkOrderItemWarranty>>, TError,{id: number;itemId: number}, TContext> => {
+
+const mutationKey = ['setWorkOrderItemWarranty'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setWorkOrderItemWarranty>>, {id: number;itemId: number}> = (props) => {
+          const {id,itemId} = props ?? {};
+
+          return  setWorkOrderItemWarranty(id,itemId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetWorkOrderItemWarrantyMutationResult = NonNullable<Awaited<ReturnType<typeof setWorkOrderItemWarranty>>>
+
+    export type SetWorkOrderItemWarrantyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Pasa un ítem por garantía (queda sin cobro)
+ */
+export const useSetWorkOrderItemWarranty = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setWorkOrderItemWarranty>>, TError,{id: number;itemId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setWorkOrderItemWarranty>>,
+        TError,
+        {id: number;itemId: number},
+        TContext
+      > => {
+      return useMutation(getSetWorkOrderItemWarrantyMutationOptions(options));
     }
 
 export const getDeleteWorkshopLogoUrl = () => {

@@ -5,6 +5,7 @@ import {
   useGetWorkOrder,
   useUpdateWorkOrderStatus,
   useCancelWorkOrderItem,
+  useSetWorkOrderItemWarranty,
   useAddWorkOrderItem,
   useDecideWorkOrderItem,
   useShareWorkOrder,
@@ -177,7 +178,7 @@ export default function TrabajoDetail() {
   const [shareData, setShareData] = useState<WorkOrderShare | null>(null);
   // Si el aviso se abrió solo (trabajo recién creado, bici lista), el título explica por qué.
   const [notifyTitle, setNotifyTitle] = useState<string | null>(null);
-  const emptyItem = { itemType: "part", description: "", quantity: "1", unitPrice: "", alreadyApproved: false };
+  const emptyItem = { itemType: "part", description: "", quantity: "1", unitPrice: "", alreadyApproved: false, customerProvided: false };
   const [itemDraft, setItemDraft] = useState(emptyItem);
   const [itemCatalogId, setItemCatalogId] = useState("");
   const [itemErr, setItemErr] = useState<string | null>(null);
@@ -185,11 +186,14 @@ export default function TrabajoDetail() {
   const [commentErr, setCommentErr] = useState<string | null>(null);
   const [removeItem, setRemoveItem] = useState<WorkOrderItem | null>(null);
   const cancelItem = useCancelWorkOrderItem();
+  const warrantyItem = useSetWorkOrderItemWarranty();
+  // Cambió la cotización (ítem agregado, quitado o pasado por garantía): se ofrece avisar al cliente.
+  const [quoteChanged, setQuoteChanged] = useState(false);
 
   const confirmRemoveItem = () => {
     if (!woId || !removeItem) return;
     cancelItem.mutate({ id: woId, itemId: removeItem.id }, {
-      onSuccess: () => { toast({ title: "Ítem quitado", description: removeItem.description }); setRemoveItem(null); invalidate(); },
+      onSuccess: () => { toast({ title: "Ítem quitado", description: removeItem.description }); setRemoveItem(null); setQuoteChanged(true); invalidate(); },
       onError: (e) => toast({ variant: "destructive", title: apiError(e, "No se pudo quitar el ítem") }),
     });
   };
@@ -250,15 +254,17 @@ export default function TrabajoDetail() {
     if (isNaN(qty) || qty <= 0) { setItemErr("Cantidad inválida"); return; }
     if (isNaN(price) || price < 0) { setItemErr("Precio inválido"); return; }
     const catalogId = itemCatalogId ? parseInt(itemCatalogId) : null;
+    // Si el repuesto lo trae el cliente, no se cobra ni se descuenta del stock.
+    const fromClient = itemDraft.customerProvided && itemDraft.itemType === "part";
     addItem.mutate({
       id: woId,
       data: {
         itemType: itemDraft.itemType as any,
-        description: itemDraft.description.trim(),
+        description: fromClient ? `${itemDraft.description.trim()} · lo trae el cliente` : itemDraft.description.trim(),
         quantity: qty,
-        unitPrice: price,
+        unitPrice: fromClient ? 0 : price,
         serviceId: itemDraft.itemType === "service" ? catalogId : null,
-        partId: itemDraft.itemType === "part" ? catalogId : null,
+        partId: itemDraft.itemType === "part" && !fromClient ? catalogId : null,
         alreadyApproved: itemDraft.alreadyApproved,
       },
     }, {
@@ -270,6 +276,7 @@ export default function TrabajoDetail() {
         setItemDialog(false);
         setItemDraft(emptyItem);
         setItemCatalogId("");
+        setQuoteChanged(true);
         invalidate();
       },
       onError: (e) => setItemErr(apiError(e, "Error al agregar el adicional")),
@@ -284,14 +291,27 @@ export default function TrabajoDetail() {
     });
   };
 
-  const openShare = (title: string | null) => {
+  const openShare = (title: string | null, message?: string) => {
     if (!woId) return;
     share.mutate({ id: woId }, {
-      onSuccess: (data) => { setNotifyTitle(title); setShareData(data); },
+      onSuccess: (data) => { setNotifyTitle(title); setShareData(message ? { ...data, message } : data); },
       onError: () => toast({ variant: "destructive", title: "No se pudo generar el link" }),
     });
   };
   const handleShare = () => openShare(null);
+  const notifyQuoteChange = () => {
+    const first = (wo?.clientName ?? "").split(" ")[0];
+    setQuoteChanged(false);
+    openShare("Cotización actualizada: avisa a tu cliente",
+      `Hola${first ? ` ${first}` : ""}, actualizamos la cotización de tu bicicleta (orden ${wo?.workOrderNumber}). El total ahora es ${formatCLP(wo?.total)}. Revísala y apruébala aquí:`);
+  };
+  const handleWarranty = (item: WorkOrderItem) => {
+    if (!woId) return;
+    warrantyItem.mutate({ id: woId, itemId: item.id }, {
+      onSuccess: () => { toast({ title: "Pasado por garantía", description: "Queda sin cobro para el cliente." }); setQuoteChanged(true); invalidate(); },
+      onError: (e) => toast({ variant: "destructive", title: apiError(e, "No se pudo pasar por garantía") }),
+    });
+  };
 
   // Al llegar desde "Crear trabajo" (?avisar=1) se ofrece avisar al cliente una sola vez.
   const noticeDone = useRef(false);
@@ -422,7 +442,15 @@ export default function TrabajoDetail() {
                 <span className="block text-xs text-red-700">{wo.paidAt ? "El cliente abonó, pero falta saldo." : "Entregada sin pago registrado."} Registra el pago en la tarjeta de fechas.</span>
               </span>
               <WhatsAppButton phone={wo.clientPhone} label="Recordar pago"
-                text={paymentReminder(wo.clientName, settings?.name, formatCLP(balanceDue(wo)), wo.workOrderNumber)} />
+                text={paymentReminder(wo.clientName, settings?.name, formatCLP(balanceDue(wo)), wo.workOrderNumber, settings?.paymentInfo)} />
+            </div>
+          )}
+
+          {quoteChanged && !isClosed && (
+            <div className="rounded-lg border-2 border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="quote-changed">
+              <span className="flex-1 min-w-48">Cambió la cotización (total {formatCLP(wo.total)}). ¿Le avisamos a tu cliente?</span>
+              <Button size="sm" onClick={notifyQuoteChange} data-testid="button-notify-quote">Avisar por WhatsApp</Button>
+              <Button size="sm" variant="ghost" onClick={() => setQuoteChanged(false)}>Ahora no</Button>
             </div>
           )}
 
@@ -558,9 +586,16 @@ export default function TrabajoDetail() {
                             {item.itemType === "discount" ? "-" : ""}{formatCLP(item.total)}
                           </span>
                           {!isClosed && item.status !== "completed" && (
-                            <button type="button" className="text-[11px] text-muted-foreground hover:text-destructive mt-0.5" onClick={() => setRemoveItem(item)} data-testid={`button-remove-item-${item.id}`}>
-                              Quitar
-                            </button>
+                            <div className="flex gap-3 mt-0.5">
+                              {item.total > 0 && item.itemType !== "discount" && (
+                                <button type="button" className="text-[11px] text-muted-foreground hover:text-primary" disabled={warrantyItem.isPending} onClick={() => handleWarranty(item)} data-testid={`button-warranty-item-${item.id}`}>
+                                  Garantía
+                                </button>
+                              )}
+                              <button type="button" className="text-[11px] text-muted-foreground hover:text-destructive" onClick={() => setRemoveItem(item)} data-testid={`button-remove-item-${item.id}`}>
+                                Quitar
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -762,6 +797,12 @@ export default function TrabajoDetail() {
                 <Input type="number" inputMode="numeric" min="0" placeholder="0" value={itemDraft.unitPrice} onChange={(e) => setItemDraft((d) => ({ ...d, unitPrice: e.target.value }))} data-testid="input-additem-price" />
               </div>
             </div>
+            {itemDraft.itemType === "part" && (
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={itemDraft.customerProvided} onCheckedChange={(v) => setItemDraft((d) => ({ ...d, customerProvided: v === true }))} data-testid="checkbox-customer-provided" />
+                Lo trae el cliente (sin cobro ni stock)
+              </label>
+            )}
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox checked={itemDraft.alreadyApproved} onCheckedChange={(v) => setItemDraft((d) => ({ ...d, alreadyApproved: v === true }))} data-testid="checkbox-already-approved" />
               El cliente ya lo aprobó (en persona, por teléfono o WhatsApp)
