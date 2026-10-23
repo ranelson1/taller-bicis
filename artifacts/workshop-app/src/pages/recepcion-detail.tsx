@@ -519,7 +519,7 @@ export default function RecepcionDetail() {
 
       {/* Finding Dialog */}
       <Dialog open={findingDialog} onOpenChange={setFindingDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingFinding ? "Editar hallazgo" : "Nuevo hallazgo"}</DialogTitle>
           </DialogHeader>
@@ -697,7 +697,7 @@ export default function RecepcionDetail() {
 
       {/* Edit reception dialog */}
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar recepción</DialogTitle></DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <div className="space-y-2">

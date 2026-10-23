@@ -56,7 +56,7 @@ function Section({ title, hint, count, children }: { title: string; hint?: strin
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title} <span className="font-normal">({count})</span></h2>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       </div>
-      <div className="grid gap-3 md:grid-cols-2">{children}</div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{children}</div>
     </section>
   );
 }
@@ -108,7 +108,7 @@ export default function MisTrabajos() {
         <p className="text-muted-foreground">Lo que te toca hoy.</p>
       </div>
 
-      {isLoading ? <div className="grid gap-3 md:grid-cols-2">{[1, 2].map(i => <Skeleton key={i} className="h-32" />)}</div> : nothing ? (
+      {isLoading ? <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{[1, 2].map(i => <Skeleton key={i} className="h-32" />)}</div> : nothing ? (
         <Card><CardContent className="py-10 text-center text-muted-foreground">No tienes trabajos pendientes. Cuando llegue una bici aparecerá aquí.</CardContent></Card>
       ) : (
         <>

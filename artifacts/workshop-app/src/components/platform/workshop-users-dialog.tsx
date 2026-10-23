@@ -57,7 +57,7 @@ export function WorkshopUsersDialog({ workshop, onClose }: { workshop: PlatformW
 
   return (
     <Dialog open={!!workshop} onOpenChange={o => { if (!o) { reset(); onClose(); } }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Usuarios de {workshop?.name}</DialogTitle>
           <DialogDescription>Cambia emails y contraseñas, activa o desactiva el acceso y agrega personas. El taller siempre conserva un administrador activo.</DialogDescription>
@@ -93,7 +93,7 @@ export function WorkshopUsersDialog({ workshop, onClose }: { workshop: PlatformW
                       <p className="text-sm font-medium truncate">{u.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                     </div>
-                    <select className="h-8 rounded-md border bg-background px-2 text-sm" value={u.role} aria-label={`Rol de ${u.name}`}
+                    <select className="h-11 md:h-8 rounded-md border bg-background px-2 text-base md:text-sm" value={u.role} aria-label={`Rol de ${u.name}`}
                       onChange={e => patch(u, { role: e.target.value as Role })}>
                       {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
@@ -117,7 +117,7 @@ export function WorkshopUsersDialog({ workshop, onClose }: { workshop: PlatformW
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Input placeholder="Nombre" value={adding.name} onChange={e => setAdding({ ...adding, name: e.target.value })} />
               <Input type="email" placeholder="Email" value={adding.email} onChange={e => setAdding({ ...adding, email: e.target.value })} />
-              <select className="h-9 rounded-md border bg-background px-2 text-sm" value={adding.role} onChange={e => setAdding({ ...adding, role: e.target.value as Role })}>
+              <select className="h-11 md:h-9 rounded-md border bg-background px-2 text-base md:text-sm" value={adding.role} onChange={e => setAdding({ ...adding, role: e.target.value as Role })}>
                 {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
               <div className="flex gap-2">

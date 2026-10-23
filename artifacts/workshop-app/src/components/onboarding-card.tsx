@@ -44,7 +44,7 @@ export function OnboardingCard() {
           <button type="button" onClick={hide} className="ml-auto text-muted-foreground hover:text-foreground" aria-label="Ocultar guía" title="Ocultar guía"><X className="h-4 w-4" /></button>
         </div>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} /></div>
-        <ul className="grid gap-1 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
           {steps.map(s => (
             <li key={s.label}>
               <Link href={s.href}>

@@ -143,4 +143,12 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+  /* iPhone: sin zoom por doble toque ni retraso al tocar, y texto que no se reescala al girar. */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, a, [role="button"], input, select, textarea, label, summary {
+    touch-action: manipulation;
+  }
 }

@@ -144,7 +144,7 @@ export default function Dashboard() {
       <ReservationDialog open={reserveOpen} onOpenChange={setReserveOpen} />
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40" />)}</div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40" />)}</div>
       ) : (
         <>
           {toBuy.length > 0 && (
@@ -161,7 +161,7 @@ export default function Dashboard() {
 
           {/* Alertas */}
           {hasAlerts ? (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <AlertCard title="Atrasados" icon={AlertTriangle} tone="red" items={late} render={wo => <EtaBadge wo={wo} />} />
               <AlertCard title="Esperando al cliente" icon={Clock} tone="amber" items={waitingClient}
                 render={wo => <span className="text-xs text-amber-800 whitespace-nowrap">{wo.pendingApprovalCount} por aprobar</span>} />
@@ -192,7 +192,7 @@ export default function Dashboard() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">En el taller ({open.length})</h2>
               <Link href="/trabajos"><span className="text-xs text-primary cursor-pointer">Ver todos →</span></Link>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {BOARD.map(st => {
                 const col = open.filter(wo => wo.status === st);
                 return (

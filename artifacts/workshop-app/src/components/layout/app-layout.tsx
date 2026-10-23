@@ -146,8 +146,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     )
   );
 
+  // Barra inferior (móvil): Inicio, Trabajos, [Nuevo], Clientes y Más.
+  const leftTabs: NavItem[] = [{ href: "/", label: "Inicio", icon: LayoutDashboard }, { href: "/trabajos", label: "Trabajos", icon: Briefcase }];
+  const rightTabs: NavItem[] = [{ href: "/clientes", label: "Clientes", icon: Users }];
+  const barHrefs = [...leftTabs, ...rightTabs].map(t => t.href);
+  const moreActive = !barHrefs.some(h => isActivePath(location, h));
+  const renderTab = (item: NavItem) => {
+    const isActive = item.href === "/trabajos"
+      ? isActivePath(location, item.href) && location !== "/trabajos/nuevo"
+      : isActivePath(location, item.href);
+    return (
+      <Link key={item.href} href={item.href} className={`flex h-full flex-col items-center justify-center gap-1 ${isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70"}`}>
+        <item.icon className="h-6 w-6" />
+        <span className="text-[11px] font-medium leading-none">{item.label}</span>
+      </Link>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+    <div className="min-h-dvh bg-background flex flex-col md:flex-row">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex w-64 flex-col bg-sidebar border-r border-sidebar-border h-screen sticky top-0">
         <div className="p-4 border-b border-sidebar-border"><Brand size="lg" /></div>
@@ -156,7 +173,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile Header */}
-      <header className="md:hidden flex items-center justify-between p-4 bg-sidebar border-b border-sidebar-border">
+      <header className="md:hidden flex items-center justify-between px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] bg-sidebar border-b border-sidebar-border">
         <Brand size="sm" />
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger asChild>
@@ -164,7 +181,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[80vw] bg-sidebar border-r-sidebar-border p-0 flex flex-col">
+          <SheetContent side="left" className="w-[85vw] max-w-sm bg-sidebar border-r-sidebar-border p-0 flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
             <div className="p-4 border-b border-sidebar-border"><Brand size="sm" /></div>
             <div className="flex-1 overflow-y-auto p-4 space-y-6"><Sections /></div>
             <div className="p-4 border-t border-sidebar-border"><UserFooter /></div>
@@ -173,7 +190,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className={`flex-1 overflow-x-hidden md:pb-0 ${inWorkshop ? "pb-16" : ""}`}>
+      <main className={`flex-1 min-w-0 overflow-x-hidden md:pb-0 ${inWorkshop ? "pb-[calc(4rem+env(safe-area-inset-bottom))]" : ""}`}>
         {isSuperadmin && inWorkshop && (
           <div className="bg-amber-100 border-b border-amber-300 text-amber-900 px-4 py-2 text-sm flex items-center gap-2" data-testid="support-banner">
             <LifeBuoy className="h-4 w-4 shrink-0" />
@@ -187,23 +204,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Nav: solo dentro de un taller */}
       {inWorkshop && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border flex items-center justify-around p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-50">
-          {[
-            { href: "/", icon: LayoutDashboard, label: "Inicio" },
-            { href: "/trabajos", icon: Briefcase, label: "Trabajos" },
-            { href: "/trabajos/nuevo", icon: Plus, label: "Nuevo" },
-            { href: "/clientes", icon: Users, label: "Clientes" },
-          ].map((item) => {
-            const isActive = item.href === "/trabajos"
-              ? isActivePath(location, item.href) && location !== "/trabajos/nuevo"
-              : isActivePath(location, item.href);
-            return (
-              <Link key={item.href} href={item.href} className={`flex flex-col items-center p-2 rounded-lg ${isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70"}`}>
-                <item.icon className="h-5 w-5" />
-                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border grid grid-cols-5 items-center h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] z-50" data-testid="mobile-nav">
+          {leftTabs.map(renderTab)}
+          {/* "Nuevo trabajo": el botón principal, al centro y a la altura del pulgar. */}
+          <Link href="/trabajos/nuevo" className="flex h-full flex-col items-center justify-center gap-1 text-sidebar-foreground" data-testid="mobile-nav-new">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow"><Plus className="h-5 w-5" /></span>
+            <span className="text-[11px] font-medium leading-none">Nuevo</span>
+          </Link>
+          {rightTabs.map(renderTab)}
+          {/* "Más": lo que no cabe en la barra (inventario, números, equipo, configuración), a un pulgar de distancia. */}
+          <button type="button" onClick={() => setMenuOpen(true)} data-testid="mobile-nav-more"
+            className={`flex h-full flex-col items-center justify-center gap-1 ${moreActive ? "text-sidebar-primary" : "text-sidebar-foreground/70"}`}>
+            <Menu className="h-6 w-6" />
+            <span className="text-[11px] font-medium leading-none">Más</span>
+          </button>
         </nav>
       )}
     </div>

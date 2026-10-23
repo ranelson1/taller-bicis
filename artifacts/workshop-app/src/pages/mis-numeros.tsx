@@ -59,7 +59,7 @@ export default function MisNumeros() {
         </div>
       </div>
 
-      {isLoading && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}</div>}
+      {isLoading && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}</div>}
       {isError && <Card><CardContent className="py-8 text-center text-muted-foreground">No se pudieron cargar los números. Solo el administrador puede verlos.</CardContent></Card>}
 
       {data && j && (
@@ -83,14 +83,14 @@ export default function MisNumeros() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Stat icon={Banknote} label="Cobrado en el período" value={formatCLP(data.collected.amount)} hint={`${data.collected.count} pago(s)`} />
             <Stat icon={Clock} label="Por cobrar (total)" value={formatCLP(data.receivable.amount)} hint={`${data.receivable.count} trabajo(s) entregado(s) sin pagar`} tone={data.receivable.amount > 0 ? "red" : undefined} href="/trabajos?filtro=unpaid" />
             <Stat icon={ShoppingCart} label="Compras confirmadas" value={formatCLP(data.purchases.total)} hint={`${data.purchases.count} documento(s), con IVA`} href="/inventario?tab=compras" />
             <Stat icon={PackageSearch} label="Valor del stock" value={formatCLP(data.stockValue)} hint="Lo que tienes guardado, a costo" href="/inventario" />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-base">¿Te rinde la hora?</CardTitle></CardHeader>
               <CardContent className="text-sm space-y-2">
@@ -130,7 +130,7 @@ export default function MisNumeros() {
             </Card>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-base">Servicios más usados</CardTitle></CardHeader>
               <CardContent className="divide-y">

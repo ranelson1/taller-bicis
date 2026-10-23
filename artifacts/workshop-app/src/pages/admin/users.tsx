@@ -133,7 +133,30 @@ export default function Users() {
       {isLoading ? (
         <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : (
-        <div className="rounded-md border bg-card">
+        <>
+        {/* Celular: una tarjeta por persona (la tabla no cabe en el ancho del iPhone). */}
+        <div className="md:hidden space-y-2" data-testid="users-cards">
+          {visible.map((u) => (
+            <div key={u.id} className={`rounded-lg border bg-card p-3 flex items-center gap-3 ${!u.active ? "opacity-60" : ""}`}>
+              {u.calendarColor && <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: u.calendarColor }} />}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">{u.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline">{ROLE_LABELS[u.role] ?? u.role}</Badge>
+                  {!u.active && <Badge variant="destructive">Inactivo</Badge>}
+                  <span className="text-xs text-muted-foreground">{u.doesJobs ? `Repara${u.weeklyHours ? ` · ${u.weeklyHours} h/sem` : ""}` : "No repara"}</span>
+                </div>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => openEdit(u)} aria-label="Editar"><Pencil className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost" onClick={() => handleToggleActive(u)} aria-label={u.active ? "Desactivar" : "Reactivar"}>
+                {u.active ? <Ban className="h-4 w-4 text-destructive" /> : <RotateCcw className="h-4 w-4 text-green-600" />}
+              </Button>
+            </div>
+          ))}
+          {visible.length === 0 && <p className="text-center py-10 text-muted-foreground">No hay usuarios.</p>}
+        </div>
+        <div className="hidden md:block rounded-md border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
@@ -178,6 +201,7 @@ export default function Users() {
             </TableBody>
           </Table>
         </div>
+        </>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
