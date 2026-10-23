@@ -39,6 +39,7 @@ import type {
   CreatePlatformWorkshopBody,
   DashboardSummary,
   DeleteWorkCase200,
+  FollowupClient,
   GetPurchaseReaderStatus200,
   GetReportSummaryParams,
   HealthStatus,
@@ -104,6 +105,8 @@ import type {
   ServiceWithCount,
   ServiceWithSteps,
   SetWorkOrderQuoteApprovalBody,
+  SnoozeFollowup200,
+  SnoozeFollowupBody,
   Supplier,
   TimelineEvent,
   UpdateBicycleSetupBody,
@@ -9950,6 +9953,154 @@ export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDash
 
 
 
+
+export const getListFollowupsUrl = () => {
+
+
+
+
+  return `/api/followups`
+}
+
+/**
+ * @summary Clientes a quienes ya les toca repetir un servicio (recontacto)
+ */
+export const listFollowups = async ( options?: RequestInit): Promise<FollowupClient[]> => {
+
+  return customFetch<FollowupClient[]>(getListFollowupsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListFollowupsQueryKey = () => {
+    return [
+    `/api/followups`
+    ] as const;
+    }
+
+
+export const getListFollowupsQueryOptions = <TData = Awaited<ReturnType<typeof listFollowups>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFollowupsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFollowups>>> = ({ signal }) => listFollowups({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFollowups>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListFollowupsQueryResult = NonNullable<Awaited<ReturnType<typeof listFollowups>>>
+export type ListFollowupsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Clientes a quienes ya les toca repetir un servicio (recontacto)
+ */
+
+export function useListFollowups<TData = Awaited<ReturnType<typeof listFollowups>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listFollowups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListFollowupsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSnoozeFollowupUrl = (clientId: number,) => {
+
+
+
+
+  return `/api/followups/${clientId}/snooze`
+}
+
+/**
+ * @summary Posponer el recontacto de este cliente (ya le escribí)
+ */
+export const snoozeFollowup = async (clientId: number,
+    snoozeFollowupBody?: SnoozeFollowupBody, options?: RequestInit): Promise<SnoozeFollowup200> => {
+
+  return customFetch<SnoozeFollowup200>(getSnoozeFollowupUrl(clientId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(snoozeFollowupBody)
+  }
+);}
+
+
+
+
+export const getSnoozeFollowupMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof snoozeFollowup>>, TError,{clientId: number;data?: BodyType<SnoozeFollowupBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof snoozeFollowup>>, TError,{clientId: number;data?: BodyType<SnoozeFollowupBody>}, TContext> => {
+
+const mutationKey = ['snoozeFollowup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof snoozeFollowup>>, {clientId: number;data?: BodyType<SnoozeFollowupBody>}> = (props) => {
+          const {clientId,data} = props ?? {};
+
+          return  snoozeFollowup(clientId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SnoozeFollowupMutationResult = NonNullable<Awaited<ReturnType<typeof snoozeFollowup>>>
+    export type SnoozeFollowupMutationBody = BodyType<SnoozeFollowupBody> | undefined
+    export type SnoozeFollowupMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Posponer el recontacto de este cliente (ya le escribí)
+ */
+export const useSnoozeFollowup = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof snoozeFollowup>>, TError,{clientId: number;data?: BodyType<SnoozeFollowupBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof snoozeFollowup>>,
+        TError,
+        {clientId: number;data?: BodyType<SnoozeFollowupBody>},
+        TContext
+      > => {
+      return useMutation(getSnoozeFollowupMutationOptions(options));
+    }
 
 export const getListReservationsUrl = () => {
 

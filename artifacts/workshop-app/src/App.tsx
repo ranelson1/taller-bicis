@@ -28,6 +28,7 @@ import Inventario from "@/pages/inventario";
 import CompraDetail from "@/pages/compra-detail";
 import MisNumeros from "@/pages/mis-numeros";
 import MisTrabajos from "@/pages/mis-trabajos";
+import Seguimiento from "@/pages/seguimiento";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -112,6 +113,9 @@ function Router() {
         <AuthGate><Bicycles /></AuthGate>
       </Route>
 
+      <Route path="/seguimiento">
+        <AuthGate><Seguimiento /></AuthGate>
+      </Route>
       <Route path="/mis-trabajos">
         <AuthGate><MisTrabajos /></AuthGate>
       </Route>

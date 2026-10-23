@@ -17,11 +17,12 @@ type Props = {
   label?: string;           // sin label: botón solo con ícono
   size?: "sm" | "default" | "icon";
   className?: string;
+  onOpen?: () => void;      // se llama al abrir el chat (ej.: marcar "ya le escribí")
 };
 
 // Abre el chat de WhatsApp con el cliente. Si el teléfono no sirve, el botón queda deshabilitado
 // con la explicación en el tooltip.
-export function WhatsAppButton({ phone, text, label, size = "sm", className }: Props) {
+export function WhatsAppButton({ phone, text, label, size = "sm", className, onOpen }: Props) {
   const href = whatsappLink(phone, text);
   const title = href ? "Abrir chat de WhatsApp" : phone ? "Teléfono incompleto para WhatsApp" : "El cliente no tiene teléfono";
   const classes = cn("bg-[#25D366] hover:bg-[#1ebe5a] text-white", !label && "px-2", className);
@@ -36,7 +37,7 @@ export function WhatsAppButton({ phone, text, label, size = "sm", className }: P
   return (
     <Button asChild size={size} className={classes}>
       <a href={href} target="_blank" rel="noreferrer" title={title} aria-label={title} data-testid="button-whatsapp-chat"
-        onClick={e => e.stopPropagation()}>
+        onClick={e => { e.stopPropagation(); onOpen?.(); }}>
         <WhatsAppIcon className="h-4 w-4" />{label && <span className="ml-1.5">{label}</span>}
       </a>
     </Button>

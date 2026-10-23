@@ -2913,6 +2913,55 @@ paths:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
 
+  /followups:
+    get:
+      operationId: listFollowups
+      tags: [clients]
+      summary: Clientes a quienes ya les toca repetir un servicio (recontacto)
+      responses:
+        "200":
+          description: Clientes por recontactar, el más vencido primero
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FollowupClient"
+
+  /followups/{clientId}/snooze:
+    post:
+      operationId: snoozeFollowup
+      tags: [clients]
+      summary: Posponer el recontacto de este cliente (ya le escribí)
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days:
+                  type: integer
+      responses:
+        "200":
+          description: Pospuesto
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, untilOn]
+                properties:
+                  ok:
+                    type: boolean
+                  untilOn:
+                    type: string
+
   /reservations:
     get:
       operationId: listReservations
@@ -3805,6 +3854,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
         active:
           type: boolean
         createdAt:
@@ -3834,6 +3886,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
         active:
           type: boolean
         createdAt:
@@ -3865,6 +3920,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
         active:
           type: boolean
         createdAt:
@@ -3894,6 +3952,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
 
     ServiceUpdate:
       type: object
@@ -3910,6 +3971,9 @@ components:
           type: ["string", "null"]
         internalDescription:
           type: ["string", "null"]
+        followupMonths:
+          type: ["integer", "null"]
+          description: Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
         active:
           type: boolean
 
@@ -5201,6 +5265,32 @@ components:
           type: number
         unitPrice:
           type: number
+
+    FollowupItem:
+      type: object
+      required: [serviceId, serviceName, bicycleId, bicycleName, lastOn, dueOn, monthsAgo, overdueDays]
+      properties:
+        serviceId: { type: integer }
+        serviceName: { type: string }
+        bicycleId: { type: integer }
+        bicycleName: { type: string }
+        lastOn: { type: string, description: "Última entrega del servicio (YYYY-MM-DD)" }
+        dueOn: { type: string, description: "Cuándo toca repetirlo (YYYY-MM-DD)" }
+        monthsAgo: { type: integer }
+        overdueDays: { type: integer, description: "Días de atraso (negativo = falta poco)" }
+
+    FollowupClient:
+      type: object
+      required: [clientId, clientName, items, mostOverdueDays]
+      properties:
+        clientId: { type: integer }
+        clientName: { type: string }
+        clientPhone: { type: ["string", "null"] }
+        mostOverdueDays: { type: integer }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FollowupItem"
 
     Reservation:
       type: object

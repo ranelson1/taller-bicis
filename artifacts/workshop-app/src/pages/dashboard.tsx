@@ -9,6 +9,7 @@ import { WhatsAppButton } from "@/components/whatsapp-button";
 import { paymentReminder } from "@/lib/whatsapp";
 import { ReservationDialog } from "@/components/reservations/reservation-dialog";
 import { ReservationsSection } from "@/components/reservations/reservations-section";
+import { FollowupsSection } from "@/components/followups/followups-section";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { CalendarClock } from "lucide-react";
 import { AlertTriangle, CircleDollarSign, Clock, PackageCheck, Plus, ShoppingCart, Users } from "lucide-react";
@@ -136,6 +137,7 @@ export default function Dashboard() {
       {(me?.role === "admin" || me?.role === "superadmin") && <OnboardingCard />}
 
       <ReservationsSection />
+      <FollowupsSection />
       <ReservationDialog open={reserveOpen} onOpenChange={setReserveOpen} />
 
       {isLoading ? (

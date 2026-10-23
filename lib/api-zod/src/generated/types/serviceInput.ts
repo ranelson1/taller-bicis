@@ -18,4 +18,9 @@ export interface ServiceInput {
   clientDescription?: string | null;
   /** @nullable */
   internalDescription?: string | null;
+  /**
+     * Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
+     * @nullable
+     */
+  followupMonths?: number | null;
 }

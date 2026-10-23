@@ -334,6 +334,11 @@ export interface Service {
   clientDescription?: string | null;
   /** @nullable */
   internalDescription?: string | null;
+  /**
+     * Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
+     * @nullable
+     */
+  followupMonths?: number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -354,6 +359,11 @@ export interface ServiceWithCount {
   clientDescription?: string | null;
   /** @nullable */
   internalDescription?: string | null;
+  /**
+     * Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
+     * @nullable
+     */
+  followupMonths?: number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -386,6 +396,11 @@ export interface ServiceWithSteps {
   clientDescription?: string | null;
   /** @nullable */
   internalDescription?: string | null;
+  /**
+     * Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
+     * @nullable
+     */
+  followupMonths?: number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -404,6 +419,11 @@ export interface ServiceInput {
   clientDescription?: string | null;
   /** @nullable */
   internalDescription?: string | null;
+  /**
+     * Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
+     * @nullable
+     */
+  followupMonths?: number | null;
 }
 
 export interface ServiceUpdate {
@@ -418,6 +438,11 @@ export interface ServiceUpdate {
   clientDescription?: string | null;
   /** @nullable */
   internalDescription?: string | null;
+  /**
+     * Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)
+     * @nullable
+     */
+  followupMonths?: number | null;
   active?: boolean;
 }
 
@@ -1638,6 +1663,29 @@ export interface QuickCreateItemInput {
   unitPrice: number;
 }
 
+export interface FollowupItem {
+  serviceId: number;
+  serviceName: string;
+  bicycleId: number;
+  bicycleName: string;
+  /** Última entrega del servicio (YYYY-MM-DD) */
+  lastOn: string;
+  /** Cuándo toca repetirlo (YYYY-MM-DD) */
+  dueOn: string;
+  monthsAgo: number;
+  /** Días de atraso (negativo = falta poco) */
+  overdueDays: number;
+}
+
+export interface FollowupClient {
+  clientId: number;
+  clientName: string;
+  /** @nullable */
+  clientPhone?: string | null;
+  mostOverdueDays: number;
+  items: FollowupItem[];
+}
+
 export type ReservationStatus = typeof ReservationStatus[keyof typeof ReservationStatus];
 
 
@@ -2420,6 +2468,15 @@ export const UpdateWorkOrderItemBodyStatus = {
 
 export type UpdateWorkOrderItemBody = {
   status?: UpdateWorkOrderItemBodyStatus;
+};
+
+export type SnoozeFollowupBody = {
+  days?: number;
+};
+
+export type SnoozeFollowup200 = {
+  ok: boolean;
+  untilOn: string;
 };
 
 export type PreviewReservationBody = {

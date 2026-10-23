@@ -13,6 +13,8 @@ export const servicesTable = pgTable("services", {
   estimatedHours: numeric("estimated_hours", { precision: 5, scale: 2 }),
   clientDescription: text("client_description"),
   internalDescription: text("internal_description"),
+  // Cada cuántos meses conviene repetirlo (recontacto). null = sugerido según el nombre; 0 = no recordar.
+  followupMonths: integer("followup_months"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

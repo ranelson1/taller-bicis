@@ -602,6 +602,7 @@ export const ListServicesResponseItem = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
@@ -619,7 +620,8 @@ export const CreateServiceBody = zod.object({
   "basePrice": zod.number().nullish(),
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
-  "internalDescription": zod.string().nullish()
+  "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)')
 })
 
 export const CreateServiceResponse = zod.object({
@@ -631,6 +633,7 @@ export const CreateServiceResponse = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -653,6 +656,7 @@ export const GetServiceResponse = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date(),
@@ -682,6 +686,7 @@ export const UpdateServiceBody = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean().optional()
 })
 
@@ -694,6 +699,7 @@ export const UpdateServiceResponse = zod.object({
   "estimatedHours": zod.number().nullish(),
   "clientDescription": zod.string().nullish(),
   "internalDescription": zod.string().nullish(),
+  "followupMonths": zod.number().nullish().describe('Cada cuántos meses conviene repetir el servicio (null = sugerido, 0 = no recordar)'),
   "active": zod.boolean(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -3951,6 +3957,45 @@ export const GetDashboardSummaryResponse = zod.object({
   "workOrdersQualityControl": zod.number(),
   "workOrdersReadyForPickup": zod.number(),
   "workOrdersNoMechanic": zod.number()
+})
+
+
+/**
+ * @summary Clientes a quienes ya les toca repetir un servicio (recontacto)
+ */
+export const ListFollowupsResponseItem = zod.object({
+  "clientId": zod.number(),
+  "clientName": zod.string(),
+  "clientPhone": zod.string().nullish(),
+  "mostOverdueDays": zod.number(),
+  "items": zod.array(zod.object({
+  "serviceId": zod.number(),
+  "serviceName": zod.string(),
+  "bicycleId": zod.number(),
+  "bicycleName": zod.string(),
+  "lastOn": zod.string().describe('Última entrega del servicio (YYYY-MM-DD)'),
+  "dueOn": zod.string().describe('Cuándo toca repetirlo (YYYY-MM-DD)'),
+  "monthsAgo": zod.number(),
+  "overdueDays": zod.number().describe('Días de atraso (negativo = falta poco)')
+}))
+})
+export const ListFollowupsResponse = zod.array(ListFollowupsResponseItem)
+
+
+/**
+ * @summary Posponer el recontacto de este cliente (ya le escribí)
+ */
+export const SnoozeFollowupParams = zod.object({
+  "clientId": zod.coerce.number()
+})
+
+export const SnoozeFollowupBody = zod.object({
+  "days": zod.number().optional()
+})
+
+export const SnoozeFollowupResponse = zod.object({
+  "ok": zod.boolean(),
+  "untilOn": zod.string()
 })
 
 
