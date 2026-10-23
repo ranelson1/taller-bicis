@@ -13,6 +13,8 @@ export interface WorkOrderPhoto {
   note?: string | null;
   visibleToClient: boolean;
   sizeBytes: number;
+  /** image/* o video/* */
+  mimeType?: string;
   createdAt: string;
   url: string;
 }

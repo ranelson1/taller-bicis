@@ -318,13 +318,17 @@ export default function OtPublica() {
 
         {/* Fotos que el taller compartió */}
         {(ot.photos ?? []).length > 0 && (
-          <Section icon={Camera} title="Fotos">
+          <Section icon={Camera} title="Fotos y videos">
             <div className="grid grid-cols-2 gap-2">
               {ot.photos!.map(p => (
                 <figure key={p.id} className="rounded-xl overflow-hidden bg-stone-100">
-                  <a href={p.url} target="_blank" rel="noreferrer">
-                    <img src={p.url} alt={p.note ?? "Foto de tu bicicleta"} loading="lazy" className="w-full aspect-square object-cover" />
-                  </a>
+                  {p.mimeType?.startsWith("video/") ? (
+                    <video src={`${p.url}#t=0.1`} controls playsInline preload="metadata" className="w-full aspect-square object-cover bg-black" />
+                  ) : (
+                    <a href={p.url} target="_blank" rel="noreferrer">
+                      <img src={p.url} alt={p.note ?? "Foto de tu bicicleta"} loading="lazy" className="w-full aspect-square object-cover" />
+                    </a>
+                  )}
                   {p.note && <figcaption className="px-2 py-1.5 text-xs text-stone-700">{p.note}</figcaption>}
                 </figure>
               ))}

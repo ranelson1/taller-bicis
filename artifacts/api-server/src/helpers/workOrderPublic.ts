@@ -210,6 +210,7 @@ export async function buildPublicWorkOrder(wo: WorkOrder) {
     photos: wo.publicToken ? photos.map(p => ({
       id: p.id,
       note: p.note,
+      mimeType: p.mimeType,
       createdAt: p.createdAt.toISOString(),
       url: `/api/public/ot/${wo.publicToken}/photos/${p.id}`,
     })) : [],

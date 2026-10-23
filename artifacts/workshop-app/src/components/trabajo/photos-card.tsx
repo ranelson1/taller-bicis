@@ -11,17 +11,22 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { resizeImage } from "@/lib/image";
-import { Camera, EyeOff, ImagePlus, Loader2, Trash2 } from "lucide-react";
+import { Camera, EyeOff, ImagePlus, Loader2, Play, Trash2 } from "lucide-react";
 
 // Fotos de la OT: el mecánico las saca desde el celular (cámara o galería), les pone una nota
 // y decide si el cliente las ve en su link.
 
+const MAX_VIDEO_MB = 60;
+const isVideo = (mime?: string | null) => !!mime && mime.startsWith("video/");
+
 async function uploadPhoto(workOrderId: number, file: File): Promise<void> {
-  const blob = await resizeImage(file);
+  const video = file.type.startsWith("video/");
+  if (video && file.size > MAX_VIDEO_MB * 1024 * 1024) throw new Error(`El video pesa más de ${MAX_VIDEO_MB} MB`);
+  const blob = video ? file : await resizeImage(file);
   const res = await fetch(`/api/work-orders/${workOrderId}/photos`, {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "image/jpeg" },
+    headers: { "Content-Type": video ? file.type : "image/jpeg" },
     body: blob,
   });
   if (!res.ok) {
@@ -41,20 +46,21 @@ export function PhotosCard({ workOrderId, readOnly }: { workOrderId: number; rea
   const refresh = () => qc.invalidateQueries({ queryKey: getListWorkOrderPhotosQueryKey(workOrderId) });
 
   const onFiles = async (files: FileList | null) => {
-    const list = Array.from(files ?? []).filter(f => f.type.startsWith("image/"));
+    const list = Array.from(files ?? []).filter(f => f.type.startsWith("image/") || f.type.startsWith("video/"));
     if (list.length === 0) return;
     setUploading({ done: 0, total: list.length });
     let failed = 0;
+    let lastError = "";
     for (let i = 0; i < list.length; i++) {
-      try { await uploadPhoto(workOrderId, list[i]); } catch { failed++; }
+      try { await uploadPhoto(workOrderId, list[i]); } catch (e) { failed++; lastError = e instanceof Error ? e.message : ""; }
       setUploading({ done: i + 1, total: list.length });
     }
     setUploading(null);
     if (inputRef.current) inputRef.current.value = "";
     refresh();
     toast(failed === 0
-      ? { title: list.length === 1 ? "Foto agregada" : `${list.length} fotos agregadas` }
-      : { variant: "destructive", title: `No se pudieron subir ${failed} de ${list.length} fotos` });
+      ? { title: list.length === 1 ? "Archivo agregado" : `${list.length} archivos agregados` }
+      : { variant: "destructive", title: `No se pudieron subir ${failed} de ${list.length}`, description: lastError || undefined });
   };
 
   const items = photos ?? [];
@@ -63,7 +69,7 @@ export function PhotosCard({ workOrderId, readOnly }: { workOrderId: number; rea
     <Card>
       <CardHeader className="pb-1 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
-          <Camera className="h-4 w-4" />Fotos {items.length > 0 && <span className="font-normal">({items.length})</span>}
+          <Camera className="h-4 w-4" />Fotos y videos {items.length > 0 && <span className="font-normal">({items.length})</span>}
         </CardTitle>
         {!readOnly && (
           <Button variant="ghost" size="sm" className="text-primary -mr-2" disabled={!!uploading} onClick={() => inputRef.current?.click()} data-testid="button-add-photos">
@@ -72,18 +78,25 @@ export function PhotosCard({ workOrderId, readOnly }: { workOrderId: number; rea
           </Button>
         )}
         {/* Sin `capture`: en el celular deja elegir entre cámara y galería. */}
-        <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => onFiles(e.target.files)} data-testid="input-photos" />
+        <input ref={inputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={e => onFiles(e.target.files)} data-testid="input-photos" />
       </CardHeader>
       <CardContent className="pt-0">
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground py-1">
-            {readOnly ? "Sin fotos." : "Saca fotos de cómo llegó la bici, de lo que encuentres y del trabajo terminado."}
+            {readOnly ? "Sin fotos ni videos." : "Saca fotos o videos de cómo llegó la bici, de lo que encuentres y del trabajo terminado."}
           </p>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {items.map(p => (
               <button key={p.id} type="button" onClick={() => setOpen(p)} className="relative aspect-square overflow-hidden rounded-md border bg-muted group" data-testid={`photo-${p.id}`}>
-                <img src={p.url} alt={p.note ?? "Foto de la OT"} loading="lazy" className="h-full w-full object-cover group-hover:opacity-90" />
+                {isVideo(p.mimeType) ? (
+                  <>
+                    <video src={`${p.url}#t=0.1`} preload="metadata" muted playsInline className="h-full w-full object-cover" />
+                    <span className="absolute inset-0 flex items-center justify-center"><span className="rounded-full bg-black/55 p-2 text-white"><Play className="h-4 w-4" /></span></span>
+                  </>
+                ) : (
+                  <img src={p.url} alt={p.note ?? "Foto de la OT"} loading="lazy" className="h-full w-full object-cover group-hover:opacity-90" />
+                )}
                 {!p.visibleToClient && (
                   <span className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white" title="Solo el taller la ve"><EyeOff className="h-3 w-3" /></span>
                 )}
@@ -121,14 +134,14 @@ function PhotoDialog({ photo, workOrderId, readOnly, onClose, onChanged }: {
   const save = () => {
     if (!photo) return;
     update.mutate({ id: workOrderId, photoId: photo.id, data: { note: note.trim() || null, visibleToClient: visible } }, {
-      onSuccess: () => { toast({ title: "Foto actualizada" }); onChanged(); onClose(); },
+      onSuccess: () => { toast({ title: "Guardado" }); onChanged(); onClose(); },
       onError: () => toast({ variant: "destructive", title: "No se pudo guardar" }),
     });
   };
   const del = () => {
     if (!photo) return;
     remove.mutate({ id: workOrderId, photoId: photo.id }, {
-      onSuccess: () => { toast({ title: "Foto eliminada" }); onChanged(); onClose(); },
+      onSuccess: () => { toast({ title: "Eliminado" }); onChanged(); onClose(); },
       onError: () => toast({ variant: "destructive", title: "No se pudo eliminar" }),
     });
   };
@@ -137,12 +150,16 @@ function PhotoDialog({ photo, workOrderId, readOnly, onClose, onChanged }: {
     <Dialog open={!!photo} onOpenChange={o => { if (!o) { setLoadedFor(null); onClose(); } }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Foto · {photo ? new Date(photo.createdAt).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" }) : ""}</DialogTitle>
+          <DialogTitle>{photo && isVideo(photo.mimeType) ? "Video" : "Foto"} · {photo ? new Date(photo.createdAt).toLocaleString("es-CL", { dateStyle: "medium", timeStyle: "short" }) : ""}</DialogTitle>
         </DialogHeader>
         {photo && (
-          <a href={photo.url} target="_blank" rel="noreferrer">
-            <img src={photo.url} alt={photo.note ?? "Foto de la OT"} className="w-full max-h-[60vh] object-contain rounded-md bg-muted" />
-          </a>
+          isVideo(photo.mimeType) ? (
+            <video src={photo.url} controls playsInline preload="metadata" className="w-full max-h-[60vh] rounded-md bg-black" />
+          ) : (
+            <a href={photo.url} target="_blank" rel="noreferrer">
+              <img src={photo.url} alt={photo.note ?? "Foto de la OT"} className="w-full max-h-[60vh] object-contain rounded-md bg-muted" />
+            </a>
+          )
         )}
         {readOnly ? (
           photo?.note && <p className="text-sm">{photo.note}</p>

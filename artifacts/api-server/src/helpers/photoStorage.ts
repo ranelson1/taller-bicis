@@ -14,6 +14,23 @@ export const ALLOWED_TYPES: Record<string, string> = {
 };
 export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
+// Videos que el mecánico muestra al cliente (celular: mp4/mov; algunos navegadores: webm).
+export const VIDEO_TYPES: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+};
+export const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
+
+// Firma real del video: "ftyp" a partir del byte 4 (mp4/mov) o cabecera EBML (webm).
+export function sniffVideoType(buf: Buffer): string | null {
+  if (buf.length >= 12 && buf.subarray(4, 8).toString("ascii") === "ftyp") {
+    return buf.subarray(8, 12).toString("ascii").startsWith("qt") ? "video/quicktime" : "video/mp4";
+  }
+  if (buf.length >= 4 && buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return "video/webm";
+  return null;
+}
+
 // Revisa la firma real del archivo: no basta con el Content-Type que manda el navegador.
 export function sniffImageType(buf: Buffer): string | null {
   if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
@@ -23,7 +40,7 @@ export function sniffImageType(buf: Buffer): string | null {
 }
 
 // Extensión por tipo para todo lo que se guarda (imágenes y documentos de compra).
-const EXTENSIONS: Record<string, string> = { ...ALLOWED_TYPES, "application/pdf": "pdf", "application/xml": "xml" };
+const EXTENSIONS: Record<string, string> = { ...ALLOWED_TYPES, ...VIDEO_TYPES, "application/pdf": "pdf", "application/xml": "xml" };
 
 // La clave nunca viene del usuario: carpeta del taller + subcarpeta + nombre aleatorio.
 export async function saveFile(workshopId: number, folder: string, data: Buffer, mimeType: string): Promise<string> {

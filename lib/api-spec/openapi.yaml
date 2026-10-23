@@ -5056,6 +5056,9 @@ components:
           type: boolean
         sizeBytes:
           type: integer
+        mimeType:
+          type: string
+          description: image/* o video/*
         createdAt:
           type: string
         url:
@@ -5069,6 +5072,9 @@ components:
           type: integer
         note:
           type: ["string", "null"]
+        mimeType:
+          type: string
+          description: image/* o video/*
         createdAt:
           type: string
         url:

@@ -10,6 +10,8 @@ export interface PublicWorkOrderPhoto {
   id: number;
   /** @nullable */
   note?: string | null;
+  /** image/* o video/* */
+  mimeType?: string;
   createdAt: string;
   url: string;
 }

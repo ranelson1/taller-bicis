@@ -2617,6 +2617,7 @@ export const ListWorkOrderPhotosResponseItem = zod.object({
   "note": zod.string().nullish(),
   "visibleToClient": zod.boolean(),
   "sizeBytes": zod.number(),
+  "mimeType": zod.string().optional().describe('image\/\* o video\/\*'),
   "createdAt": zod.string(),
   "url": zod.string()
 })
@@ -2642,6 +2643,7 @@ export const UpdateWorkOrderPhotoResponse = zod.object({
   "note": zod.string().nullish(),
   "visibleToClient": zod.boolean(),
   "sizeBytes": zod.number(),
+  "mimeType": zod.string().optional().describe('image\/\* o video\/\*'),
   "createdAt": zod.string(),
   "url": zod.string()
 })
@@ -2661,6 +2663,7 @@ export const DeleteWorkOrderPhotoResponse = zod.object({
   "note": zod.string().nullish(),
   "visibleToClient": zod.boolean(),
   "sizeBytes": zod.number(),
+  "mimeType": zod.string().optional().describe('image\/\* o video\/\*'),
   "createdAt": zod.string(),
   "url": zod.string()
 })
@@ -3757,6 +3760,7 @@ export const GetPublicWorkOrderResponse = zod.object({
   "photos": zod.array(zod.object({
   "id": zod.number(),
   "note": zod.string().nullish(),
+  "mimeType": zod.string().optional().describe('image\/\* o video\/\*'),
   "createdAt": zod.string(),
   "url": zod.string()
 })).optional(),
@@ -3826,6 +3830,7 @@ export const DecidePublicWorkOrderItemResponse = zod.object({
   "photos": zod.array(zod.object({
   "id": zod.number(),
   "note": zod.string().nullish(),
+  "mimeType": zod.string().optional().describe('image\/\* o video\/\*'),
   "createdAt": zod.string(),
   "url": zod.string()
 })).optional(),

@@ -25,7 +25,7 @@ import {
 } from "../helpers/workOrderPublic";
 import { estimateCompletionDate } from "../helpers/completionEstimate";
 import { consumeWorkOrderStock, returnWorkOrderStock, workOrderEconomics } from "../helpers/inventory";
-import { ALLOWED_TYPES, MAX_PHOTO_BYTES, deletePhotoFile, photoPath, savePhoto, sniffImageType } from "../helpers/photoStorage";
+import { ALLOWED_TYPES, MAX_PHOTO_BYTES, MAX_VIDEO_BYTES, VIDEO_TYPES, deletePhotoFile, photoPath, savePhoto, sniffImageType, sniffVideoType } from "../helpers/photoStorage";
 
 const router = Router();
 router.use(requireAuth);
@@ -490,7 +490,7 @@ router.patch("/:id", async (req, res) => {
 });
 
 // ── Fotos de la OT ────────────────────────────────────────────────────────────
-// El celular sube cada foto ya reducida como cuerpo binario (image/jpeg|png|webp).
+// El celular sube cada foto ya reducida (image/jpeg|png|webp) o un video (mp4|mov|webm) como cuerpo binario.
 
 const photoView = (p: typeof workOrderPhotosTable.$inferSelect) => ({
   id: p.id,
@@ -498,6 +498,7 @@ const photoView = (p: typeof workOrderPhotosTable.$inferSelect) => ({
   note: p.note,
   visibleToClient: p.visibleToClient,
   sizeBytes: p.sizeBytes,
+  mimeType: p.mimeType,
   createdAt: p.createdAt.toISOString(),
   url: `/api/work-orders/${p.workOrderId}/photos/${p.id}/file`,
 });
@@ -516,18 +517,23 @@ router.get("/:id/photos", async (req, res) => {
 });
 
 router.post("/:id/photos",
-  express.raw({ type: Object.keys(ALLOWED_TYPES), limit: MAX_PHOTO_BYTES }),
+  express.raw({ type: [...Object.keys(ALLOWED_TYPES), ...Object.keys(VIDEO_TYPES)], limit: MAX_VIDEO_BYTES }),
   async (req, res) => {
     const id = parseInt(req.params.id);
     const userId = (req.session as any)?.userId ?? null;
     const body = req.body as Buffer;
     if (!Buffer.isBuffer(body) || body.length === 0) {
-      res.status(400).json({ error: "Envía una imagen JPG, PNG o WebP" });
+      res.status(400).json({ error: "Envía una imagen (JPG, PNG, WebP) o un video (MP4, MOV, WebM)" });
       return;
     }
-    const mimeType = sniffImageType(body);
+    const imageType = sniffImageType(body);
+    const mimeType = imageType ?? sniffVideoType(body);
     if (!mimeType) {
-      res.status(400).json({ error: "El archivo no es una imagen válida" });
+      res.status(400).json({ error: "El archivo no es una imagen ni un video válido" });
+      return;
+    }
+    if (imageType && body.length > MAX_PHOTO_BYTES) {
+      res.status(413).json({ error: "La foto pesa más de 8 MB" });
       return;
     }
     const note = typeof req.query.note === "string" ? req.query.note.trim().slice(0, 500) || null : null;
