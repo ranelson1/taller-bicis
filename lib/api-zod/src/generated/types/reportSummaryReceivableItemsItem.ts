@@ -13,6 +13,8 @@ export type ReportSummaryReceivableItemsItem = {
   workOrderNumber: string;
   /** @nullable */
   clientName?: string | null;
+  /** @nullable */
+  clientPhone?: string | null;
   balance: number;
   /** @nullable */
   deliveredAt?: string | null;

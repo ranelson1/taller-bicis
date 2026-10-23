@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod/v4";
 import { db, withBypass, setCurrentWorkshop } from "@workspace/db";
-import { workOrdersTable, workOrderPhotosTable, workshopSettingsTable } from "@workspace/db";
+import { workOrdersTable, workOrderPhotosTable, workshopSettingsTable, timelineEventsTable } from "@workspace/db";
 import { photoPath } from "../helpers/photoStorage";
 import { and, eq } from "drizzle-orm";
 import { triggerWorkCaseRecalc } from "../helpers/workCase";
@@ -88,6 +88,28 @@ router.post("/ot/:token/items/:itemId/decision", async (req, res) => {
     res.json(await buildPublicWorkOrder(fresh!));
   } catch (e) {
     if (e instanceof ItemDecisionError) { res.status(400).json({ error: e.message }); return; }
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /public/ot/:token/approve-quote — el cliente aprueba la cotización (opcional: solo queda registrado).
+router.post("/ot/:token/approve-quote", async (req, res) => {
+  try {
+    const wo = await findByToken(req.params.token);
+    if (!wo) { res.status(404).json({ error: "Orden no encontrada" }); return; }
+    if (wo.status === "cancelled") { res.status(400).json({ error: "Esta orden fue cancelada" }); return; }
+    if (!wo.quoteApprovedAt) {
+      await db.update(workOrdersTable).set({ quoteApprovedAt: new Date(), quoteApprovedBy: "client", updatedAt: new Date() })
+        .where(eq(workOrdersTable.id, wo.id));
+      await db.insert(timelineEventsTable).values({
+        entityType: "work_order", entityId: wo.id, userId: null, action: "quote_approved", previousStatus: "client",
+        comment: "El cliente aprobó la cotización desde su link",
+      });
+    }
+    const [fresh] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, wo.id));
+    res.json(await buildPublicWorkOrder(fresh!));
+  } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Internal server error" });
   }

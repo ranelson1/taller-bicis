@@ -182,6 +182,7 @@ export async function buildPublicWorkOrder(wo: WorkOrder) {
     deliveredAt: wo.deliveredAt?.toISOString() ?? null,
     completedAt: wo.completedAt?.toISOString() ?? null,
     paidAt: wo.paidAt?.toISOString() ?? null,
+    quoteApprovedAt: wo.quoteApprovedAt?.toISOString() ?? null,
     paidAmount: wo.paidAt && wo.paidAmount != null ? Number(wo.paidAmount) : null,
     clientName: client?.name ?? "",
     bicycle: bike ? {

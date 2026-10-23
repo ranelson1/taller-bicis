@@ -18,3 +18,9 @@ export function whatsappLink(phone: string | null | undefined, text?: string): s
   if (!number) return null;
   return `https://wa.me/${number}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }
+
+// Mensaje para cobrar un saldo pendiente (lo envía el taller con un toque, desde su WhatsApp).
+export function paymentReminder(clientName: string | null | undefined, shopName: string | null | undefined, amount: string, orderNumber: string): string {
+  const first = (clientName ?? "").split(" ")[0];
+  return `Hola${first ? ` ${first}` : ""}, te escribimos de ${shopName || "el taller"}. Queda un saldo de ${amount} de la orden ${orderNumber}. ¿Cuándo podrías pasar a pagarlo? ¡Gracias!`;
+}

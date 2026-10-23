@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useGetReportSummary } from "@workspace/api-client-react";
+import { useGetReportSummary, useGetWorkshopSettings } from "@workspace/api-client-react";
+import { WhatsAppButton } from "@/components/whatsapp-button";
+import { paymentReminder } from "@/lib/whatsapp";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -37,6 +39,7 @@ export default function MisNumeros() {
   const [period, setPeriod] = useState<(typeof PERIODS)[number]["value"]>("mes");
   const [from, to] = PERIODS.find(p => p.value === period)!.range();
   const { data, isLoading, isError } = useGetReportSummary({ from, to });
+  const { data: settings } = useGetWorkshopSettings();
 
   const j = data?.jobs;
   const hourCost = data?.laborCostPerHour ?? null;
@@ -166,15 +169,15 @@ export default function MisNumeros() {
               <CardHeader className="pb-2"><CardTitle className="text-base">Quién te debe</CardTitle></CardHeader>
               <CardContent className="divide-y">
                 {data.receivable.items.map(r => (
-                  <Link key={r.workOrderId} href={r.workCaseId ? `/trabajos/${r.workCaseId}` : "/trabajos"}>
-                    <div className="py-2 flex items-center gap-3 text-sm cursor-pointer hover:bg-muted/40 -mx-2 px-2 rounded">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{r.clientName ?? "—"}</p>
-                        <p className="text-xs text-muted-foreground">{r.workOrderNumber}{r.deliveredAt ? ` · entregado ${new Date(r.deliveredAt).toLocaleDateString("es-CL")}` : ""}</p>
-                      </div>
-                      <span className="font-semibold text-red-600">{formatCLP(r.balance)}</span>
-                    </div>
-                  </Link>
+                  <div key={r.workOrderId} className="py-2 flex items-center gap-3 text-sm -mx-2 px-2 rounded hover:bg-muted/40">
+                    <Link href={r.workCaseId ? `/trabajos/${r.workCaseId}` : "/trabajos"} className="min-w-0 flex-1 cursor-pointer">
+                      <p className="font-medium truncate">{r.clientName ?? "—"}</p>
+                      <p className="text-xs text-muted-foreground">{r.workOrderNumber}{r.deliveredAt ? ` · entregado ${new Date(r.deliveredAt).toLocaleDateString("es-CL")}` : ""}</p>
+                    </Link>
+                    <span className="font-semibold text-red-600">{formatCLP(r.balance)}</span>
+                    <WhatsAppButton phone={r.clientPhone} label="Cobrar" className="h-7"
+                      text={paymentReminder(r.clientName, settings?.name, formatCLP(r.balance), r.workOrderNumber)} />
+                  </div>
                 ))}
                 {data.receivable.count > data.receivable.items.length && <p className="text-xs text-muted-foreground pt-2">Y {data.receivable.count - data.receivable.items.length} más.</p>}
               </CardContent>

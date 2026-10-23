@@ -1092,6 +1092,10 @@ export interface WorkOrder {
   /** @nullable */
   paidAmount?: number | null;
   /** @nullable */
+  quoteApprovedAt?: string | null;
+  /** @nullable */
+  quoteApprovedBy?: string | null;
+  /** @nullable */
   clientPhone?: string | null;
   /** Adicionales que esperan la decisión del cliente */
   pendingApprovalCount?: number;
@@ -1299,6 +1303,8 @@ export interface PublicWorkOrder {
   paidAt?: string | null;
   /** @nullable */
   paidAmount?: number | null;
+  /** @nullable */
+  quoteApprovedAt?: string | null;
   /** @nullable */
   workshopAddress?: string | null;
   clientName: string;
@@ -1735,6 +1741,8 @@ export type ReportSummaryReceivableItemsItem = {
   workOrderNumber: string;
   /** @nullable */
   clientName?: string | null;
+  /** @nullable */
+  clientPhone?: string | null;
   balance: number;
   /** @nullable */
   deliveredAt?: string | null;
@@ -2236,6 +2244,10 @@ export type UpdateServiceSuppliesBodySuppliesItem = {
 
 export type UpdateServiceSuppliesBody = {
   supplies: UpdateServiceSuppliesBodySuppliesItem[];
+};
+
+export type SetWorkOrderQuoteApprovalBody = {
+  approved: boolean;
 };
 
 export type PreviewWorkOrderEstimateBody = {

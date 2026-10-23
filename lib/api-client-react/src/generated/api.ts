@@ -98,6 +98,7 @@ import type {
   ServiceUpdate,
   ServiceWithCount,
   ServiceWithSteps,
+  SetWorkOrderQuoteApprovalBody,
   Supplier,
   TimelineEvent,
   UpdatePlatformWorkshopBody,
@@ -8422,6 +8423,147 @@ export function useGetWorkOrderEconomics<TData = Awaited<ReturnType<typeof getWo
 
 
 
+
+export const getSetWorkOrderQuoteApprovalUrl = (id: number,) => {
+
+
+
+
+  return `/api/work-orders/${id}/quote-approval`
+}
+
+/**
+ * @summary Registra (o quita) que el cliente aprobó la cotización
+ */
+export const setWorkOrderQuoteApproval = async (id: number,
+    setWorkOrderQuoteApprovalBody: SetWorkOrderQuoteApprovalBody, options?: RequestInit): Promise<WorkOrder> => {
+
+  return customFetch<WorkOrder>(getSetWorkOrderQuoteApprovalUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(setWorkOrderQuoteApprovalBody)
+  }
+);}
+
+
+
+
+export const getSetWorkOrderQuoteApprovalMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setWorkOrderQuoteApproval>>, TError,{id: number;data: BodyType<SetWorkOrderQuoteApprovalBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setWorkOrderQuoteApproval>>, TError,{id: number;data: BodyType<SetWorkOrderQuoteApprovalBody>}, TContext> => {
+
+const mutationKey = ['setWorkOrderQuoteApproval'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setWorkOrderQuoteApproval>>, {id: number;data: BodyType<SetWorkOrderQuoteApprovalBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setWorkOrderQuoteApproval(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetWorkOrderQuoteApprovalMutationResult = NonNullable<Awaited<ReturnType<typeof setWorkOrderQuoteApproval>>>
+    export type SetWorkOrderQuoteApprovalMutationBody = BodyType<SetWorkOrderQuoteApprovalBody>
+    export type SetWorkOrderQuoteApprovalMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Registra (o quita) que el cliente aprobó la cotización
+ */
+export const useSetWorkOrderQuoteApproval = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setWorkOrderQuoteApproval>>, TError,{id: number;data: BodyType<SetWorkOrderQuoteApprovalBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setWorkOrderQuoteApproval>>,
+        TError,
+        {id: number;data: BodyType<SetWorkOrderQuoteApprovalBody>},
+        TContext
+      > => {
+      return useMutation(getSetWorkOrderQuoteApprovalMutationOptions(options));
+    }
+
+export const getApprovePublicWorkOrderQuoteUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/ot/${token}/approve-quote`
+}
+
+/**
+ * @summary El cliente aprueba la cotización desde su link
+ */
+export const approvePublicWorkOrderQuote = async (token: string, options?: RequestInit): Promise<PublicWorkOrder> => {
+
+  return customFetch<PublicWorkOrder>(getApprovePublicWorkOrderQuoteUrl(token),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getApprovePublicWorkOrderQuoteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approvePublicWorkOrderQuote>>, TError,{token: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approvePublicWorkOrderQuote>>, TError,{token: string}, TContext> => {
+
+const mutationKey = ['approvePublicWorkOrderQuote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approvePublicWorkOrderQuote>>, {token: string}> = (props) => {
+          const {token} = props ?? {};
+
+          return  approvePublicWorkOrderQuote(token,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApprovePublicWorkOrderQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof approvePublicWorkOrderQuote>>>
+
+    export type ApprovePublicWorkOrderQuoteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary El cliente aprueba la cotización desde su link
+ */
+export const useApprovePublicWorkOrderQuote = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approvePublicWorkOrderQuote>>, TError,{token: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approvePublicWorkOrderQuote>>,
+        TError,
+        {token: string},
+        TContext
+      > => {
+      return useMutation(getApprovePublicWorkOrderQuoteMutationOptions(options));
+    }
 
 export const getPreviewWorkOrderEstimateUrl = () => {
 

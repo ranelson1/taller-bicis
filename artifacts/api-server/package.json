@@ -11,7 +11,8 @@
     "seed": "tsx src/scripts/load-demo.ts seed/demo-sendero.json",
     "create-superadmin": "tsx src/scripts/create-superadmin.ts",
     "load-demo": "tsx src/scripts/load-demo.ts",
-    "check-isolation": "tsx src/scripts/check-isolation.ts"
+    "check-isolation": "tsx src/scripts/check-isolation.ts",
+    "seed-inventario": "tsx src/scripts/seed-inventario.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.137.0",

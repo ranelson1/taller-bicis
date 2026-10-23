@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetPublicWorkOrder,
   useDecidePublicWorkOrderItem,
+  useApprovePublicWorkOrderQuote,
   getGetPublicWorkOrderQueryKey,
   type PublicWorkOrder,
   type PublicWorkOrderItem,
@@ -122,6 +123,15 @@ export default function OtPublica() {
     query: { queryKey, refetchInterval: 60_000, refetchOnWindowFocus: true },
   });
   const decide = useDecidePublicWorkOrderItem();
+  const approveQuote = useApprovePublicWorkOrderQuote();
+  const onApproveQuote = async () => {
+    try {
+      const updated = await approveQuote.mutateAsync({ token });
+      queryClient.setQueryData<PublicWorkOrder>(queryKey, updated);
+    } catch {
+      queryClient.invalidateQueries({ queryKey });
+    }
+  };
   const [confirmReject, setConfirmReject] = useState<PublicWorkOrderItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -308,6 +318,23 @@ export default function OtPublica() {
         {initialItems.length > 0 && (
           <Section icon={Wrench} title="Trabajos">
             {initialItems.map(item => <ItemRow key={item.id} item={item} />)}
+            {ot.status !== "cancelled" && (
+              <div className="pt-3 mt-1 border-t border-stone-100">
+                {ot.quoteApprovedAt ? (
+                  <p className="text-sm text-green-700 flex items-center gap-1.5" data-testid="quote-approved">
+                    <Check className="h-4 w-4" />Aprobaste esta cotización el {new Date(ot.quoteApprovedAt).toLocaleDateString("es-CL", { day: "numeric", month: "long" })}
+                  </p>
+                ) : ot.status !== "delivered" && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-sm text-stone-600 flex-1 min-w-48">¿Estás de acuerdo con esta cotización? Avísanos con un toque. Ya estamos trabajando en tu bicicleta.</p>
+                    <button type="button" onClick={onApproveQuote} disabled={approveQuote.isPending} data-testid="button-approve-quote"
+                      className="rounded-xl bg-green-600 text-white text-sm font-medium px-4 py-2.5 hover:bg-green-700 disabled:opacity-60">
+                      {approveQuote.isPending ? "Enviando…" : "Aprobar cotización"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </Section>
         )}
         {additionalItems.filter(i => i.approvalStatus !== "pending").length > 0 && (

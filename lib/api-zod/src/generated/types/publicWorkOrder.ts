@@ -32,6 +32,8 @@ export interface PublicWorkOrder {
   /** @nullable */
   paidAmount?: number | null;
   /** @nullable */
+  quoteApprovedAt?: string | null;
+  /** @nullable */
   workshopAddress?: string | null;
   clientName: string;
   /** @nullable */

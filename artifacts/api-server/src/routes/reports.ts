@@ -54,7 +54,7 @@ router.get("/summary", async (req, res) => {
 
     const unpaid = (await db.select({
       id: workOrdersTable.id, number: workOrdersTable.workOrderNumber, workCaseId: workOrdersTable.workCaseId, total: workOrdersTable.total,
-      paidAt: workOrdersTable.paidAt, paidAmount: workOrdersTable.paidAmount, deliveredAt: workOrdersTable.deliveredAt, clientName: clientsTable.name,
+      paidAt: workOrdersTable.paidAt, paidAmount: workOrdersTable.paidAmount, deliveredAt: workOrdersTable.deliveredAt, clientName: clientsTable.name, clientPhone: clientsTable.phone,
     }).from(workOrdersTable).leftJoin(clientsTable, eq(clientsTable.id, workOrdersTable.clientId))
       .where(eq(workOrdersTable.status, "delivered")))
       .map(w => ({ ...w, balance: Number(w.total) - (w.paidAt ? Number(w.paidAmount ?? w.total) : 0) }))
@@ -137,7 +137,7 @@ router.get("/summary", async (req, res) => {
       collected: { amount: round(Number(collected.amount)), count: Number(collected.count) },
       receivable: {
         amount: round(unpaid.reduce((s, w) => s + w.balance, 0)), count: unpaid.length,
-        items: unpaid.slice(0, 8).map(w => ({ workOrderId: w.id, workCaseId: w.workCaseId, workOrderNumber: w.number, clientName: w.clientName, balance: round(w.balance), deliveredAt: w.deliveredAt?.toISOString() ?? null })),
+        items: unpaid.slice(0, 8).map(w => ({ workOrderId: w.id, workCaseId: w.workCaseId, workOrderNumber: w.number, clientName: w.clientName, clientPhone: w.clientPhone, balance: round(w.balance), deliveredAt: w.deliveredAt?.toISOString() ?? null })),
       },
       inProgress: { count: Number(inProgress.count), value: round(Number(inProgress.value)) },
       purchases: { total: round(Number(bought.total)), net: round(Number(bought.net)), count: Number(bought.count) },

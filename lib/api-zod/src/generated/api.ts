@@ -2177,6 +2177,8 @@ export const ListWorkOrdersResponseItem = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -2231,6 +2233,8 @@ export const CreateWorkOrderFromQuoteResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -2284,6 +2288,8 @@ export const CreateWorkOrderFromReceptionResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -2329,6 +2335,8 @@ export const GetWorkOrderResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -2422,6 +2430,8 @@ export const UpdateWorkOrderResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -2467,6 +2477,8 @@ export const DeleteWorkOrderResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -2517,6 +2529,8 @@ export const UpdateWorkOrderStatusResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -3197,6 +3211,123 @@ export const GetWorkOrderEconomicsResponse = zod.object({
 
 
 /**
+ * @summary Registra (o quita) que el cliente aprobó la cotización
+ */
+export const SetWorkOrderQuoteApprovalParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SetWorkOrderQuoteApprovalBody = zod.object({
+  "approved": zod.boolean()
+})
+
+export const SetWorkOrderQuoteApprovalResponse = zod.object({
+  "id": zod.number(),
+  "workOrderNumber": zod.string(),
+  "quoteId": zod.number().nullish(),
+  "receptionId": zod.number().nullish(),
+  "clientId": zod.number(),
+  "bicycleId": zod.number(),
+  "mechanicId": zod.number().nullish(),
+  "status": zod.enum(['ready_to_work', 'in_progress', 'quality_control', 'ready_for_pickup', 'delivered', 'cancelled']),
+  "priority": zod.enum(['low', 'normal', 'high', 'urgent']),
+  "internalNotes": zod.string().nullish(),
+  "customerNotes": zod.string().nullish(),
+  "estimatedDeliveryDate": zod.string().nullish(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "deliveredAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paymentMethodId": zod.number().nullish(),
+  "paymentMethodName": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
+  "clientPhone": zod.string().nullish(),
+  "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
+  "total": zod.number(),
+  "estimatedLaborHours": zod.number(),
+  "progressPercentage": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "clientName": zod.string().nullish(),
+  "bicycleName": zod.string().nullish(),
+  "mechanicName": zod.string().nullish(),
+  "quoteNumber": zod.string().nullish(),
+  "receptionNumber": zod.string().nullish(),
+  "workCaseId": zod.number().nullish(),
+  "workCaseNumber": zod.string().nullish()
+})
+
+
+/**
+ * @summary El cliente aprueba la cotización desde su link
+ */
+export const ApprovePublicWorkOrderQuoteParams = zod.object({
+  "token": zod.coerce.string()
+})
+
+export const ApprovePublicWorkOrderQuoteResponse = zod.object({
+  "workshopName": zod.string(),
+  "workshopPhone": zod.string().nullish(),
+  "workshopLogoUrl": zod.string().nullish(),
+  "workOrderNumber": zod.string(),
+  "status": zod.enum(['ready_to_work', 'in_progress', 'quality_control', 'ready_for_pickup', 'delivered', 'cancelled']),
+  "progressPercentage": zod.number(),
+  "receivedAt": zod.string(),
+  "estimatedDeliveryDate": zod.string().nullish(),
+  "deliveredAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "paidAt": zod.string().nullish(),
+  "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "workshopAddress": zod.string().nullish(),
+  "clientName": zod.string(),
+  "bicycle": zod.object({
+  "brand": zod.string().optional(),
+  "model": zod.string().optional(),
+  "year": zod.number().nullish(),
+  "type": zod.string().optional(),
+  "color": zod.string().nullish(),
+  "rimSize": zod.string().nullish()
+}).nullish(),
+  "reportedProblem": zod.string().nullish(),
+  "customerNotes": zod.string().nullish(),
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "itemType": zod.string(),
+  "description": zod.string(),
+  "quantity": zod.number(),
+  "unitPrice": zod.number(),
+  "total": zod.number(),
+  "origin": zod.string(),
+  "approvalStatus": zod.enum(['pending', 'approved', 'rejected']),
+  "status": zod.string()
+})),
+  "subtotal": zod.number(),
+  "discountTotal": zod.number(),
+  "total": zod.number(),
+  "net": zod.number(),
+  "tax": zod.number(),
+  "pendingApprovalCount": zod.number(),
+  "photos": zod.array(zod.object({
+  "id": zod.number(),
+  "note": zod.string().nullish(),
+  "mimeType": zod.string().optional().describe('image\/\* o video\/\*'),
+  "createdAt": zod.string(),
+  "url": zod.string()
+})).optional(),
+  "timeline": zod.array(zod.object({
+  "id": zod.number(),
+  "createdAt": zod.string(),
+  "title": zod.string(),
+  "detail": zod.string().nullish()
+}))
+})
+
+
+/**
  * @summary Término estimado de un trabajo aún no creado (no guarda nada)
  */
 export const PreviewWorkOrderEstimateBody = zod.object({
@@ -3240,6 +3371,8 @@ export const EstimateWorkOrderCompletionResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -3289,6 +3422,8 @@ export const CancelWorkOrderResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -3338,6 +3473,8 @@ export const AssignMechanicToWorkOrderResponse = zod.object({
   "paymentMethodId": zod.number().nullish(),
   "paymentMethodName": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
+  "quoteApprovedBy": zod.string().nullish(),
   "clientPhone": zod.string().nullish(),
   "pendingApprovalCount": zod.number().optional().describe('Adicionales que esperan la decisión del cliente'),
   "total": zod.number(),
@@ -3745,6 +3882,7 @@ export const GetReportSummaryResponse = zod.object({
   "workCaseId": zod.number().nullish(),
   "workOrderNumber": zod.string(),
   "clientName": zod.string().nullish(),
+  "clientPhone": zod.string().nullish(),
   "balance": zod.number(),
   "deliveredAt": zod.string().nullish()
 }))
@@ -3809,6 +3947,7 @@ export const GetPublicWorkOrderResponse = zod.object({
   "completedAt": zod.string().nullish(),
   "paidAt": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
   "workshopAddress": zod.string().nullish(),
   "clientName": zod.string(),
   "bicycle": zod.object({
@@ -3879,6 +4018,7 @@ export const DecidePublicWorkOrderItemResponse = zod.object({
   "completedAt": zod.string().nullish(),
   "paidAt": zod.string().nullish(),
   "paidAmount": zod.number().nullish(),
+  "quoteApprovedAt": zod.string().nullish(),
   "workshopAddress": zod.string().nullish(),
   "clientName": zod.string(),
   "bicycle": zod.object({

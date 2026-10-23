@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { WhatsAppButton } from "@/components/whatsapp-button";
+import { paymentReminder } from "@/lib/whatsapp";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { AlertTriangle, CircleDollarSign, Clock, PackageCheck, Plus, ShoppingCart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkers } from "@/hooks/use-workers";
-import { WO_STATUS_LABELS, formatCLP, hasBalanceDue } from "@/lib/work-status";
+import { WO_STATUS_LABELS, formatCLP, hasBalanceDue, balanceDue } from "@/lib/work-status";
 import { daysBetween } from "@/components/trabajo/dates-card";
 import { EtaBadge, daysToEta } from "@/components/trabajo/eta-badge";
 
@@ -26,17 +28,15 @@ const remainingHours = (wo: WorkOrder) =>
 
 function WorkRow({ wo, extra }: { wo: WorkOrder; extra?: React.ReactNode }) {
   return (
-    <Link href={workHref(wo)}>
-      <div className="flex items-center gap-3 py-2 px-1 -mx-1 rounded-md hover:bg-muted/50 cursor-pointer">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium truncate">
-            <span className="font-mono text-primary mr-1.5">{wo.workOrderNumber}</span>{wo.clientName}
-          </p>
-          <p className="text-xs text-muted-foreground truncate">{wo.bicycleName}{wo.mechanicName ? ` · ${wo.mechanicName}` : ""}</p>
-        </div>
-        {extra}
-      </div>
-    </Link>
+    <div className="flex items-center gap-3 py-2 px-1 -mx-1 rounded-md hover:bg-muted/50">
+      <Link href={workHref(wo)} className="min-w-0 flex-1 cursor-pointer">
+        <p className="text-sm font-medium truncate">
+          <span className="font-mono text-primary mr-1.5">{wo.workOrderNumber}</span>{wo.clientName}
+        </p>
+        <p className="text-xs text-muted-foreground truncate">{wo.bicycleName}{wo.mechanicName ? ` · ${wo.mechanicName}` : ""}</p>
+      </Link>
+      {extra}
+    </div>
   );
 }
 
@@ -153,7 +153,15 @@ export default function Dashboard() {
                   return <span className={cn("text-xs whitespace-nowrap", d >= 3 ? "text-red-700 font-medium" : "text-muted-foreground")}>{d === 0 ? "desde hoy" : `hace ${d} d`}</span>;
                 }} />
               <AlertCard title="Entregadas sin pagar" icon={CircleDollarSign} tone="sky" items={unpaid}
-                render={wo => <span className="text-xs font-medium whitespace-nowrap">{formatCLP(wo.total - (wo.paidAt ? wo.paidAmount ?? wo.total : 0))}</span>} />
+                render={wo => {
+                  const owed = balanceDue(wo);
+                  return (
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs font-medium whitespace-nowrap">{formatCLP(owed)}</span>
+                      <WhatsAppButton phone={wo.clientPhone} text={paymentReminder(wo.clientName, settings?.name, formatCLP(owed), wo.workOrderNumber)} label="Cobrar" className="h-7" />
+                    </span>
+                  );
+                }} />
             </div>
           ) : (
             <Card><CardContent className="py-6 text-sm text-muted-foreground text-center">Nada urgente: no hay trabajos atrasados, esperando al cliente ni por cobrar.</CardContent></Card>

@@ -135,6 +135,7 @@ export * from './serviceSupply';
 export * from './serviceUpdate';
 export * from './serviceWithCount';
 export * from './serviceWithSteps';
+export * from './setWorkOrderQuoteApprovalBody';
 export * from './supplier';
 export * from './timelineEvent';
 export * from './updatePlatformWorkshopBody';

@@ -607,6 +607,26 @@ router.get("/:id/photos/:photoId/file", async (req, res) => {
   }
 });
 
+// ── POST /work-orders/:id/quote-approval ─────────────────────────────────────
+// El taller registra que el cliente aprobó la cotización (en persona, por teléfono o WhatsApp), o lo deshace.
+router.post("/:id/quote-approval", async (req, res) => {
+  const parsed = z.object({ approved: z.boolean() }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "Invalid input" }); return; }
+  const id = parseInt(req.params.id);
+  const userId = (req.session as any)?.userId ?? null;
+  try {
+    const [row] = await db.update(workOrdersTable)
+      .set({ quoteApprovedAt: parsed.data.approved ? new Date() : null, quoteApprovedBy: parsed.data.approved ? "staff" : null, updatedAt: new Date() })
+      .where(eq(workOrdersTable.id, id)).returning();
+    if (!row) { res.status(404).json({ error: "Orden de trabajo no encontrada" }); return; }
+    await logEvent(id, "quote_approved", userId, "staff", undefined, parsed.data.approved ? "El taller registró la aprobación de la cotización" : "El taller quitó la aprobación de la cotización");
+    res.json((await enrichWorkOrders([row]))[0]);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ── GET /work-orders/:id/economics ────────────────────────────────────────────
 // Lo cobrado, lo que costaron repuestos/insumos y la mano de obra, y el margen. Solo admin.
 router.get("/:id/economics", async (req, res) => {

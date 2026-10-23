@@ -74,6 +74,9 @@ export const workOrdersTable = pgTable("work_orders", {
   paidAt: timestamp("paid_at"),
   paymentMethodId: integer("payment_method_id").references(() => paymentMethodsTable.id),
   paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }),
+  // Aprobación opcional de la cotización (migración 012): fecha y quién la dio (client | staff).
+  quoteApprovedAt: timestamp("quote_approved_at"),
+  quoteApprovedBy: text("quote_approved_by"),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
   estimatedLaborHours: numeric("estimated_labor_hours", { precision: 8, scale: 2 }).notNull().default("0"),
   progressPercentage: numeric("progress_percentage", { precision: 5, scale: 2 }).notNull().default("0"),

@@ -13,6 +13,7 @@ import {
   useListUsers,
   useGetMe,
   useGetWorkshopSettings,
+  useSetWorkOrderQuoteApproval,
   useListServices,
   useListParts,
   getGetWorkCaseQueryKey,
@@ -51,6 +52,7 @@ import { WorkOrderDatesCard } from "@/components/trabajo/dates-card";
 import { ChecklistCard } from "@/components/trabajo/checklist-card";
 import { WorkOrderMenu } from "@/components/trabajo/work-order-menu";
 import { WhatsAppButton } from "@/components/whatsapp-button";
+import { paymentReminder } from "@/lib/whatsapp";
 import { PhotosCard } from "@/components/trabajo/photos-card";
 import { EconomicsCard } from "@/components/inventory/economics-card";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -115,6 +117,7 @@ function eventDetail(e: any): string | null {
   if (e.action === "status_changed" && e.newStatus) {
     return `${WO_STATUS_LABELS[e.previousStatus] ?? e.previousStatus ?? ""} → ${WO_STATUS_LABELS[e.newStatus] ?? e.newStatus}`;
   }
+  if (e.action === "quote_approved") return e.comment ?? "Cotización aprobada";
   if (e.action === "item_decision") {
     const who = e.previousStatus === "client" ? "El cliente" : "El taller";
     return `${who} ${e.newStatus === "approved" ? "aprobó" : "rechazó"}: ${e.comment ?? ""}`;
@@ -160,6 +163,7 @@ export default function TrabajoDetail() {
   const { data: users } = useListUsers();
   const { data: me } = useGetMe();
   const { data: settings } = useGetWorkshopSettings();
+  const quoteApproval = useSetWorkOrderQuoteApproval();
   const { data: services } = useListServices();
   const { data: parts } = useListParts();
   const { workers: mechanics, solo } = useWorkers();
@@ -418,7 +422,28 @@ export default function TrabajoDetail() {
                 <span className="block text-xs text-red-700">{wo.paidAt ? "El cliente abonó, pero falta saldo." : "Entregada sin pago registrado."} Registra el pago en la tarjeta de fechas.</span>
               </span>
               <WhatsAppButton phone={wo.clientPhone} label="Recordar pago"
-                text={`Hola ${(wo.clientName ?? "").split(" ")[0]}, te escribimos de ${settings?.name ?? "el taller"}. Queda un saldo de ${formatCLP(balanceDue(wo))} de la orden ${wo.workOrderNumber}. ¿Cuándo podrías pasar a pagarlo? ¡Gracias!`} />
+                text={paymentReminder(wo.clientName, settings?.name, formatCLP(balanceDue(wo)), wo.workOrderNumber)} />
+            </div>
+          )}
+
+          {/* Aprobación de la cotización (opcional: solo se registra) */}
+          {woStatus !== "cancelled" && (
+            <div className={cn("rounded-lg border p-2.5 text-sm flex flex-wrap items-center gap-2", wo.quoteApprovedAt ? "border-green-200 bg-green-50 text-green-800" : "bg-muted/40 text-muted-foreground")} data-testid="quote-approval">
+              {wo.quoteApprovedAt ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Clock className="h-4 w-4 shrink-0" />}
+              <span className="flex-1 min-w-40">
+                {wo.quoteApprovedAt
+                  ? `Cotización aprobada ${wo.quoteApprovedBy === "client" ? "por el cliente desde su link" : "(registrada por el taller)"} el ${new Date(wo.quoteApprovedAt).toLocaleDateString("es-CL", { day: "numeric", month: "short" })}`
+                  : "El cliente aún no ha aprobado la cotización (opcional)."}
+              </span>
+              {!isClosed && (
+                <Button variant="outline" size="sm" className="h-7" disabled={quoteApproval.isPending}
+                  onClick={() => quoteApproval.mutate({ id: wo.id, data: { approved: !wo.quoteApprovedAt } }, {
+                    onSuccess: () => invalidate(),
+                    onError: () => toast({ variant: "destructive", title: "No se pudo guardar" }),
+                  })}>
+                  {wo.quoteApprovedAt ? "Quitar" : "Marcar como aprobada"}
+                </Button>
+              )}
             </div>
           )}
 
